@@ -1,0 +1,536 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+html {
+  font-size: 70%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0f172a;
+  background-color: var(--theme-background);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+  --global-scale: 0.7;
+  --theme-background: #0b1220;
+  --theme-surface: #ffffff;
+  --theme-text: #1f232c;
+  --theme-muted: #6b7280;
+  --theme-border: rgba(15, 23, 42, 0.08);
+  --theme-card-shadow: 0 25px 80px rgba(15, 23, 42, 0.08);
+  --theme-section-from: #0f1d3a;
+  --theme-section-to: #0b1220;
+}
+
+.dashboard-scale,
+#root {
+  transform: none;
+  transform-origin: initial;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.dashboard-theme {
+  background-color: var(--theme-background);
+  color: var(--theme-text);
+}
+
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.theme-section {
+  background: linear-gradient(145deg, var(--theme-section-from), var(--theme-section-to)) !important;
+  color: var(--theme-text);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-card-shadow);
+}
+
+.theme-card {
+  background-color: var(--theme-surface) !important;
+  color: var(--theme-text);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-card-shadow);
+}
+
+.theme-muted {
+  color: var(--theme-muted);
+}
+
+.theme-text {
+  color: var(--theme-text);
+}
+
+.theme-panel {
+  background-color: var(--theme-surface) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: var(--theme-card-shadow);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.theme-panel-soft {
+  background-color: var(--surface-muted, var(--theme-surface)) !important;
+  border: 1px solid var(--theme-border) !important;
+  box-shadow: var(--theme-card-shadow);
+  backdrop-filter: blur(20px);
+}
+
+.financial-overview-card {
+  background: var(--theme-surface);
+  border-color: var(--theme-border);
+}
+
+.financial-overview-body .financial-legend-chip {
+  background-color: var(--surface-muted, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-card-shadow);
+}
+
+.financial-metric-card {
+  background: var(--surface-muted, var(--theme-surface));
+  border-color: var(--theme-border);
+  box-shadow: var(--theme-card-shadow);
+}
+
+.dashboard-theme.theme-dark .financial-overview-card {
+  background: radial-gradient(circle at top, #0f172a, #020617 70%);
+  border-color: #1f2937;
+  box-shadow: 0 30px 80px rgba(2, 6, 23, 0.9);
+}
+
+.dashboard-theme.theme-dark .financial-overview-body .financial-legend-chip {
+  background: linear-gradient(120deg, rgba(17, 24, 39, 0.8), rgba(2, 6, 23, 0.8));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+.dashboard-theme.theme-dark .financial-metric-card {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.8), rgba(2, 6, 23, 0.8));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+}
+
+.real-time-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(254, 244, 237, 0.85));
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-theme.theme-dark {
+  background-color: #04060b;
+  color: #f3f5ff;
+}
+
+.dashboard-theme.theme-dark .theme-section {
+  background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 55%), linear-gradient(135deg, #0c111c, #05070f);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 35px 80px rgba(0, 0, 0, 0.75);
+}
+
+.dashboard-theme.theme-dark .theme-panel {
+  background: linear-gradient(155deg, #0f1524, #111827) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.dashboard-theme.theme-dark .theme-panel-soft {
+  background: linear-gradient(145deg, #161d30, #111827) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dashboard-theme.theme-dark .theme-card,
+.dashboard-theme.theme-dark .bg-white,
+.dashboard-theme.theme-dark .bg-gray-50 {
+  background-color: #111727 !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.65) !important;
+}
+
+.dashboard-theme.theme-dark .bg-gray-100,
+.dashboard-theme.theme-dark .bg-gray-200 {
+  background-color: #1a2132 !important;
+}
+
+.dashboard-theme.theme-dark .border-gray-100,
+.dashboard-theme.theme-dark .border-gray-200,
+.dashboard-theme.theme-dark .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.dashboard-theme.theme-dark .text-gray-900,
+.dashboard-theme.theme-dark .text-gray-800,
+.dashboard-theme.theme-dark .text-gray-700,
+.dashboard-theme.theme-dark .text-gray-900\/90 {
+  color: #f4f7ff !important;
+}
+
+.dashboard-theme.theme-dark .text-gray-600,
+.dashboard-theme.theme-dark .text-gray-500,
+.dashboard-theme.theme-dark .text-gray-400,
+.dashboard-theme.theme-dark .text-gray-300 {
+  color: #9ca8c9 !important;
+}
+
+.dashboard-theme.theme-dark .text-gray-200,
+.dashboard-theme.theme-dark .text-gray-100 {
+  color: #7d8ab4 !important;
+}
+
+.dashboard-theme.theme-dark .real-time-card {
+  background: linear-gradient(145deg, #151c2c, #0c111c);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 35px 90px rgba(0, 0, 0, 0.8);
+}
+
+.dashboard-theme.theme-dark .real-time-card .real-time-value {
+  color: #f8fbff !important;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.dashboard-theme.theme-dark .real-time-card .real-time-delta {
+  background: linear-gradient(120deg, rgba(99, 102, 241, 0.3), rgba(255, 255, 255, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e0e7ff !important;
+}
+
+/* Custom date inputs: hide native calendar indicator, we render our own icon */
+.date-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
+.date-input::-moz-focus-inner {
+  border: 0;
+}
+
+.dashboard-theme.theme-dark .real-time-card .real-time-subtitle {
+  color: rgba(226, 232, 255, 0.65) !important;
+}
+
+.dashboard-theme.theme-dark .real-time-card .real-time-delta svg {
+  color: #60a5fa !important;
+}
+
+.dashboard-theme.theme-dark .shadow,
+.dashboard-theme.theme-dark .shadow-lg,
+.dashboard-theme.theme-dark .shadow-sm {
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7) !important;
+}
+
+.dashboard-theme.theme-dark button {
+  color: #f6f8ff;
+}
+
+.dashboard-theme.theme-dark .download-pill:hover {
+  background-color: #f97316 !important;
+  border-color: #f97316 !important;
+  color: #111827 !important;
+}
+
+.dashboard-theme.theme-dark .download-pill:hover svg {
+  color: #111827 !important;
+}
+
+.dashboard-theme.theme-dark .open-data-btn:hover {
+  background-color: #f97316 !important;
+  border-color: #f97316 !important;
+  color: #111827 !important;
+}
+
+.dashboard-theme.theme-dark .open-data-btn:hover svg {
+  color: #111827 !important;
+}
+
+/* Dark theme tweak for Active Channel Benchmark card */
+.dashboard-theme.theme-dark .benchmark-card {
+  background-color: rgba(15, 23, 42, 0.95) !important; /* slightly brighter slate */
+  border-color: rgba(148, 163, 184, 0.7) !important;
+}
+
+.dashboard-theme.theme-dark .benchmark-card p {
+  color: rgba(226, 232, 255, 0.85) !important;
+}
+
+.dashboard-theme.theme-dark .border-gray-900 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.dashboard-theme.theme-dark .bg-white\/70 {
+  background-color: rgba(17, 23, 39, 0.7) !important;
+}
+
+/* Theme-aware input used in Settings color fields */
+.theme-input {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: var(--theme-border);
+}
+
+.dashboard-theme.theme-dark .theme-input {
+  background-color: #020617;
+  color: #e5e7eb;
+  border-color: rgba(148, 163, 184, 0.6);
+}
+
+/* Enhanced orange highlights for dark theme */
+.dashboard-theme.theme-dark .bg-orange-50,
+.dashboard-theme.theme-dark .bg-orange-50\/70,
+.dashboard-theme.theme-dark .bg-orange-50\/30 {
+  background-color: rgba(251, 146, 60, 0.15) !important;
+}
+
+.dashboard-theme.theme-dark .border-orange-100,
+.dashboard-theme.theme-dark .border-orange-200 {
+  border-color: rgba(251, 146, 60, 0.3) !important;
+}
+
+.dashboard-theme.theme-dark .text-orange-500,
+.dashboard-theme.theme-dark .text-orange-600,
+.dashboard-theme.theme-dark .text-orange-700 {
+  color: #fb923c !important;
+  font-weight: 600 !important;
+}
+
+.dashboard-theme.theme-dark .text-orange-300 {
+  color: #fdba74 !important;
+}
+
+.dashboard-theme.theme-dark .text-orange-400 {
+  color: #fb923c !important;
+}
+
+.dashboard-theme.theme-dark .bg-orange-500 {
+  background-color: #f97316 !important;
+}
+
+/* Fix text contrast for Google Ads button in dark theme */
+.dashboard-theme.theme-dark button[style*="234, 67, 53"] .text-white\/80 {
+  color: rgba(249, 115, 22, 0.9) !important;
+}
+
+.dashboard-theme.theme-dark button[style*="234, 67, 53"] .text-white {
+  color: #f97316 !important;
+}
+
+/* More specific selectors for Google Ads button text in dark theme */
+.dashboard-theme.theme-dark button[style*="234, 67, 53"] div.text-left p {
+  color: #f97316 !important;
+}
+
+.dashboard-theme.theme-dark button[style*="234, 67, 53"] div.text-left p.text-\[15px\] {
+  color: rgba(249, 115, 22, 0.9) !important;
+}
+
+/* Enhanced hover states for dark theme */
+.dashboard-theme.theme-dark .hover\\:bg-orange-50:hover,
+.dashboard-theme.theme-dark .hover\\:bg-orange-50\/70:hover {
+  background-color: rgba(251, 146, 60, 0.25) !important;
+}
+
+.detailed-ad-row {
+  background-color: #ffffff;
+}
+
+.detailed-ad-row:nth-child(even) {
+  background-color: rgba(15, 23, 42, 0.02);
+}
+
+.detailed-ad-row:hover {
+  background-color: rgba(249, 115, 22, 0.08);
+}
+
+.dashboard-theme.theme-dark .detailed-ad-row {
+  background-color: rgba(2, 6, 23, 0.15);
+}
+
+.dashboard-theme.theme-dark .detailed-ad-row:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.dashboard-theme.theme-dark .detailed-ad-row:hover {
+  background-color: rgba(251, 146, 60, 0.18);
+}
+
+.campaign-performance-row {
+  background-color: #ffffff;
+}
+
+.campaign-performance-row:nth-child(even) {
+  background-color: rgba(15, 23, 42, 0.02);
+}
+
+.campaign-performance-row:hover {
+  background-color: rgba(249, 115, 22, 0.06);
+}
+
+.dashboard-theme.theme-dark .campaign-performance-row {
+  background-color: rgba(2, 6, 23, 0.15);
+}
+
+.dashboard-theme.theme-dark .campaign-performance-row:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.dashboard-theme.theme-dark .campaign-performance-row:hover {
+  background-color: rgba(251, 146, 60, 0.12);
+}
+
+.dashboard-theme.theme-dark .hover\\:text-orange-600:hover {
+  color: #fdba74 !important;
+}
+
+/* UX/UI Enhancement Animations for Campaign Performance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Enhanced hover effects for Campaign Performance table */
+.dashboard-theme.theme-dark tr.hover\:bg-orange-50\/40:hover {
+  background-color: rgba(251, 146, 60, 0.15) !important;
+}
+
+/* Improved button hover states */
+.dashboard-theme.theme-dark button.hover\:bg-white:hover {
+  background-color: rgba(17, 23, 39, 0.9) !important;
+}
+
+/* Enhanced focus rings for dark theme */
+.dashboard-theme.theme-dark .peer-focus\\:ring-orange-300:focus ~ .peer-focus\:ring-4 {
+  --tw-ring-color: rgba(251, 146, 60, 0.3) !important;
+}
+
+/* Enhanced indigo highlights for dark theme */
+.dashboard-theme.theme-dark .text-indigo-500,
+.dashboard-theme.theme-dark .text-indigo-600,
+.dashboard-theme.theme-dark .text-indigo-400 {
+  color: #818cf8 !important;
+  font-weight: 600 !important;
+}
+
+.dashboard-theme.theme-dark .text-indigo-300 {
+  color: #a5b4fc !important;
+}
+
+/* Enhanced theme-text for dark theme */
+.dashboard-theme.theme-dark .theme-text {
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
+}
+
+/* Enhanced table row hover for dark theme */
+.dashboard-theme.theme-dark .hover\\:bg-indigo-50:hover {
+  background-color: rgba(251, 146, 60, 0.08) !important;
+}
+
+code {
+  font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  color: #0b1120;
+}
+
+:where(h1, h2, h3, h4, h5, h6, p, ul, ol) {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+}
+
+h1,
+h2,
+h3 {
+  font-size: 32px;
+}
+
+h4,
+h5,
+h6 {
+  font-size: 20px;
+}
+
+p {
+  color: #1e293b;
+  margin-bottom: 1rem;
+  font-size: 20px;
+}
+
+ul,
+ol {
+  padding-left: 1.25rem;
+  color: #1e293b;
+}
+
+.card-stack > * + * {
+  margin-top: 1.25rem;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.fa,
+.fa-solid,
+.fa-regular,
+.fa-brands {
+  font-family: 'Font Awesome 7 Free';
+}
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

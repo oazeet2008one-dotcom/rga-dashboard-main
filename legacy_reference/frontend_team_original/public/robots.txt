@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://rga-dashboard.vercel.app/sitemap.xml
+
+# Important pages
+Allow: /terms
+Allow: /privacy
+Allow: /
+

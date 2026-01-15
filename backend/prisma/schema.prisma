@@ -1,0 +1,865 @@
+// ============================================================
+// RGA Dashboard - Prisma Schema (Phase 1: Sprint 1-4)
+// ============================================================
+// Version: 2.0.0
+// Last Updated: 2026-01-14
+// Scope: Auth, Multi-tenant, Campaigns, Alerts, ETL, Notifications
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS - Type-safe Status Values
+// ============================================================
+
+/// User Roles - กำหนดระดับสิทธิ์การใช้งาน
+enum UserRole {
+  SUPER_ADMIN @map("super_admin")
+  ADMIN       @map("admin")
+  MANAGER     @map("manager")
+  CLIENT      @map("client")
+  VIEWER      @map("viewer")
+
+  @@map("user_role")
+}
+
+/// Campaign Status - สถานะของแคมเปญโฆษณา
+enum CampaignStatus {
+  ACTIVE    @map("active")
+  PAUSED    @map("paused")
+  DELETED   @map("deleted")
+  PENDING   @map("pending")
+  COMPLETED @map("completed")
+  ENDED     @map("ended")
+
+  @@map("campaign_status")
+}
+
+/// Ad Platform - แพลตฟอร์มโฆษณาที่รองรับ
+enum AdPlatform {
+  GOOGLE_ADS       @map("google_ads")
+  FACEBOOK         @map("facebook")
+  TIKTOK           @map("tiktok")
+  LINE_ADS         @map("line_ads")
+  GOOGLE_ANALYTICS @map("google_analytics")
+  SHOPEE           @map("shopee")
+  LAZADA           @map("lazada")
+
+  @@map("ad_platform")
+}
+
+/// Notification Channel - ช่องทางการแจ้งเตือน
+enum NotificationChannel {
+  IN_APP  @map("in_app")
+  EMAIL   @map("email")
+  LINE    @map("line")
+  SMS     @map("sms")
+  WEBHOOK @map("webhook")
+
+  @@map("notification_channel")
+}
+
+/// Alert Severity - ระดับความรุนแรงของ Alert
+enum AlertSeverity {
+  INFO     @map("info")
+  WARNING  @map("warning")
+  CRITICAL @map("critical")
+
+  @@map("alert_severity")
+}
+
+/// Alert Status - สถานะของ Alert
+enum AlertStatus {
+  OPEN         @map("open")
+  ACKNOWLEDGED @map("acknowledged")
+  RESOLVED     @map("resolved")
+
+  @@map("alert_status")
+}
+
+/// Sync Status - สถานะการ Sync ข้อมูล
+enum SyncStatus {
+  PENDING     @map("pending")
+  STARTED     @map("started")
+  IN_PROGRESS @map("in_progress")
+  SUCCESS     @map("success")
+  COMPLETED   @map("completed")
+  FAILED      @map("failed")
+  PARTIAL     @map("partial")
+
+  @@map("sync_status")
+}
+
+/// Sync Type - ประเภทการ Sync
+enum SyncType {
+  INITIAL   @map("initial")
+  SCHEDULED @map("scheduled")
+  MANUAL    @map("manual")
+
+  @@map("sync_type")
+}
+
+/// Alert Rule Type - ประเภทกฎแจ้งเตือน
+enum AlertRuleType {
+  THRESHOLD @map("threshold")
+  ANOMALY   @map("anomaly")
+  BUDGET    @map("budget")
+  PRESET    @map("preset")
+  CUSTOM    @map("custom")
+
+  @@map("alert_rule_type")
+}
+
+/// Subscription Plan - แพลนการใช้งาน
+enum SubscriptionPlan {
+  BASIC      @map("basic")
+  STANDARD   @map("standard")
+  ENTERPRISE @map("enterprise")
+
+  @@map("subscription_plan")
+}
+
+/// Subscription Status - สถานะการสมัคร
+enum SubscriptionStatus {
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+  TRIAL    @map("trial")
+  EXPIRED  @map("expired")
+
+  @@map("subscription_status")
+}
+
+// ============================================================
+// CORE MODELS - Tenant & User Management
+// ============================================================
+
+/// Tenant - องค์กร/ลูกค้า (Multi-tenant Root)
+model Tenant {
+  id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String @map("name") @db.VarChar(255)
+
+  // Branding & Configuration
+  slug           String? @unique @map("slug") @db.VarChar(100)
+  domain         String? @map("domain") @db.VarChar(255)
+  logoUrl        String? @map("logo_url") @db.Text
+  primaryColor   String? @default("#3B82F6") @map("primary_color") @db.VarChar(7)
+  secondaryColor String? @default("#10B981") @map("secondary_color") @db.VarChar(7)
+
+  // Localization
+  timezone String? @default("Asia/Bangkok") @map("timezone") @db.VarChar(50)
+  currency String? @default("THB") @map("currency") @db.VarChar(3)
+  language String? @default("th") @map("language") @db.VarChar(5)
+
+  // Subscription
+  subscriptionPlan   SubscriptionPlan?   @default(BASIC) @map("subscription_plan")
+  subscriptionStatus SubscriptionStatus? @default(ACTIVE) @map("subscription_status")
+  subscriptionEndsAt DateTime?           @map("subscription_ends_at")
+
+  // Settings (JSONB for flexibility)
+  settings Json? @map("settings") @db.JsonB
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  users                   User[]
+  roles                   Role[]
+  integrations            Integration[]
+  campaigns               Campaign[]
+  metrics                 Metric[]
+  alerts                  Alert[]
+  alertRules              AlertRule[]
+  alertHistories          AlertHistory[]
+  reports                 Report[]
+  syncLogs                SyncLog[]
+  auditLogs               AuditLog[]
+  notifications           Notification[]
+  platformTokens          PlatformToken[]
+  googleAdsAccounts       GoogleAdsAccount[]
+  googleAnalyticsAccounts GoogleAnalyticsAccount[]
+  facebookAdsAccounts     FacebookAdsAccount[]
+  tiktokAdsAccounts       TikTokAdsAccount[]
+  lineAdsAccounts         LineAdsAccount[]
+  webAnalyticsDaily       WebAnalyticsDaily[]
+
+  @@map("tenants")
+}
+
+/// User - ผู้ใช้งานในระบบ
+model User {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String   @map("tenant_id") @db.Uuid
+  email    String   @map("email") @db.VarChar(255)
+  password String   @map("password_hash") @db.VarChar(255)
+
+  // Profile
+  firstName String? @map("first_name") @db.VarChar(100)
+  lastName  String? @map("last_name") @db.VarChar(100)
+  phone     String? @map("phone") @db.VarChar(20)
+  avatarUrl String? @map("avatar_url") @db.Text
+
+  // Role & Access
+  role      UserRole @default(CLIENT) @map("role")
+  adminType String?  @map("admin_type") @db.VarChar(50)
+  isActive  Boolean  @default(true) @map("is_active")
+
+  // Security
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
+  lastLoginAt       DateTime? @map("last_login_at")
+  lastLoginIp       String?   @map("last_login_ip") @db.VarChar(45)
+  failedLoginCount  Int       @default(0) @map("failed_login_count")
+  lockedUntil       DateTime? @map("locked_until")
+  passwordChangedAt DateTime? @map("password_changed_at")
+
+  // Preferences (JSONB)
+  notificationPreferences Json?   @map("notification_preferences") @db.JsonB
+  timezone                String? @default("Asia/Bangkok") @map("timezone") @db.VarChar(50)
+  language                String? @default("th") @map("language") @db.VarChar(5)
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions      Session[]
+  reports       Report[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@unique([tenantId, email], name: "users_tenant_email_unique")
+  @@index([tenantId], name: "idx_users_tenant")
+  @@index([email], name: "idx_users_email")
+  @@index([role], name: "idx_users_role")
+  @@index([isActive], name: "idx_users_is_active")
+  @@index([tenantId, isActive], name: "idx_users_tenant_active")
+  @@map("users")
+}
+
+/// Role - บทบาทและสิทธิ์แบบ Custom
+model Role {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String  @map("tenant_id") @db.Uuid
+  name        String  @map("name") @db.VarChar(100)
+  description String? @map("description") @db.Text
+
+  // Permissions (JSONB Array)
+  permissions Json? @map("permissions") @db.JsonB
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name], name: "roles_tenant_name_unique")
+  @@index([tenantId], name: "idx_roles_tenant")
+  @@map("roles")
+}
+
+/// Session - User Sessions (JWT Refresh Tokens)
+model Session {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  refreshToken String   @unique @map("refresh_token") @db.VarChar(500)
+  ipAddress    String?  @map("ip_address") @db.Text
+  userAgent    String?  @map("user_agent") @db.Text
+  expiresAt    DateTime @map("expires_at")
+  lastActivity DateTime @default(now()) @map("last_activity_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([refreshToken], name: "idx_sessions_token")
+  @@index([expiresAt], name: "idx_sessions_expires")
+  @@map("sessions")
+}
+
+// ============================================================
+// INTEGRATION & CONNECTOR MODELS
+// ============================================================
+
+/// Integration - การเชื่อมต่อ Platform (Unified)
+model Integration {
+  id       String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String     @map("tenant_id") @db.Uuid
+  type     AdPlatform @map("type")
+  name     String     @map("name") @db.VarChar(255)
+  provider String?    @map("provider") @db.VarChar(50)
+
+  // Credentials (Encrypted JSONB)
+  credentials Json? @map("credentials") @db.JsonB
+  config      Json? @map("config") @db.JsonB
+
+  // Status
+  status               String    @default("active") @map("status") @db.VarChar(20)
+  isActive             Boolean   @default(true) @map("is_active")
+  lastSyncAt           DateTime? @map("last_sync_at")
+  syncFrequencyMinutes Int       @default(15) @map("sync_frequency_minutes")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+  syncLogs  SyncLog[]
+
+  @@unique([tenantId, type, name], name: "integrations_tenant_type_name_unique")
+  @@index([tenantId], name: "idx_integrations_tenant")
+  @@index([type], name: "idx_integrations_type")
+  @@index([isActive], name: "idx_integrations_active")
+  @@map("integrations")
+}
+
+/// Google Ads Account
+model GoogleAdsAccount {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  customerId     String    @map("customer_id") @db.VarChar(255)
+  accountName    String?   @map("account_name") @db.VarChar(255)
+  status         String    @default("ENABLED") @map("status") @db.VarChar(20)
+  accessToken    String    @map("access_token") @db.Text
+  refreshToken   String    @map("refresh_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at")
+  lastSyncAt     DateTime? @map("last_sync_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@unique([tenantId, customerId], name: "google_ads_accounts_tenant_customer_unique")
+  @@index([status], name: "idx_google_ads_status")
+  @@map("google_ads_accounts")
+}
+
+/// Google Analytics Account (GA4)
+model GoogleAnalyticsAccount {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  propertyId     String    @map("property_id") @db.VarChar(255)
+  propertyName   String?   @map("property_name") @db.VarChar(255)
+  accessToken    String    @map("access_token") @db.Text
+  refreshToken   String    @map("refresh_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at")
+  status         String    @default("ACTIVE") @map("status") @db.VarChar(20)
+  lastSyncAt     DateTime? @map("last_sync_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  webAnalyticsDaily WebAnalyticsDaily[]
+
+  @@unique([tenantId, propertyId], name: "google_analytics_accounts_tenant_property_unique")
+  @@map("google_analytics_accounts")
+}
+
+/// Facebook Ads Account
+model FacebookAdsAccount {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  accountId      String    @map("account_id") @db.VarChar(255)
+  accountName    String?   @map("account_name") @db.VarChar(255)
+  accessToken    String    @map("access_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at")
+  status         String    @default("ACTIVE") @map("status") @db.VarChar(20)
+  lastSyncAt     DateTime? @map("last_sync_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@unique([tenantId, accountId], name: "facebook_ads_accounts_tenant_account_unique")
+  @@index([status], name: "idx_facebook_ads_status")
+  @@map("facebook_ads_accounts")
+}
+
+/// TikTok Ads Account
+model TikTokAdsAccount {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  advertiserId   String    @map("advertiser_id") @db.VarChar(255)
+  accountName    String?   @map("account_name") @db.VarChar(255)
+  accessToken    String    @map("access_token") @db.Text
+  refreshToken   String?   @map("refresh_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at")
+  status         String    @default("ACTIVE") @map("status") @db.VarChar(20)
+  lastSyncAt     DateTime? @map("last_sync_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@unique([tenantId, advertiserId], name: "tiktok_ads_accounts_tenant_advertiser_unique")
+  @@map("tiktok_ads_accounts")
+}
+
+/// LINE Ads Account
+model LineAdsAccount {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  channelId      String    @map("channel_id") @db.VarChar(255)
+  channelName    String?   @map("channel_name") @db.VarChar(255)
+  accessToken    String    @map("access_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at")
+  status         String    @default("ACTIVE") @map("status") @db.VarChar(20)
+  lastSyncAt     DateTime? @map("last_sync_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@unique([tenantId, channelId], name: "line_ads_accounts_tenant_channel_unique")
+  @@map("line_ads_accounts")
+}
+
+/// Platform Token - Unified Token Management
+model PlatformToken {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String     @map("tenant_id") @db.Uuid
+  platform  AdPlatform @map("platform")
+  accountId String     @map("account_id") @db.VarChar(255)
+
+  // Token Storage
+  accessToken  String  @map("access_token") @db.Text
+  refreshToken String? @map("refresh_token") @db.Text
+  tokenType    String? @default("Bearer") @map("token_type") @db.VarChar(50)
+  tokenScope   String? @map("token_scope") @db.Text
+
+  // Lifecycle
+  expiresAt   DateTime? @map("expires_at")
+  refreshedAt DateTime? @map("refreshed_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+
+  // Health
+  isValid         Boolean @default(true) @map("is_valid")
+  errorMessage    String? @map("error_message") @db.Text
+  refreshAttempts Int     @default(0) @map("refresh_attempts")
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by") @db.Uuid
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, platform, accountId], name: "platform_tokens_tenant_platform_account_unique")
+  @@index([platform], name: "idx_platform_tokens_platform")
+  @@index([isValid], name: "idx_platform_tokens_valid")
+  @@map("platform_tokens")
+}
+
+// ============================================================
+// CAMPAIGN & METRICS MODELS
+// ============================================================
+
+/// Campaign - แคมเปญการตลาด
+model Campaign {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String         @map("tenant_id") @db.Uuid
+  integrationId String?        @map("integration_id") @db.Uuid
+  externalId    String?        @map("external_id") @db.VarChar(255)
+  name          String         @map("name") @db.VarChar(255)
+  platform      AdPlatform     @map("platform")
+  campaignType  String?        @map("campaign_type") @db.VarChar(50)
+  objective     String?        @map("objective") @db.VarChar(50)
+  status        CampaignStatus @default(ACTIVE) @map("status")
+
+  // Budget
+  budget     Decimal? @map("budget") @db.Decimal(15, 2)
+  budgetType String?  @map("budget_type") @db.VarChar(20)
+  currency   String   @default("THB") @map("currency") @db.VarChar(3)
+
+  // Schedule
+  startDate DateTime? @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
+
+  // Sync
+  lastSyncedAt DateTime?   @map("last_synced_at")
+  syncStatus   SyncStatus? @default(PENDING) @map("sync_status")
+
+  // Platform Account References
+  googleAdsAccountId   String? @map("google_ads_account_id") @db.Uuid
+  facebookAdsAccountId String? @map("facebook_ads_account_id") @db.Uuid
+  tiktokAdsAccountId   String? @map("tiktok_ads_account_id") @db.Uuid
+  lineAdsAccountId     String? @map("line_ads_account_id") @db.Uuid
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration        Integration?        @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  googleAdsAccount   GoogleAdsAccount?   @relation(fields: [googleAdsAccountId], references: [id], onDelete: SetNull)
+  facebookAdsAccount FacebookAdsAccount? @relation(fields: [facebookAdsAccountId], references: [id], onDelete: SetNull)
+  tiktokAdsAccount   TikTokAdsAccount?   @relation(fields: [tiktokAdsAccountId], references: [id], onDelete: SetNull)
+  lineAdsAccount     LineAdsAccount?     @relation(fields: [lineAdsAccountId], references: [id], onDelete: SetNull)
+  metrics            Metric[]
+  alerts             Alert[]
+
+  @@unique([tenantId, platform, externalId], name: "campaigns_tenant_platform_external_unique")
+  @@index([tenantId], name: "idx_campaigns_tenant")
+  @@index([platform], name: "idx_campaigns_platform")
+  @@index([status], name: "idx_campaigns_status")
+  @@index([tenantId, status], name: "idx_campaigns_tenant_status")
+  @@index([tenantId, createdAt], name: "idx_campaigns_tenant_created")
+  @@index([googleAdsAccountId], name: "idx_campaigns_google_ads")
+  @@map("campaigns")
+}
+
+/// Metric - Time-series Performance Data
+model Metric {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String     @map("tenant_id") @db.Uuid
+  campaignId String     @map("campaign_id") @db.Uuid
+  date       DateTime   @map("date") @db.Date
+  hour       Int?       @map("hour")
+  platform   AdPlatform @map("platform")
+  source     String?    @map("source") @db.VarChar(100)
+
+  // Advertising Metrics
+  impressions   Int     @default(0) @map("impressions")
+  clicks        Int     @default(0) @map("clicks")
+  conversions   Int     @default(0) @map("conversions")
+  spend         Decimal @default(0) @map("spend") @db.Decimal(15, 2)
+  costPerClick  Decimal @default(0) @map("cost_per_click") @db.Decimal(10, 4)
+  costPerMille  Decimal @default(0) @map("cost_per_mille") @db.Decimal(10, 4)
+  costPerAction Decimal @default(0) @map("cost_per_action") @db.Decimal(10, 4)
+
+  // Performance Ratios
+  ctr            Decimal @default(0) @map("ctr") @db.Decimal(8, 4)
+  conversionRate Decimal @default(0) @map("conversion_rate") @db.Decimal(8, 4)
+  roas           Decimal @default(0) @map("roas") @db.Decimal(10, 4)
+
+  // Revenue & E-commerce
+  revenue              Decimal @default(0) @map("revenue") @db.Decimal(15, 2)
+  orders               Int     @default(0) @map("orders")
+  averageOrderValue    Decimal @default(0) @map("average_order_value") @db.Decimal(10, 2)
+  cartAbandonmentRate  Decimal @default(0) @map("cart_abandonment_rate") @db.Decimal(8, 4)
+
+  // SEO / Web Analytics
+  organicTraffic     Int     @default(0) @map("organic_traffic")
+  bounceRate         Decimal @default(0) @map("bounce_rate") @db.Decimal(8, 4)
+  avgSessionDuration Int     @default(0) @map("avg_session_duration")
+
+  // Extensibility (Future-proof JSONB)
+  metadata   Json?   @map("metadata") @db.JsonB
+  isMockData Boolean @default(false) @map("is_mock_data")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, campaignId, date, hour, platform, source], name: "metrics_unique_key")
+  @@index([tenantId, date(sort: Desc)], name: "idx_metrics_tenant_date")
+  @@index([campaignId, date(sort: Desc)], name: "idx_metrics_campaign_date")
+  @@index([platform], name: "idx_metrics_platform")
+  @@index([date(sort: Desc)], name: "idx_metrics_date")
+  @@map("metrics")
+}
+
+/// Web Analytics Daily - GA4 Daily Aggregates
+model WebAnalyticsDaily {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  propertyId         String   @map("property_id") @db.VarChar(255)
+  gaAccountId        String?  @map("ga_account_id") @db.Uuid
+  date               DateTime @map("date") @db.Date
+  activeUsers        Int      @default(0) @map("active_users")
+  newUsers           Int      @default(0) @map("new_users")
+  sessions           Int      @default(0) @map("sessions")
+  screenPageViews    Int      @default(0) @map("screen_page_views")
+  engagementRate     Decimal  @default(0) @map("engagement_rate") @db.Decimal(8, 4)
+  bounceRate         Decimal  @default(0) @map("bounce_rate") @db.Decimal(8, 4)
+  avgSessionDuration Decimal  @default(0) @map("avg_session_duration") @db.Decimal(10, 2)
+  isMockData         Boolean  @default(false) @map("is_mock_data")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gaAccount GoogleAnalyticsAccount? @relation(fields: [gaAccountId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, propertyId, date], name: "web_analytics_daily_unique")
+  @@index([tenantId], name: "idx_web_analytics_tenant")
+  @@index([date], name: "idx_web_analytics_date")
+  @@index([propertyId], name: "idx_web_analytics_property")
+  @@map("web_analytics_daily")
+}
+
+// ============================================================
+// ALERT SYSTEM MODELS
+// ============================================================
+
+/// Alert Rule - Rule configuration for alerts
+model AlertRule {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  campaignId  String?       @map("campaign_id") @db.Uuid
+  name        String        @map("name") @db.VarChar(255)
+  description String?       @map("description") @db.Text
+  alertType   AlertRuleType @default(THRESHOLD) @map("alert_type")
+  metric      String        @map("metric") @db.VarChar(50)
+  operator    String        @map("operator") @db.VarChar(10)
+  threshold   Decimal       @map("threshold") @db.Decimal(15, 4)
+  severity    AlertSeverity @default(WARNING) @map("severity")
+  isActive    Boolean       @default(true) @map("is_active")
+
+  // Notification Settings (JSONB)
+  notificationChannels Json? @map("notification_channels") @db.JsonB
+  recipients           Json? @map("recipients") @db.JsonB
+
+  // Statistics
+  lastTriggeredAt DateTime? @map("last_triggered_at")
+  triggerCount    Int       @default(0) @map("trigger_count")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  alerts Alert[]
+
+  @@index([tenantId], name: "idx_alert_rules_tenant")
+  @@index([isActive], name: "idx_alert_rules_active")
+  @@map("alert_rules")
+}
+
+/// Alert - Active/triggered alerts
+model Alert {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String        @map("tenant_id") @db.Uuid
+  ruleId     String?       @map("rule_id") @db.Uuid
+  campaignId String?       @map("campaign_id") @db.Uuid
+  type       String        @map("type") @db.VarChar(50)
+  severity   AlertSeverity @map("severity")
+  status     AlertStatus   @default(OPEN) @map("status")
+  title      String        @map("title") @db.VarChar(255)
+  message    String        @map("message") @db.Text
+  metadata   Json?         @map("metadata") @db.JsonB
+  createdAt  DateTime      @default(now()) @map("created_at")
+  resolvedAt DateTime?     @map("resolved_at")
+
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rule          AlertRule?     @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  campaign      Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  histories     AlertHistory[]
+  notifications Notification[]
+
+  @@index([tenantId], name: "idx_alerts_tenant")
+  @@index([status], name: "idx_alerts_status")
+  @@index([severity], name: "idx_alerts_severity")
+  @@index([createdAt], name: "idx_alerts_created")
+  @@index([tenantId, status, createdAt], name: "idx_alerts_tenant_status_created")
+  @@map("alerts")
+}
+
+/// Alert History - Historical record of triggered alerts
+model AlertHistory {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alertId          String   @map("alert_id") @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  triggeredAt      DateTime @default(now()) @map("triggered_at")
+  metricValue      Decimal? @map("metric_value") @db.Decimal(15, 4)
+  thresholdValue   Decimal? @map("threshold_value") @db.Decimal(15, 4)
+  message          String?  @map("message") @db.Text
+  metadata         Json?    @map("metadata") @db.JsonB
+  notificationSent Boolean  @default(false) @map("notification_sent")
+  notificationSentAt DateTime? @map("notification_sent_at")
+
+  // Relations
+  alert  Alert  @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([alertId], name: "idx_alert_history_alert")
+  @@index([tenantId], name: "idx_alert_history_tenant")
+  @@index([triggeredAt], name: "idx_alert_history_triggered")
+  @@map("alert_history")
+}
+
+// ============================================================
+// NOTIFICATION SYSTEM
+// ============================================================
+
+/// Notification - In-app & external notifications
+model Notification {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+
+  // Content
+  type    String @map("type") @db.VarChar(50)
+  title   String @map("title") @db.VarChar(255)
+  message String @map("message") @db.Text
+
+  // Delivery
+  channel  NotificationChannel @default(IN_APP) @map("channel")
+  priority String              @default("NORMAL") @map("priority") @db.VarChar(20)
+
+  // Metadata (JSONB for actions, icons, etc.)
+  metadata Json? @map("metadata") @db.JsonB
+
+  // Status
+  isRead      Boolean   @default(false) @map("is_read")
+  readAt      DateTime? @map("read_at")
+  isDismissed Boolean   @default(false) @map("is_dismissed")
+
+  // References
+  alertId    String? @map("alert_id") @db.Uuid
+  campaignId String? @map("campaign_id") @db.Uuid
+
+  // Schedule
+  scheduledAt DateTime? @map("scheduled_at")
+  sentAt      DateTime? @map("sent_at")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alert  Alert? @relation(fields: [alertId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead], name: "idx_notifications_user_read")
+  @@index([tenantId], name: "idx_notifications_tenant")
+  @@index([createdAt], name: "idx_notifications_created")
+  @@index([type], name: "idx_notifications_type")
+  @@index([userId, createdAt], name: "idx_notifications_user_created")
+  @@map("notifications")
+}
+
+// ============================================================
+// REPORT & EXPORT MODELS
+// ============================================================
+
+/// Report - Report configuration and history
+model Report {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String  @map("tenant_id") @db.Uuid
+  createdBy   String? @map("created_by") @db.Uuid
+  name        String  @map("name") @db.VarChar(255)
+  description String? @map("description") @db.Text
+  reportType  String  @map("report_type") @db.VarChar(50)
+
+  // Date Range
+  dateRangeType String    @default("last_7_days") @map("date_range_type") @db.VarChar(20)
+  startDate     DateTime? @map("start_date") @db.Date
+  endDate       DateTime? @map("end_date") @db.Date
+
+  // Configuration (JSONB)
+  filters Json? @map("filters") @db.JsonB
+  metrics Json? @map("metrics") @db.JsonB
+
+  // Schedule
+  isScheduled        Boolean @default(false) @map("is_scheduled")
+  scheduleFrequency  String? @map("schedule_frequency") @db.VarChar(20)
+  scheduleTime       String? @map("schedule_time") @db.VarChar(8)
+  scheduleDayOfWeek  Int?    @map("schedule_day_of_week")
+  scheduleDayOfMonth Int?    @map("schedule_day_of_month")
+
+  // Export
+  exportFormat String?  @map("export_format") @db.VarChar(10)
+  fileUrl      String?  @map("file_url") @db.Text
+  fileSize     Int?     @map("file_size")
+  generatedAt  DateTime? @map("generated_at")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], name: "idx_reports_tenant")
+  @@index([createdBy], name: "idx_reports_creator")
+  @@map("reports")
+}
+
+// ============================================================
+// SYNC & LOGGING MODELS
+// ============================================================
+
+/// Sync Log - ETL/Sync history
+model SyncLog {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  integrationId String?     @map("integration_id") @db.Uuid
+  platform      AdPlatform  @map("platform")
+  accountId     String?     @map("account_id") @db.VarChar(255)
+  syncType      SyncType?   @map("sync_type")
+  status        SyncStatus  @default(PENDING) @map("status")
+  startedAt     DateTime    @default(now()) @map("started_at")
+  completedAt   DateTime?   @map("completed_at")
+  errorMessage  String?     @map("error_message") @db.Text
+  recordsCount  Int?        @map("records_count")
+  recordsSync   Int         @default(0) @map("records_sync")
+  data          Json?       @map("data") @db.JsonB
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], name: "idx_sync_logs_tenant")
+  @@index([platform], name: "idx_sync_logs_platform")
+  @@index([status], name: "idx_sync_logs_status")
+  @@index([createdAt], name: "idx_sync_logs_created")
+  @@index([accountId], name: "idx_sync_logs_account")
+  @@map("sync_logs")
+}
+
+/// Audit Log - Activity tracking
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String?  @map("tenant_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @map("action") @db.VarChar(50)
+  entityType String?  @map("entity_type") @db.VarChar(50)
+  entityId   String?  @map("entity_id") @db.Uuid
+  changes    Json?    @map("changes") @db.JsonB
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], name: "idx_audit_logs_tenant")
+  @@index([userId], name: "idx_audit_logs_user")
+  @@index([action], name: "idx_audit_logs_action")
+  @@index([createdAt(sort: Desc)], name: "idx_audit_logs_created")
+  @@map("audit_logs")
+}

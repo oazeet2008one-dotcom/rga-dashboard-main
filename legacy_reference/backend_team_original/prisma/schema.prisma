@@ -1,0 +1,589 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Lead {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  name       String   @db.VarChar(255)
+  company    String?  @db.VarChar(255)
+  source     String?  @db.VarChar(100)
+  status     String   @db.VarChar(50)
+  stage      String   @db.VarChar(50)
+  gender     String?  @db.VarChar(20)
+  income     Decimal? @db.Decimal(15, 2)
+  estimatedValue Decimal? @map("estimated_value") @db.Decimal(15, 2)
+  email      String?  @db.VarChar(255)
+  phone      String?  @db.VarChar(50)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("leads")
+}
+
+model SeoMetric {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  metricType String   @db.VarChar(50)
+  label      String   @db.VarChar(255)
+  date       DateTime? @db.Date
+  externalKey String?  @map("external_key") @db.VarChar(500)
+  numericValue Decimal? @map("numeric_value") @db.Decimal(15, 4)
+  volume     Int?
+  sessions   Int?
+  share      Decimal? @db.Decimal(10, 4)
+  trend      String?  @db.VarChar(20)
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([metricType])
+  @@index([tenantId, metricType, date(sort: Desc)])
+  @@unique([tenantId, metricType, externalKey])
+  @@map("seo_metrics")
+}
+
+model TenantKpi {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  section      String   @db.VarChar(50)
+  metric       String   @db.VarChar(255)
+  condition    String?  @db.VarChar(10)
+  threshold    Decimal? @db.Decimal(15, 4)
+  thresholdText String? @map("threshold_text") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([section])
+  @@map("tenant_kpis")
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UiAsset {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String?  @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(255)
+  category    String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  fileName    String   @map("file_name") @db.VarChar(255)
+  filePath    String   @map("file_path") @db.VarChar(500)
+  thumbnail   String?  @db.VarChar(500)
+  tags        Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([category])
+  @@unique([tenantId, fileName])
+  @@map("ui_assets")
+}
+
+model Tenant {
+  id                 String         @id @default(uuid()) @db.Uuid
+  name               String
+  slug               String         @unique
+  domain             String?
+  logoUrl            String?        @map("logo_url")
+  primaryColor       String         @default("#3B82F6") @map("primary_color")
+  secondaryColor     String         @default("#10B981") @map("secondary_color")
+  timezone           String         @default("Asia/Bangkok")
+  currency           String         @default("THB")
+  language           String         @default("th")
+  subscriptionPlan   String         @default("basic") @map("subscription_plan")
+  subscriptionStatus String         @default("active") @map("subscription_status")
+  subscriptionEndsAt DateTime?      @map("subscription_ends_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  deletedAt          DateTime?      @map("deleted_at")
+  aiInsights         AiInsight[]
+  aiQueries          AiQuery[]
+  alertHistory       AlertHistory[]
+  alerts             Alert[]
+  auditLogs          AuditLog[]
+  campaigns          Campaign[]
+  integrations       Integration[]
+  integrationSyncStates IntegrationSyncState[]
+  ingestionJobs      IngestionJob[]
+  metrics            Metric[]
+  reports            Report[]
+  roles              Role[]
+  syncHistories      SyncHistory[]
+  users              User[]
+  webhookEvents      WebhookEvent[]
+  activityLogs       ActivityLog[]
+  leads              Lead[]
+  seoMetrics         SeoMetric[]
+  tenantKpis         TenantKpi[]
+  integrationNotifications IntegrationNotification[]
+  uiAssets           UiAsset[]
+
+  @@map("tenants")
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  tenantId         String     @map("tenant_id") @db.Uuid
+  email            String     @db.VarChar(255)
+  passwordHash     String     @map("password_hash") @db.VarChar(255)
+  firstName        String?    @map("first_name") @db.VarChar(100)
+  lastName         String?    @map("last_name") @db.VarChar(100)
+  phone            String?    @db.VarChar(20)
+  avatarUrl        String?    @map("avatar_url")
+  role             String     @default("user") @db.VarChar(50)
+  adminType        String?    @map("admin_type") @db.VarChar(50)
+  isActive         Boolean    @default(true) @map("is_active")
+  emailVerified    Boolean    @default(false) @map("email_verified")
+  twoFactorEnabled Boolean    @default(false) @map("two_factor_enabled")
+  lastLoginAt      DateTime?  @map("last_login_at")
+  lastLoginIp      String?    @map("last_login_ip") @db.VarChar(45)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  deletedAt        DateTime?  @map("deleted_at")
+  aiQueries        AiQuery[]
+  auditLogs        AuditLog[]
+  reports          Report[]
+  sessions         Session[]
+  activityLogs     ActivityLog[] // User's own activity history
+  tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?
+  permissions Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@map("roles")
+}
+
+model Integration {
+  id                   String        @id @default(uuid()) @db.Uuid
+  tenantId             String        @map("tenant_id") @db.Uuid
+  type                 String        @db.VarChar(50)
+  name                 String        @db.VarChar(255)
+  credentials          Json
+  config               Json          @default("{}")
+  status               String        @default("active") @db.VarChar(20)
+  lastSyncAt           DateTime?     @map("last_sync_at")
+  syncFrequencyMinutes Int           @default(15) @map("sync_frequency_minutes")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+  isActive             Boolean       @default(true) @map("is_active")
+  provider             String        @db.VarChar(50)
+  campaigns            Campaign[]
+  tenant               Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  oauthStates          OAuthState[]
+  syncHistories        SyncHistory[]
+  integrationNotifications IntegrationNotification[]
+  syncState            IntegrationSyncState?
+  ingestionJobs        IngestionJob[]
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([provider])
+  @@index([isActive])
+  @@map("integrations")
+}
+
+model IntegrationSyncState {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  integrationId String      @unique @map("integration_id") @db.Uuid
+  provider      String      @db.VarChar(50)
+  cursor        Json        @default("{}")
+  lastAttemptAt DateTime?   @map("last_attempt_at")
+  lastSuccessAt DateTime?   @map("last_success_at")
+  nextRunAt     DateTime?   @map("next_run_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([provider])
+  @@map("integration_sync_states")
+}
+
+model IngestionJob {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  integrationId String      @map("integration_id") @db.Uuid
+  provider      String      @db.VarChar(50)
+  trigger       String      @db.VarChar(30)
+  status        String      @default("queued") @db.VarChar(20)
+  runAt         DateTime    @default(now()) @map("run_at")
+  startedAt     DateTime?   @map("started_at")
+  finishedAt    DateTime?   @map("finished_at")
+  attempts      Int         @default(0)
+  maxAttempts   Int         @default(3) @map("max_attempts")
+  lockedAt      DateTime?   @map("locked_at")
+  lockedBy      String?     @map("locked_by") @db.VarChar(100)
+  payload       Json?
+  error         String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, runAt])
+  @@index([integrationId, status])
+  @@index([provider])
+  @@map("ingestion_jobs")
+}
+
+model Campaign {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String       @map("tenant_id") @db.Uuid
+  integrationId String?      @map("integration_id") @db.Uuid
+  externalId    String?      @map("external_id") @db.VarChar(255)
+  name          String       @db.VarChar(255)
+  platform      String       @db.VarChar(50)
+  campaignType  String?      @map("campaign_type") @db.VarChar(50)
+  objective     String?      @db.VarChar(50)
+  status        String       @default("active") @db.VarChar(20)
+  budget        Decimal?     @db.Decimal(15, 2)
+  budgetType    String?      @map("budget_type") @db.VarChar(20)
+  currency      String       @default("THB") @db.VarChar(3)
+  startDate     DateTime?    @map("start_date") @db.Date
+  endDate       DateTime?    @map("end_date") @db.Date
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  aiInsights    AiInsight[]
+  alerts        Alert[]
+  integration   Integration? @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  metrics       Metric[]
+
+  @@unique([tenantId, platform, externalId])
+  @@index([tenantId])
+  @@index([platform])
+  @@index([status])
+  @@map("campaigns")
+}
+
+model Metric {
+  id                  String    @id @default(uuid()) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  campaignId          String?   @map("campaign_id") @db.Uuid
+  date                DateTime  @db.Date
+  hour                Int?
+  platform            String    @db.VarChar(50)
+  source              String?   @db.VarChar(100)
+  impressions         Int       @default(0)
+  clicks              Int       @default(0)
+  conversions         Int       @default(0)
+  spend               Decimal?  @db.Decimal(15, 2)
+  costPerClick        Decimal?  @map("cost_per_click") @db.Decimal(10, 4)
+  costPerMille        Decimal?  @map("cost_per_mille") @db.Decimal(10, 4)
+  costPerAction       Decimal?  @map("cost_per_action") @db.Decimal(10, 4)
+  ctr                 Decimal?  @db.Decimal(8, 4)
+  conversionRate      Decimal?  @map("conversion_rate") @db.Decimal(8, 4)
+  roas                Decimal?  @db.Decimal(10, 4)
+  revenue             Decimal?  @db.Decimal(15, 2)
+  orders              Int?
+  cartAbandonmentRate Decimal?  @map("cart_abandonment_rate") @db.Decimal(8, 4)
+  averageOrderValue   Decimal?  @map("average_order_value") @db.Decimal(10, 2)
+  organicTraffic      Int?      @map("organic_traffic")
+  bounceRate          Decimal?  @map("bounce_rate") @db.Decimal(8, 4)
+  avgSessionDuration  Int?      @map("avg_session_duration")
+  metadata            Json      @default("{}")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  campaign            Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, campaignId, date, hour, platform, source])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([campaignId, date(sort: Desc)])
+  @@index([platform])
+  @@index([date(sort: Desc)])
+  @@map("metrics")
+}
+
+model Alert {
+  id                   String         @id @default(uuid()) @db.Uuid
+  tenantId             String         @map("tenant_id") @db.Uuid
+  campaignId           String?        @map("campaign_id") @db.Uuid
+  name                 String         @db.VarChar(255)
+  description          String?
+  alertType            String         @map("alert_type") @db.VarChar(50)
+  metric               String         @db.VarChar(50)
+  operator             String         @db.VarChar(10)
+  threshold            Decimal?       @db.Decimal(15, 4)
+  notificationChannels Json           @default("[\"email\"]") @map("notification_channels")
+  recipients           Json           @default("[]")
+  isActive             Boolean        @default(true) @map("is_active")
+  lastTriggeredAt      DateTime?      @map("last_triggered_at")
+  triggerCount         Int            @default(0) @map("trigger_count")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  history              AlertHistory[]
+  campaign             Campaign?      @relation(fields: [campaignId], references: [id])
+  tenant               Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([isActive])
+  @@map("alerts")
+}
+
+model AlertHistory {
+  id                 String    @id @default(uuid()) @db.Uuid
+  alertId            String    @map("alert_id") @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  triggeredAt        DateTime  @default(now()) @map("triggered_at")
+  metricValue        Decimal?  @map("metric_value") @db.Decimal(15, 4)
+  thresholdValue     Decimal?  @map("threshold_value") @db.Decimal(15, 4)
+  message            String?
+  metadata           Json      @default("{}")
+  notificationSent   Boolean   @default(false) @map("notification_sent")
+  notificationSentAt DateTime? @map("notification_sent_at")
+  alert              Alert     @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([alertId])
+  @@index([triggeredAt(sort: Desc)])
+  @@map("alert_history")
+}
+
+model Report {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  createdBy          String?   @map("created_by") @db.Uuid
+  name               String    @db.VarChar(255)
+  description        String?
+  reportType         String    @map("report_type") @db.VarChar(50)
+  dateRangeType      String?   @map("date_range_type") @db.VarChar(20)
+  startDate          DateTime? @map("start_date") @db.Date
+  endDate            DateTime? @map("end_date") @db.Date
+  filters            Json      @default("{}")
+  metrics            Json      @default("[]")
+  isScheduled        Boolean   @default(false) @map("is_scheduled")
+  scheduleFrequency  String?   @map("schedule_frequency") @db.VarChar(20)
+  scheduleTime       DateTime? @map("schedule_time") @db.Time(6)
+  scheduleDayOfWeek  Int?      @map("schedule_day_of_week")
+  scheduleDayOfMonth Int?      @map("schedule_day_of_month")
+  exportFormat       String    @default("pdf") @map("export_format") @db.VarChar(10)
+  fileUrl            String?   @map("file_url")
+  fileSize           Int?      @map("file_size")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdByUser      User?     @relation(fields: [createdBy], references: [id])
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([createdBy])
+  @@map("reports")
+}
+
+model AiQuery {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  userId           String?  @map("user_id") @db.Uuid
+  query            String
+  language         String   @default("th") @db.VarChar(5)
+  response         String?
+  sqlGenerated     String?  @map("sql_generated")
+  processingTimeMs Int?     @map("processing_time_ms")
+  tokensUsed       Int?     @map("tokens_used")
+  createdAt        DateTime @default(now()) @map("created_at")
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user             User?    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("ai_queries")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @db.VarChar(50)
+  entityType String?  @map("entity_type") @db.VarChar(50)
+  entityId   String?  @map("entity_id") @db.Uuid
+  changes    Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model Session {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  token          String   @unique @db.VarChar(500)
+  ipAddress      String?  @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  lastActivityAt DateTime @default(now()) @map("last_activity_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model SyncHistory {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String       @map("tenant_id") @db.Uuid
+  integrationId String?      @map("integration_id") @db.Uuid
+  platform      String       @db.VarChar(50)
+  status        String       @default("success") @db.VarChar(20)
+  data          Json?
+  error         String?
+  syncedAt      DateTime     @default(now()) @map("synced_at")
+  integration   Integration? @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([integrationId])
+  @@index([platform])
+  @@index([syncedAt(sort: Desc)])
+  @@map("sync_histories")
+}
+
+model IntegrationNotification {
+  id             String       @id @default(uuid()) @db.Uuid
+  tenantId       String       @map("tenant_id") @db.Uuid
+  integrationId  String?      @map("integration_id") @db.Uuid
+  platform       String       @db.VarChar(50)
+  severity       String       @default("warning") @db.VarChar(20)
+  status         String       @default("open") @db.VarChar(20)
+  title          String       @db.VarChar(255)
+  reason         String?      @db.VarChar(500)
+  actionUrl      String?      @map("action_url") @db.VarChar(500)
+  metadata       Json         @default("{}")
+  resolvedAt     DateTime?    @map("resolved_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  integration    Integration? @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([integrationId])
+  @@index([platform])
+  @@index([status])
+  @@map("integration_notifications")
+}
+
+model WebhookEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  platform   String   @db.VarChar(50)
+  type       String   @db.VarChar(100)
+  data       Json
+  signature  String?  @db.VarChar(500)
+  receivedAt DateTime @default(now()) @map("received_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([platform])
+  @@index([type])
+  @@index([receivedAt])
+  @@map("webhook_events")
+}
+
+// Activity History System
+model ActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  action      String   @db.VarChar(100)
+  entityType  String?  @map("entity_type") @db.VarChar(50)
+  entityId    String?  @map("entity_id") @db.Uuid
+  description String   @db.Text
+  metadata    Json?    @default("{}")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.Text
+  platform    String?  @db.VarChar(50)
+  status      String   @default("success") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([platform])
+  @@index([status])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model AiInsight {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  campaignId        String?   @map("campaign_id") @db.Uuid
+  insightType       String    @map("insight_type") @db.VarChar(50)
+  title             String    @db.VarChar(255)
+  description       String?
+  analysis          Json      @default("{}")
+  recommendedAction String?   @map("recommended_action")
+  expectedImpact    String?   @map("expected_impact")
+  priority          String    @default("medium") @db.VarChar(20)
+  status            String    @default("new") @db.VarChar(20)
+  viewedAt          DateTime? @map("viewed_at")
+  actionedAt        DateTime? @map("actioned_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  expiresAt         DateTime? @map("expires_at")
+  campaign          Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([campaignId])
+  @@index([insightType])
+  @@index([priority])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ai_insights")
+}
+
+model OAuthState {
+  id            String       @id @default(uuid()) @db.Uuid
+  integrationId String?      @map("integration_id") @db.Uuid
+  state         String       @unique @db.VarChar(255)
+  redirectUri   String       @map("redirect_uri") @db.Text
+  expiresAt     DateTime     @map("expires_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  integration   Integration? @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([state])
+  @@index([integrationId])
+  @@index([expiresAt])
+  @@map("oauth_states")
+}
