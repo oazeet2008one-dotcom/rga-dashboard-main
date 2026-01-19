@@ -41,7 +41,7 @@
     ```
 2.  รันเซิร์ฟเวอร์สำหรับการพัฒนา (Dev Server):
     ```bash
-    npm start:dev
+    pnpm start:dev
     # เซิร์ฟเวอร์จะรันที่ http://localhost:3000
     # เอกสาร Swagger: http://localhost:3000/api
     ```
