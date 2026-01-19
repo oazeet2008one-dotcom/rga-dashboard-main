@@ -5,11 +5,16 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
-import Dashboard from "./pages/Dashboard";
-import Campaigns from "./pages/Campaigns";
+// ✅ NEW: Import from feature module (replaces legacy pages/Dashboard)
+import { DashboardPage } from "@/features/dashboard";
+// ✅ NEW: Import from feature module (replaces legacy pages/Campaigns)
+import { CampaignsPage, CampaignDetailsPage } from "@/features/campaigns";
+// ✅ NEW: Import from feature module (replaces legacy pages/Integrations)
+import { DataSourcesPage } from "@/features/data-sources";
 import Users from "./pages/Users";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
@@ -28,9 +33,24 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/campaigns" component={Campaigns} />
+      {/* ✅ NEW: Use feature-based DashboardPage with ProtectedRoute wrapper */}
+      <Route path="/dashboard">
+        {() => <ProtectedRoute><DashboardPage /></ProtectedRoute>}
+      </Route>
+      {/* ✅ NEW: Use feature-based CampaignsPage with ProtectedRoute wrapper */}
+      <Route path="/campaigns">
+        {() => <ProtectedRoute><CampaignsPage /></ProtectedRoute>}
+      </Route>
+      {/* ✅ NEW: Campaign Details Page */}
+      <Route path="/campaigns/:campaignId">
+        {() => <ProtectedRoute><CampaignDetailsPage /></ProtectedRoute>}
+      </Route>
+      {/* ✅ NEW: Data Sources page with OAuth callback handling */}
+      <Route path="/data-sources">
+        {() => <ProtectedRoute><DataSourcesPage /></ProtectedRoute>}
+      </Route>
       <Route path="/users" component={Users} />
+      {/* Legacy integrations page - kept for backward compatibility */}
       <Route path="/integrations" component={Integrations} />
       <Route path="/settings" component={Settings} />
       <Route path="/reports" component={Reports} />
@@ -38,7 +58,9 @@ function Router() {
       <Route path="/seo-web-analytics" component={SeoWebAnalytics} />
       <Route path="/ecommerce-insights" component={EcommerceInsights} />
       <Route path="/crm-leads-insights" component={CrmLeadsInsights} />
-      <Route path="/" component={Dashboard} />
+      <Route path="/">
+        {() => <ProtectedRoute><DashboardPage /></ProtectedRoute>}
+      </Route>
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

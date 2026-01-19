@@ -1,5 +1,6 @@
 ﻿import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, IsDateString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, IsDateString, IsPositive } from 'class-validator';
 import { CampaignStatus, AdPlatform } from '@prisma/client';
 
 export class CreateCampaignDto {
@@ -9,23 +10,30 @@ export class CreateCampaignDto {
   name: string;
 
   @ApiProperty({ enum: AdPlatform })
+  @Transform(({ value }) => {
+    if (!value) return value;
+    const upper = value.toUpperCase();
+    if (upper === 'GOOGLE') return 'GOOGLE_ADS';
+    if (upper === 'LINE') return 'LINE_ADS';
+    return upper;
+  })
   @IsEnum(AdPlatform)
   platform: AdPlatform;
 
   @ApiProperty({ enum: CampaignStatus, example: 'ACTIVE' })
+  @Transform(({ value }) => value?.toUpperCase())
   @IsEnum(CampaignStatus)
-  @IsOptional()
-  status?: CampaignStatus;
+  status: CampaignStatus;
 
   @ApiProperty({ example: 5000 })
   @IsNumber()
-  @IsOptional()
-  budget?: number;
+  @IsPositive()
+  budget: number;
 
-  @ApiProperty({ example: '2024-01-01', required: false })
+  @ApiProperty({ example: '2024-01-01' })
   @IsDateString()
-  @IsOptional()
-  startDate?: string;
+  @IsNotEmpty()
+  startDate: string;
 
   @ApiProperty({ example: '2024-12-31', required: false })
   @IsDateString()

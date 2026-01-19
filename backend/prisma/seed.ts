@@ -84,6 +84,7 @@ async function main() {
   });
 
   // 4. Create Users (Using firstName + lastName instead of name)
+  // Added avatarUrl with placeholder initials for Recent Sales UI display
   console.log('👥 Creating users...');
   const hashedPassword = await bcrypt.hash('password123', 10);
 
@@ -94,6 +95,7 @@ async function main() {
       firstName: 'Super',
       lastName: 'Admin',
       phone: '+66891234567',
+      avatarUrl: 'https://ui-avatars.com/api/?name=SA&background=3B82F6&color=fff',
       role: UserRole.SUPER_ADMIN,
       tenantId: tenant.id,
       isActive: true,
@@ -118,6 +120,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'Marketing',
       lastName: 'Manager',
+      avatarUrl: 'https://ui-avatars.com/api/?name=MM&background=10B981&color=fff',
       role: UserRole.MANAGER,
       tenantId: tenant.id,
       isActive: true,
@@ -133,6 +136,7 @@ async function main() {
       firstName: 'Somchai',
       lastName: 'Jaidee',
       phone: '+66812345678',
+      avatarUrl: 'https://ui-avatars.com/api/?name=SJ&background=F59E0B&color=fff',
       role: UserRole.CLIENT,
       tenantId: tenant.id,
       isActive: true,
@@ -151,12 +155,90 @@ async function main() {
       password: hashedPassword,
       firstName: 'Read',
       lastName: 'Only',
+      avatarUrl: 'https://ui-avatars.com/api/?name=RO&background=8B5CF6&color=fff',
       role: UserRole.VIEWER,
       tenantId: tenant.id,
       isActive: true,
     },
   });
   console.log(`   Viewer created: ${viewer.email}`);
+
+  // Create additional users for Recent Sales display (5-10 realistic records)
+  const salesUsers = await Promise.all([
+    prisma.user.create({
+      data: {
+        email: 'nattapong@example.com',
+        password: hashedPassword,
+        firstName: 'Nattapong',
+        lastName: 'Sriprasit',
+        avatarUrl: 'https://ui-avatars.com/api/?name=NS&background=EF4444&color=fff',
+        role: UserRole.CLIENT,
+        tenantId: tenant.id,
+        isActive: true,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'siriporn@example.com',
+        password: hashedPassword,
+        firstName: 'Siriporn',
+        lastName: 'Wongchai',
+        avatarUrl: 'https://ui-avatars.com/api/?name=SW&background=EC4899&color=fff',
+        role: UserRole.CLIENT,
+        tenantId: tenant.id,
+        isActive: true,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'piyawat@example.com',
+        password: hashedPassword,
+        firstName: 'Piyawat',
+        lastName: 'Charoensuk',
+        avatarUrl: 'https://ui-avatars.com/api/?name=PC&background=06B6D4&color=fff',
+        role: UserRole.CLIENT,
+        tenantId: tenant.id,
+        isActive: true,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'kanokwan@example.com',
+        password: hashedPassword,
+        firstName: 'Kanokwan',
+        lastName: 'Thongdee',
+        avatarUrl: 'https://ui-avatars.com/api/?name=KT&background=84CC16&color=fff',
+        role: UserRole.CLIENT,
+        tenantId: tenant.id,
+        isActive: true,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'thanawat@example.com',
+        password: hashedPassword,
+        firstName: 'Thanawat',
+        lastName: 'Phumjan',
+        avatarUrl: 'https://ui-avatars.com/api/?name=TP&background=F97316&color=fff',
+        role: UserRole.CLIENT,
+        tenantId: tenant.id,
+        isActive: true,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: 'priyada@example.com',
+        password: hashedPassword,
+        firstName: 'Priyada',
+        lastName: 'Suksan',
+        avatarUrl: 'https://ui-avatars.com/api/?name=PS&background=14B8A6&color=fff',
+        role: UserRole.CLIENT,
+        tenantId: tenant.id,
+        isActive: true,
+      },
+    }),
+  ]);
+  console.log(`   Created ${salesUsers.length} additional users for sales data`);
 
   // 5. Create Integration (Unified Connector)
   console.log('🔗 Creating integrations...');
@@ -318,11 +400,23 @@ async function main() {
   console.log(`   Campaign 3: ${campaign3.name}`);
 
   // 9. Create Metrics (Time-series data with JSONB metadata)
-  console.log('📊 Creating metrics...');
+  // STRICT RANGES: Cost (1000-5000), Impressions (10k-50k), Clicks (500-2000), Conversions (50-200)
+  console.log('📊 Creating metrics with dashboard-matched ranges...');
   const today = new Date();
+
+  // Helper function to generate random value within exact range
+  const randomInRange = (min: number, max: number) =>
+    Math.floor(Math.random() * (max - min + 1)) + min;
+
   for (let i = 0; i < 7; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
+
+    // Campaign 1: Google Ads - Primary trend data
+    const impressions1 = randomInRange(10000, 50000);  // 10k-50k
+    const clicks1 = randomInRange(500, 2000);          // 500-2000
+    const conversions1 = randomInRange(50, 200);       // 50-200
+    const spend1 = randomInRange(1000, 5000);          // 1000-5000 THB
 
     await prisma.metric.create({
       data: {
@@ -331,27 +425,33 @@ async function main() {
         date: date,
         platform: AdPlatform.GOOGLE_ADS,
         source: 'campaign',
-        impressions: Math.floor(Math.random() * 50000) + 10000,
-        clicks: Math.floor(Math.random() * 2000) + 500,
-        conversions: Math.floor(Math.random() * 100) + 20,
-        spend: Math.floor(Math.random() * 5000) + 1000,
-        costPerClick: Math.random() * 10 + 2,
-        costPerMille: Math.random() * 50 + 10,
-        costPerAction: Math.random() * 100 + 30,
-        ctr: Math.random() * 5 + 1,
-        conversionRate: Math.random() * 3 + 0.5,
+        impressions: impressions1,
+        clicks: clicks1,
+        conversions: conversions1,
+        spend: spend1,
+        costPerClick: spend1 / clicks1,
+        costPerMille: (spend1 / impressions1) * 1000,
+        costPerAction: spend1 / conversions1,
+        ctr: (clicks1 / impressions1) * 100,
+        conversionRate: (conversions1 / clicks1) * 100,
         roas: Math.random() * 5 + 2,
-        revenue: Math.floor(Math.random() * 20000) + 5000,
-        orders: Math.floor(Math.random() * 50) + 10,
-        averageOrderValue: Math.random() * 500 + 200,
+        revenue: conversions1 * randomInRange(200, 800),
+        orders: conversions1,
+        averageOrderValue: randomInRange(200, 800),
         isMockData: true,
         metadata: {
           deviceBreakdown: { mobile: 0.6, desktop: 0.35, tablet: 0.05 },
           topKeywords: ['summer sale', 'discount', 'promotion'],
-          qualityScore: Math.floor(Math.random() * 3) + 7,
+          qualityScore: randomInRange(7, 10),
         },
       },
     });
+
+    // Campaign 2: Facebook Ads - Secondary trend data (same ranges)
+    const impressions2 = randomInRange(10000, 50000);
+    const clicks2 = randomInRange(500, 2000);
+    const conversions2 = randomInRange(50, 200);
+    const spend2 = randomInRange(1000, 5000);
 
     await prisma.metric.create({
       data: {
@@ -360,14 +460,19 @@ async function main() {
         date: date,
         platform: AdPlatform.FACEBOOK,
         source: 'campaign',
-        impressions: Math.floor(Math.random() * 80000) + 20000,
-        clicks: Math.floor(Math.random() * 3000) + 800,
-        conversions: Math.floor(Math.random() * 80) + 15,
-        spend: Math.floor(Math.random() * 3000) + 800,
-        ctr: Math.random() * 4 + 0.8,
-        conversionRate: Math.random() * 2 + 0.3,
+        impressions: impressions2,
+        clicks: clicks2,
+        conversions: conversions2,
+        spend: spend2,
+        costPerClick: spend2 / clicks2,
+        costPerMille: (spend2 / impressions2) * 1000,
+        costPerAction: spend2 / conversions2,
+        ctr: (clicks2 / impressions2) * 100,
+        conversionRate: (conversions2 / clicks2) * 100,
         roas: Math.random() * 4 + 1.5,
-        revenue: Math.floor(Math.random() * 15000) + 3000,
+        revenue: conversions2 * randomInRange(150, 600),
+        orders: conversions2,
+        averageOrderValue: randomInRange(150, 600),
         isMockData: true,
         metadata: {
           ageGroups: { '18-24': 0.25, '25-34': 0.40, '35-44': 0.25, '45+': 0.10 },
@@ -677,7 +782,49 @@ async function main() {
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
     },
   });
-  console.log('   Created 2 audit logs');
+
+  // 18. Create Recent Sales/Activity Audit Logs (5-10 records for Dashboard UI)
+  console.log('💰 Creating recent sales activity logs...');
+  const allSalesUsers = [client, ...salesUsers];
+  const saleAmounts = [1250, 890, 3200, 1875, 4500, 2100, 1680, 950];
+  const productNames = [
+    'Google Ads Package Pro',
+    'Facebook Marketing Bundle',
+    'Social Media Suite',
+    'TikTok Ads Starter',
+    'Enterprise Analytics',
+    'LINE Ads Premium',
+    'Multi-Platform Bundle',
+    'Basic Analytics Plan',
+  ];
+
+  for (let i = 0; i < 8; i++) {
+    const user = allSalesUsers[i % allSalesUsers.length];
+    const hoursAgo = i * 3 + Math.floor(Math.random() * 2); // Staggered times
+    const saleDate = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        userId: user.id,
+        action: 'sale',
+        entityType: 'order',
+        changes: {
+          amount: saleAmounts[i],
+          currency: 'THB',
+          productName: productNames[i],
+          userName: `${user.firstName} ${user.lastName}`,
+          userEmail: user.email,
+          userAvatar: user.avatarUrl,
+          status: 'completed',
+        },
+        ipAddress: `192.168.1.${100 + i}`,
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        createdAt: saleDate,
+      },
+    });
+  }
+  console.log('   Created 8 recent sales activity logs');
 
   console.log('');
   console.log('═══════════════════════════════════════════════════════');
@@ -687,7 +834,7 @@ async function main() {
   console.log('📊 Summary:');
   console.log('   • 1 Tenant (RGA Demo Company)');
   console.log('   • 1 Custom Role');
-  console.log('   • 4 Users (admin, manager, client, viewer)');
+  console.log('   • 10 Users (4 core + 6 sales users with avatars)');
   console.log('   • 2 Integrations (Google, Facebook)');
   console.log('   • 4 Platform Accounts');
   console.log('   • 3 Campaigns');
@@ -698,7 +845,7 @@ async function main() {
   console.log('   • 3 Notifications');
   console.log('   • 1 Report Configuration');
   console.log('   • 2 Sync Logs');
-  console.log('   • 2 Audit Logs');
+  console.log('   • 10 Audit Logs (2 system + 8 recent sales)');
   console.log('');
   console.log('🔐 Test Credentials:');
   console.log('   Admin:   admin@rga.com / password123');

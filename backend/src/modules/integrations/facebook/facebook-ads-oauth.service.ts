@@ -162,4 +162,19 @@ export class FacebookAdsOAuthService {
             where: { tenantId },
         });
     }
+
+    /**
+     * Disconnect all Facebook Ads accounts for a tenant
+     * @param tenantId - Tenant ID
+     * @returns Success status
+     */
+    async disconnect(tenantId: string): Promise<boolean> {
+        this.logger.log(`Disconnecting Facebook Ads for tenant: ${tenantId}`);
+
+        await this.prisma.facebookAdsAccount.deleteMany({
+            where: { tenantId },
+        });
+
+        return true;
+    }
 }

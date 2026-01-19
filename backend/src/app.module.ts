@@ -12,6 +12,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { AdGroupsModule } from './modules/ad-groups/ad-groups.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { GoogleAdsModule } from './modules/integrations/google-ads/google-ads.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
@@ -71,6 +72,7 @@ import { CommonModule } from './common/common.module';
     AuthModule,
     UsersModule,
     CampaignsModule,
+    AdGroupsModule,
     DashboardModule,
     GoogleAdsModule,
     AuditLogsModule,

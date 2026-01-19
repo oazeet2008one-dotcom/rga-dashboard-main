@@ -27,9 +27,26 @@ export class TikTokAdsIntegrationController {
             },
         });
 
+        // Map to standardized IntegrationStatusResponse format
+        const mappedAccounts = accounts.map(account => ({
+            id: account.id,
+            externalId: account.advertiserId,    // Map advertiserId -> externalId
+            name: account.accountName || 'Unnamed Account',
+            status: account.status,
+        }));
+
+        // Get latest sync time across all accounts
+        const lastSyncAt = accounts.length > 0
+            ? accounts
+                .map(a => a.lastSyncAt)
+                .filter(Boolean)
+                .sort((a, b) => (b?.getTime() || 0) - (a?.getTime() || 0))[0] || null
+            : null;
+
         return {
             isConnected: accounts.length > 0,
-            accounts: accounts,
+            lastSyncAt,
+            accounts: mappedAccounts,
         };
     }
 

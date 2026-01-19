@@ -52,7 +52,7 @@ export class GoogleAnalyticsAuthController {
             if (!code) {
                 // ✅ Use dynamic frontend URL
                 return res.redirect(
-                    `${this.frontendUrl}/integrations?error=missing_code`,
+                    `${this.frontendUrl}/data-sources?error=missing_code`,
                 );
             }
 
@@ -64,12 +64,12 @@ export class GoogleAnalyticsAuthController {
 
             // Redirect to frontend with tempToken and status
             return res.redirect(
-                `${this.frontendUrl}/integrations?status=${result.status}&tempToken=${result.tempToken}&platform=ga4`,
+                `${this.frontendUrl}/data-sources?status=${result.status}&tempToken=${result.tempToken}&platform=ga4`,
             );
         } catch (error) {
             console.error('OAuth callback error:', error);
             return res.redirect(
-                `${this.frontendUrl}/integrations?error=${encodeURIComponent(error.message)}`,
+                `${this.frontendUrl}/data-sources?error=${encodeURIComponent(error.message)}`,
             );
         }
     }

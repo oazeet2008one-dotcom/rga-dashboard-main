@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuthStore, selectUser } from '@/stores/auth-store';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogOut, BarChart3, Users, Zap, Settings, FileText, TrendingUp, Search, ShoppingBag, MessageSquare, Layers } from 'lucide-react';
+import { Menu, X, LogOut, BarChart3, Users, Zap, Settings, FileText, TrendingUp, Search, ShoppingBag, MessageSquare, Database } from 'lucide-react';
 import { APP_LOGO, APP_TITLE } from '@/const';
 import { UserRole } from '@/types/enums';
 
@@ -32,7 +32,7 @@ export function Sidebar() {
             items: [
                 { label: 'Overview', href: '/dashboard', icon: BarChart3 },
                 { label: 'Campaigns', href: '/campaigns', icon: Zap },
-                { label: 'Data Sources', href: '/integrations', icon: Layers },
+                { label: 'Data Sources', href: '/data-sources', icon: Database },
             ]
         },
         {

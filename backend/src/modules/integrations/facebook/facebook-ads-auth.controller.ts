@@ -47,7 +47,7 @@ export class FacebookAdsAuthController {
         try {
             if (!code) {
                 return res.redirect(
-                    `${this.frontendUrl}/integrations?error=missing_code`,
+                    `${this.frontendUrl}/data-sources?error=missing_code`,
                 );
             }
 
@@ -57,12 +57,12 @@ export class FacebookAdsAuthController {
             );
 
             return res.redirect(
-                `${this.frontendUrl}/integrations?status=${result.status}&tempToken=${result.tempToken}&platform=facebook`,
+                `${this.frontendUrl}/data-sources?status=${result.status}&tempToken=${result.tempToken}&platform=facebook`,
             );
         } catch (error) {
             console.error('OAuth callback error:', error);
             return res.redirect(
-                `${this.frontendUrl}/integrations?error=${encodeURIComponent(error.message)}`,
+                `${this.frontendUrl}/data-sources?error=${encodeURIComponent(error.message)}`,
             );
         }
     }

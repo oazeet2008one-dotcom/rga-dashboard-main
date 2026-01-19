@@ -125,13 +125,13 @@ export class TikTokAdsController {
         try {
             if (!code) {
                 return res.redirect(
-                    `${this.frontendUrl}/integrations?error=missing_code&platform=tiktok`
+                    `${this.frontendUrl}/data-sources?error=missing_code&platform=tiktok`
                 );
             }
 
             if (!state) {
                 return res.redirect(
-                    `${this.frontendUrl}/integrations?error=missing_state&platform=tiktok`
+                    `${this.frontendUrl}/data-sources?error=missing_state&platform=tiktok`
                 );
             }
 
@@ -140,12 +140,12 @@ export class TikTokAdsController {
 
             // Redirect to frontend with tempToken for account selection
             return res.redirect(
-                `${this.frontendUrl}/integrations?status=${result.status}&tempToken=${result.tempToken}&platform=tiktok`
+                `${this.frontendUrl}/data-sources?status=${result.status}&tempToken=${result.tempToken}&platform=tiktok`
             );
         } catch (error) {
             console.error('[TikTok OAuth] Callback error:', error);
             return res.redirect(
-                `${this.frontendUrl}/integrations?error=${encodeURIComponent(error.message)}&platform=tiktok`
+                `${this.frontendUrl}/data-sources?error=${encodeURIComponent(error.message)}&platform=tiktok`
             );
         }
     }

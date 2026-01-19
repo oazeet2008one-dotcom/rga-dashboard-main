@@ -5,8 +5,11 @@
 
 import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { DashboardLayout } from '../components/layout/dashboard-layout';
 import { DashboardMetrics } from '../components/dashboard-metrics';
+import { TrendChart } from '../components/charts/trend-chart';
+import { RecentActivity } from '../components/widgets/recent-activity';
 import { useDashboardOverview } from '../hooks/use-dashboard';
 
 // =============================================================================
@@ -54,10 +57,29 @@ export function DashboardPage() {
                 />
             </section>
 
-            {/* Future: Trends Chart Section */}
-            {/* <section className="mb-8">
-        <TrendsChart data={data?.trends} loading={isLoading} />
-      </section> */}
+            {/* Charts & Activity Grid - Responsive Layout */}
+            <section className="mb-8">
+                <h2 className="sr-only">Performance Trends & Recent Activity</h2>
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                    {/* Trend Chart - 4/7 on desktop */}
+                    <div className="col-span-1 lg:col-span-4">
+                        {isLoading ? (
+                            <Skeleton className="h-[400px] w-full rounded-lg" />
+                        ) : (
+                            <TrendChart data={data?.trends ?? []} />
+                        )}
+                    </div>
+
+                    {/* Recent Activity - 3/7 on desktop */}
+                    <div className="col-span-1 lg:col-span-3">
+                        {isLoading ? (
+                            <Skeleton className="h-[400px] w-full rounded-lg" />
+                        ) : (
+                            <RecentActivity data={(data as any)?.recentActivity ?? []} />
+                        )}
+                    </div>
+                </div>
+            </section>
 
             {/* Future: Recent Campaigns Section */}
             {/* <section>

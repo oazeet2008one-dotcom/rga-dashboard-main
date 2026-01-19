@@ -33,11 +33,11 @@ export class LineAdsController {
     ) {
         try {
             await this.lineAdsOAuthService.handleCallback(code, state);
-            return res.redirect(`${this.frontendUrl}/integrations?status=success&platform=line`);
+            return res.redirect(`${this.frontendUrl}/data-sources?status=success&platform=line`);
         } catch (error) {
             // Ensure error message is safely encoded for URL
             const errorMessage = encodeURIComponent(error?.message || 'Unknown error');
-            return res.redirect(`${this.frontendUrl}/integrations?status=error&message=${errorMessage}&platform=line`);
+            return res.redirect(`${this.frontendUrl}/data-sources?status=error&message=${errorMessage}&platform=line`);
         }
     }
 }

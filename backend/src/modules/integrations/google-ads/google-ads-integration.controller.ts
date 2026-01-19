@@ -20,9 +20,27 @@ export class GoogleAdsIntegrationController {
   async getStatus(@Req() req: any) {
     const tenantId = req.user.tenantId;
     const result = await this.oauthService.getConnectedAccounts(tenantId);
+
+    // Map to standardized IntegrationStatusResponse format
+    const mappedAccounts = result.accounts.map(account => ({
+      id: account.id,
+      externalId: account.customerId,        // Map customerId -> externalId
+      name: account.accountName || 'Unnamed Account',
+      status: account.status,
+    }));
+
+    // Get latest sync time across all accounts
+    const lastSyncAt = result.accounts.length > 0
+      ? result.accounts
+        .map(a => a.lastSyncAt)
+        .filter(Boolean)
+        .sort((a, b) => (b?.getTime() || 0) - (a?.getTime() || 0))[0] || null
+      : null;
+
     return {
       isConnected: result.accounts.length > 0,
-      accounts: result.accounts,
+      lastSyncAt,
+      accounts: mappedAccounts,
     };
   }
 
