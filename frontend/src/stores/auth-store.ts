@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { User } from '@/types/api';
+import type { User, ApiErrorResponse, ApiErrorMeta } from '@/types/api';
 import { apiClient } from '@/services/api-client';
 import { authEvents, AUTH_EVENTS } from '@/lib/auth-events';
 import {
@@ -85,31 +85,31 @@ export const useAuthStore = create<AuthState>()(
                         error: null,
                     });
                 } catch (error: unknown) {
+                    // ✅ Type-safe error handling with ApiErrorResponse
                     const err = error as {
                         response?: {
-                            data?: {
-                                message?: string;
-                                error?: string;  // Contract error code
-                                lockoutMinutes?: number;
-                                remainingAttempts?: number;
-                            }
+                            data?: Partial<ApiErrorResponse>
                         }
                     };
                     const errorData = err.response?.data;
+                    const meta = errorData?.meta as ApiErrorMeta | undefined;
                     let message = errorData?.message || 'Login failed';
 
-                    // ✅ Contract: Handle error codes per AUTH_INTERFACE_CONTRACT.md
+                    // ✅ Contract: Handle error codes with meta data
                     switch (errorData?.error) {
                         case 'ACCOUNT_LOCKED':
-                            message = `Account is locked. Please try again in ${errorData.lockoutMinutes || 30} minutes.`;
+                            message = `Account is locked. Please try again in ${meta?.lockoutMinutes || 30} minutes.`;
                             break;
                         case 'INVALID_CREDENTIALS':
-                            if (errorData.remainingAttempts !== undefined) {
-                                message = `Invalid credentials. ${errorData.remainingAttempts} attempts remaining.`;
+                            if (meta?.remainingAttempts !== undefined) {
+                                message = `Invalid credentials. ${meta.remainingAttempts} attempts remaining.`;
                             }
                             break;
                         case 'TOKEN_EXPIRED':
                             message = 'Your session has expired. Please login again.';
+                            break;
+                        case 'ACCOUNT_INACTIVE':
+                            message = 'Account is deactivated. Please contact support.';
                             break;
                     }
 
@@ -140,20 +140,23 @@ export const useAuthStore = create<AuthState>()(
                         error: null,
                     });
                 } catch (error: unknown) {
+                    // ✅ Type-safe error handling with ApiErrorResponse
                     const err = error as {
                         response?: {
-                            data?: {
-                                message?: string;
-                                error?: string;  // Contract error code
-                            }
+                            data?: Partial<ApiErrorResponse>
                         }
                     };
                     const errorData = err.response?.data;
                     let message = errorData?.message || 'Registration failed';
 
-                    // ✅ Contract: Handle error codes per AUTH_INTERFACE_CONTRACT.md
-                    if (errorData?.error === 'EMAIL_EXISTS') {
-                        message = 'This email is already registered. Please login instead.';
+                    // ✅ Contract: Handle error codes
+                    switch (errorData?.error) {
+                        case 'EMAIL_EXISTS':
+                            message = 'This email is already registered. Please login instead.';
+                            break;
+                        case 'VALIDATION_ERROR':
+                            message = errorData?.message || 'Please check your input and try again.';
+                            break;
                     }
 
                     set({ error: message, isLoading: false });

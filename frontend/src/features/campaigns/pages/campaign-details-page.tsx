@@ -29,7 +29,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 
-import { DashboardLayout } from '@/features/dashboard/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useCampaign } from '../hooks/use-campaigns';
 import { AdGroupsTabContent } from '@/features/ad-groups';
 

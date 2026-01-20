@@ -1,11 +1,12 @@
 /**
  * Data Sources Page
- * 
+ *
  * Displays all available ad platform integrations with connect/disconnect functionality.
  * Handles OAuth callback and account selection flow.
+ * Uses standardized DashboardLayout with Shadcn Sidebar.
  */
 
-import { DashboardLayout } from '@/features/dashboard/components/layout/dashboard-layout';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { DataSourceCard } from '../components/data-source-card';
 import { AccountSelectionDialog } from '../components/account-selection-dialog';
 import { useIntegrationAuth } from '../hooks/use-integration-auth';
@@ -62,13 +63,15 @@ export default function DataSourcesPage() {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6">
+            <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
                 {/* Page Header */}
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Data Sources</h1>
-                    <p className="text-muted-foreground">
-                        Connect your advertising platforms to sync campaigns and metrics.
-                    </p>
+                <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-bold tracking-tight">Data Sources</h2>
+                        <p className="text-muted-foreground">
+                            Connect your advertising platforms to sync campaigns and metrics.
+                        </p>
+                    </div>
                 </div>
 
                 {/* Platform Cards Grid */}

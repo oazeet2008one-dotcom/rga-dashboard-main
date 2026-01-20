@@ -6,7 +6,7 @@ import { Logger } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 // Load .env before anything else
 dotenv.config();
@@ -80,8 +80,8 @@ async function bootstrap() {
     }),
   );
 
-  // Global Exception Filter
-  app.useGlobalFilters(new HttpExceptionFilter());
+  // Global Exception Filter (Standardized Error Responses)
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Swagger
   const config = new DocumentBuilder()

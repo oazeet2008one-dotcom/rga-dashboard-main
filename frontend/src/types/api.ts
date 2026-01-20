@@ -225,6 +225,55 @@ export interface ApiResponse<T> {
 }
 
 // =============================================================================
+// 🆕 API ERROR RESPONSE (Error Handling Standardization)
+// =============================================================================
+
+/**
+ * Standardized error response from backend
+ * All API errors follow this structure for consistent error handling
+ */
+export interface ApiErrorResponse {
+  success: false;
+  data: null;
+  statusCode: number;
+  error: ApiErrorCode;
+  message: string;
+  meta?: ApiErrorMeta;
+  timestamp: string;
+  path: string;
+}
+
+/**
+ * Known API error codes for type-safe error handling
+ */
+export type ApiErrorCode =
+  | 'INVALID_CREDENTIALS'
+  | 'ACCOUNT_LOCKED'
+  | 'EMAIL_EXISTS'
+  | 'TOKEN_EXPIRED'
+  | 'TOKEN_REVOKED'
+  | 'USER_NOT_FOUND'
+  | 'ACCOUNT_INACTIVE'
+  | 'VALIDATION_ERROR'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'TOO_MANY_REQUESTS'
+  | 'INTERNAL_ERROR'
+  | string; // Allow unknown error codes
+
+/**
+ * Meta data included in error responses
+ */
+export interface ApiErrorMeta {
+  lockoutMinutes?: number;
+  remainingAttempts?: number;
+  errors?: string[];
+  [key: string]: unknown;
+}
+
+// =============================================================================
 // 🆕 NOTIFICATION (Sprint 4)
 // =============================================================================
 export interface Notification {

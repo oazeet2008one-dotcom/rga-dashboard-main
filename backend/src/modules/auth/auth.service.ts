@@ -1,4 +1,4 @@
-﻿import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthRepository } from './auth.repository';
@@ -9,6 +9,14 @@ import { RegisterDto, LoginDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 import { User, Tenant } from '@prisma/client';
 import { Request } from 'express';
+import {
+  InvalidCredentialsException,
+  AccountLockedException,
+  EmailExistsException,
+  TokenRevokedException,
+  TokenExpiredException,
+  UserNotFoundException,
+} from './auth.exception';
 
 type UserWithTenant = User & { tenant: Tenant };
 
@@ -31,7 +39,7 @@ export class AuthService {
     });
 
     if (existing) {
-      throw new ConflictException('Email already registered');
+      throw new EmailExistsException();
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -71,13 +79,11 @@ export class AuthService {
     // Check if account is locked
     if (user?.lockedUntil && user.lockedUntil > new Date()) {
       const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      throw new UnauthorizedException(
-        `Account is locked. Try again in ${minutesLeft} minutes.`
-      );
+      throw new AccountLockedException(minutesLeft);
     }
 
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new InvalidCredentialsException();
     }
 
     const valid = await bcrypt.compare(dto.password, user.password);
@@ -97,7 +103,9 @@ export class AuthService {
         },
       });
 
-      throw new UnauthorizedException('Invalid credentials');
+      // Include remaining attempts in error response
+      const remainingAttempts = 5 - newFailedCount;
+      throw new InvalidCredentialsException(remainingAttempts > 0 ? remainingAttempts : undefined);
     }
 
     // Reset failed count & update login info on successful login
@@ -160,7 +168,7 @@ export class AuthService {
       // 2. ตรวจสอบว่า token ยังอยู่ใน database
       const session = await this.authRepository.findSessionByToken(token);
       if (!session) {
-        throw new UnauthorizedException('Token has been revoked');
+        throw new TokenRevokedException();
       }
 
       // 3. ลบ token เก่า (Token Rotation)
@@ -171,7 +179,7 @@ export class AuthService {
         where: { email: payload.email },
       });
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new UserNotFoundException();
       }
 
       // 5. สร้าง tokens ใหม่
@@ -191,7 +199,7 @@ export class AuthService {
     } catch (e) {
       // ถ้า token ไม่ valid ลบทิ้งเพื่อความปลอดภัย
       await this.authRepository.deleteRefreshToken(token).catch(() => { });
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new TokenExpiredException();
     }
   }
 

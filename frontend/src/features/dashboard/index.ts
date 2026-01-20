@@ -19,7 +19,7 @@ export {
 } from './hooks/use-dashboard';
 
 // Components
-export { DashboardLayout } from './components/layout/dashboard-layout';
+export { DashboardLayout } from '@/components/layout/DashboardLayout';
 export { SummaryCard } from './components/ui/summary-card';
 export { DashboardMetrics } from './components/dashboard-metrics';
 
