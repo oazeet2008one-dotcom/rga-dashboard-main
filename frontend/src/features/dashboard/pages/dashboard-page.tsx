@@ -4,15 +4,18 @@
 // Uses standardized DashboardLayout with Shadcn Sidebar
 // =============================================================================
 
-import { AlertTriangle, Calendar } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { DashboardMetrics } from '../components/dashboard-metrics';
+import { DashboardDateFilter } from '../components/dashboard-date-filter';
 import { TrendChart } from '../components/charts/trend-chart';
-import { RecentActivity } from '../components/widgets/recent-activity';
+import { RecentCampaigns } from '../components/widgets/recent-campaigns';
 import { useDashboardOverview } from '../hooks/use-dashboard';
+import type { PeriodEnum } from '../schemas';
 
 // =============================================================================
 // Error State Component
@@ -45,8 +48,12 @@ function ErrorState({ error, onRetry }: ErrorStateProps) {
 // =============================================================================
 
 export function DashboardPage() {
+    // Period state for date filtering
+    const [period, setPeriod] = useState<PeriodEnum>('7d');
+
+    // Fetch dashboard data with selected period
     const { data, isLoading, error, refetch } = useDashboardOverview({
-        period: '7d',
+        period,
     });
 
     return (
@@ -61,10 +68,10 @@ export function DashboardPage() {
                         </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span className="hidden sm:inline">Last 7 days</span>
-                        </Button>
+                        <DashboardDateFilter
+                            value={period}
+                            onValueChange={setPeriod}
+                        />
                     </div>
                 </div>
 
@@ -81,9 +88,9 @@ export function DashboardPage() {
                     />
                 </section>
 
-                {/* Charts & Activity Grid - Responsive Layout */}
+                {/* Charts & Campaigns Grid - Responsive Layout */}
                 <section>
-                    <h3 className="sr-only">Performance Trends & Recent Activity</h3>
+                    <h3 className="sr-only">Performance Trends & Recent Campaigns</h3>
                     <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
                         {/* Trend Chart - 4/7 on desktop */}
                         <div className="col-span-1 lg:col-span-4">
@@ -94,12 +101,12 @@ export function DashboardPage() {
                             )}
                         </div>
 
-                        {/* Recent Activity - 3/7 on desktop */}
+                        {/* Recent Campaigns - 3/7 on desktop */}
                         <div className="col-span-1 lg:col-span-3">
                             {isLoading ? (
                                 <Skeleton className="h-[400px] w-full rounded-lg" />
                             ) : (
-                                <RecentActivity data={(data as any)?.recentActivity ?? []} />
+                                <RecentCampaigns campaigns={data?.recentCampaigns ?? []} />
                             )}
                         </div>
                     </div>
