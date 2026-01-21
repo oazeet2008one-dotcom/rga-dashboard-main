@@ -135,6 +135,7 @@ export class DashboardController {
 
   /**
    * Export campaigns to CSV
+   * @deprecated Use GET /export/campaigns with startDate/endDate instead
    */
   @Get('export/campaigns/csv')
   @UseGuards(JwtAuthGuard)
@@ -142,19 +143,18 @@ export class DashboardController {
     @CurrentUser() user: any,
     @Query('platform') platform?: string,
     @Query('status') status?: string,
-    @Res() res?: Response,
   ) {
-    const csv = await this.exportService.exportCampaignsToCSV(user.tenantId, {
+    // Default to last 30 days if no date range specified
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+
+    return this.exportService.streamCampaignsCSV(user.tenantId, {
+      startDate,
+      endDate,
       platform,
       status,
     });
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=campaigns-${new Date().toISOString().split('T')[0]}.csv`,
-    );
-    res.send(csv);
   }
 
   /**

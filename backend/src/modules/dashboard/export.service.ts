@@ -1,7 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, StreamableFile } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MetricsService } from './metrics.service';
-import { Parser } from 'json2csv';
+import { stringify } from 'csv-stringify';
+import { PassThrough } from 'stream';
 import * as PDFDocument from 'pdfkit';
 
 // ============================================================================
@@ -11,26 +12,20 @@ import * as PDFDocument from 'pdfkit';
 /** UTF-8 BOM for Excel Thai language support */
 const UTF8_BOM = '\uFEFF';
 
-/** CSV column headers for empty export */
-const CSV_HEADERS = [
-    'Campaign ID',
-    'Campaign Name',
-    'Platform',
-    'Status',
-    'Google Ads Account',
-    'Account ID',
-    'Budget',
-    'Impressions',
-    'Clicks',
-    'Spend ($)',
-    'Conversions',
-    'Revenue ($)',
-    'CTR (%)',
-    'CPC ($)',
-    'ROAS',
-    'Start Date',
-    'End Date',
-    'Created At',
+/** Batch size for cursor pagination (memory-efficient) */
+const BATCH_SIZE = 500;
+
+/** CSV column definitions for streaming export */
+const CSV_COLUMNS = [
+    { key: 'date', header: 'Date' },
+    { key: 'campaignName', header: 'Campaign Name' },
+    { key: 'platform', header: 'Platform' },
+    { key: 'status', header: 'Status' },
+    { key: 'spend', header: 'Spend ($)' },
+    { key: 'impressions', header: 'Impressions' },
+    { key: 'clicks', header: 'Clicks' },
+    { key: 'ctr', header: 'CTR (%)' },
+    { key: 'cpc', header: 'CPC ($)' },
 ];
 
 /** Characters that trigger formula execution in Excel (CSV Injection) */
@@ -48,7 +43,18 @@ const PDF_LAYOUT = {
 };
 
 // ============================================================================
-// Export Service
+// Export Query DTO Interface
+// ============================================================================
+
+export interface ExportCampaignsQuery {
+    startDate: Date;
+    endDate: Date;
+    platform?: string;
+    status?: string;
+}
+
+// ============================================================================
+// Export Service (Streaming Architecture)
 // ============================================================================
 
 @Injectable()
@@ -61,116 +67,172 @@ export class ExportService {
     ) { }
 
     // ========================================================================
-    // CSV Export
+    // Streaming CSV Export (NEW - Memory Efficient)
     // ========================================================================
 
     /**
-     * Export campaigns to CSV
+     * Stream campaigns to CSV using cursor-based pagination
+     * Memory-efficient: processes BATCH_SIZE rows at a time
+     * 
      * @param tenantId - Tenant ID
-     * @param filters - Optional filters
-     * @throws InternalServerErrorException on any failure
+     * @param query - Export query parameters with date range
+     * @returns StreamableFile for piping to response
      */
-    async exportCampaignsToCSV(
+    async streamCampaignsCSV(
         tenantId: string,
-        filters?: {
-            platform?: string;
-            status?: string;
-            startDate?: Date;
-            endDate?: Date;
-        },
-    ): Promise<Buffer> {
-        try {
-            // Build where clause
-            const where: any = { tenantId };
-            if (filters?.platform) where.platform = filters.platform;
-            if (filters?.status) where.status = filters.status;
+        query: ExportCampaignsQuery,
+    ): Promise<StreamableFile> {
+        const { startDate, endDate, platform, status } = query;
 
-            // Get campaigns with latest metrics
-            const campaigns = await this.prisma.campaign.findMany({
-                where,
-                include: {
+        this.logger.log(
+            `Starting streaming CSV export for tenant ${tenantId} ` +
+            `(${startDate.toISOString()} to ${endDate.toISOString()})`
+        );
+
+        // Create CSV stringifier with headers
+        const stringifier = stringify({
+            header: true,
+            columns: CSV_COLUMNS,
+        });
+
+        // Create a PassThrough stream to pipe data
+        const passThrough = new PassThrough();
+
+        // Write UTF-8 BOM first for Excel Thai language support
+        passThrough.write(UTF8_BOM);
+
+        // Pipe stringifier output to passThrough
+        stringifier.pipe(passThrough);
+
+        // Start background streaming (non-blocking)
+        this.streamDataInBackground(
+            tenantId,
+            startDate,
+            endDate,
+            platform,
+            status,
+            stringifier,
+        ).catch((error) => {
+            this.logger.error('Streaming export failed', error);
+            stringifier.destroy(error);
+        });
+
+        // Generate filename with date range
+        const startStr = startDate.toISOString().split('T')[0];
+        const endStr = endDate.toISOString().split('T')[0];
+        const filename = `campaigns-${startStr}-to-${endStr}.csv`;
+
+        return new StreamableFile(passThrough, {
+            type: 'text/csv; charset=utf-8',
+            disposition: `attachment; filename="${filename}"`,
+        });
+    }
+
+    /**
+     * Background streaming with cursor-based pagination
+     * Fetches data in batches to prevent memory overload
+     */
+    private async streamDataInBackground(
+        tenantId: string,
+        startDate: Date,
+        endDate: Date,
+        platform: string | undefined,
+        status: string | undefined,
+        stringifier: ReturnType<typeof stringify>,
+    ): Promise<void> {
+        let cursor: string | undefined;
+        let hasMore = true;
+        let totalRows = 0;
+
+        try {
+            while (hasMore) {
+                // Build where clause with filters
+                const where: any = {
+                    tenantId,
                     metrics: {
-                        orderBy: { date: 'desc' },
-                        take: 1, // Latest metrics only
-                    },
-                    googleAdsAccount: {
-                        select: {
-                            accountName: true,
-                            customerId: true,
+                        some: {
+                            date: { gte: startDate, lte: endDate },
                         },
                     },
-                },
-                orderBy: {
-                    createdAt: 'desc',
-                },
-            });
+                };
+                if (platform) where.platform = platform;
+                if (status) where.status = status;
 
-            // ✅ FIX CRITICAL-001: Handle empty data gracefully
-            if (!campaigns || campaigns.length === 0) {
-                this.logger.warn(`No campaigns found for tenant ${tenantId}`);
-                const emptyCSV = CSV_HEADERS.join(',') + '\n';
-                return Buffer.from(UTF8_BOM + emptyCSV, 'utf-8');
+                // Fetch batch with cursor pagination
+                const campaigns = await this.prisma.campaign.findMany({
+                    where,
+                    include: {
+                        metrics: {
+                            where: {
+                                date: { gte: startDate, lte: endDate },
+                            },
+                        },
+                    },
+                    take: BATCH_SIZE,
+                    ...(cursor && {
+                        skip: 1,
+                        cursor: { id: cursor },
+                    }),
+                    orderBy: { id: 'asc' },
+                });
+
+                // Write each campaign to stream
+                for (const campaign of campaigns) {
+                    const aggregated = this.aggregateMetrics(campaign.metrics);
+
+                    stringifier.write({
+                        date: `${startDate.toISOString().split('T')[0]} - ${endDate.toISOString().split('T')[0]}`,
+                        campaignName: this.sanitizeCSVValue(campaign.name),
+                        platform: campaign.platform,
+                        status: campaign.status,
+                        spend: aggregated.spend.toFixed(2),
+                        impressions: aggregated.impressions,
+                        clicks: aggregated.clicks,
+                        ctr: aggregated.ctr.toFixed(2),
+                        cpc: aggregated.cpc.toFixed(2),
+                    });
+                    totalRows++;
+                }
+
+                // Update cursor and check for more data
+                if (campaigns.length < BATCH_SIZE) {
+                    hasMore = false;
+                } else {
+                    cursor = campaigns[campaigns.length - 1].id;
+                }
             }
 
-            // Transform data for CSV
-            const data = campaigns.map((c) => {
-                const latestMetric = c.metrics?.[0];
-                const impressions = latestMetric?.impressions ?? 0;
-                const clicks = latestMetric?.clicks ?? 0;
-                const spend = Number(latestMetric?.spend ?? 0);
-
-                // Calculate CTR and CPC (not stored in DB)
-                const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-                const cpc = clicks > 0 ? spend / clicks : 0;
-
-                return {
-                    'Campaign ID': this.sanitizeCSVValue(c.externalId || c.id),
-                    'Campaign Name': this.sanitizeCSVValue(c.name),
-                    Platform: this.sanitizeCSVValue(c.platform),
-                    Status: this.sanitizeCSVValue(c.status),
-                    'Google Ads Account': this.sanitizeCSVValue(
-                        c.googleAdsAccount?.accountName || 'N/A',
-                    ),
-                    'Account ID': this.sanitizeCSVValue(
-                        c.googleAdsAccount?.customerId || 'N/A',
-                    ),
-                    Budget: c.budget ?? 0,
-                    Impressions: impressions,
-                    Clicks: clicks,
-                    'Spend ($)': spend.toFixed(2),
-                    Conversions: latestMetric?.conversions ?? 0,
-                    'Revenue ($)': Number(latestMetric?.revenue ?? 0).toFixed(2),
-                    'CTR (%)': ctr.toFixed(2),
-                    'CPC ($)': cpc.toFixed(2),
-                    ROAS: Number(latestMetric?.roas ?? 0).toFixed(2),
-                    // ✅ FIX HIGH-001: Safe date formatting with null guards
-                    'Start Date': this.formatDateSafe(c.startDate),
-                    'End Date': this.formatDateSafe(c.endDate),
-                    'Created At': this.formatDateSafe(c.createdAt),
-                };
-            });
-
-            // Generate CSV
-            const parser = new Parser({ fields: CSV_HEADERS });
-            const csv = parser.parse(data);
-
-            // ✅ FIX HIGH-002: Add UTF-8 BOM for Thai language support in Excel
-            return Buffer.from(UTF8_BOM + csv, 'utf-8');
-
-        } catch (error) {
-            // ✅ FIX CRITICAL-002: Proper error logging and handling
-            this.logger.error(
-                `CSV Export failed for tenant ${tenantId}`,
-                error instanceof Error ? error.stack : error,
-            );
-            throw new InternalServerErrorException(
-                'Failed to export campaigns to CSV. Please try again later.',
-            );
+            this.logger.log(`Streaming export completed: ${totalRows} rows exported`);
+        } finally {
+            stringifier.end(); // Signal end of stream
         }
     }
 
+    /**
+     * Aggregate metrics from an array into summary values
+     */
+    private aggregateMetrics(metrics: any[]): {
+        spend: number;
+        impressions: number;
+        clicks: number;
+        ctr: number;
+        cpc: number;
+    } {
+        const spend = metrics.reduce((sum, m) => sum + Number(m.spend || 0), 0);
+        const impressions = metrics.reduce((sum, m) => sum + (m.impressions || 0), 0);
+        const clicks = metrics.reduce((sum, m) => sum + (m.clicks || 0), 0);
+
+        return {
+            spend,
+            impressions,
+            clicks,
+            ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+            cpc: clicks > 0 ? spend / clicks : 0,
+        };
+    }
+
     // ========================================================================
-    // PDF Export
+    // PDF Export (Unchanged from original)
     // ========================================================================
 
     /**
@@ -233,7 +295,7 @@ export class ExportService {
 
             doc.fontSize(12).font('Helvetica');
 
-            // ✅ Safe access with nullish coalescing
+            // Safe access with nullish coalescing
             const current = trends?.current ?? {
                 impressions: 0,
                 clicks: 0,
@@ -339,7 +401,7 @@ export class ExportService {
 
             doc.fontSize(10).font('Helvetica');
 
-            // ✅ Safe access to dailyMetrics.data
+            // Safe access to dailyMetrics.data
             const dailyData = dailyMetrics?.data ?? [];
             if (dailyData.length === 0) {
                 doc.text('No daily metrics available for this period.');
@@ -375,7 +437,6 @@ export class ExportService {
             });
 
         } catch (error) {
-            // ✅ FIX CRITICAL-002: Proper error logging and handling
             this.logger.error(
                 `PDF Export failed for tenant ${tenantId}`,
                 error instanceof Error ? error.stack : error,
@@ -391,7 +452,7 @@ export class ExportService {
     // ========================================================================
 
     /**
-     * ✅ FIX CRITICAL-003: Sanitize CSV values to prevent CSV Injection attacks
+     * Sanitize CSV values to prevent CSV Injection attacks
      * Escapes dangerous characters that could trigger formula execution in Excel
      * @param value - Value to sanitize
      * @returns Sanitized string safe for CSV
@@ -413,7 +474,7 @@ export class ExportService {
     }
 
     /**
-     * ✅ FIX HIGH-001: Safely format date with null/undefined guards
+     * Safely format date with null/undefined guards
      * @param date - Date to format (may be null/undefined)
      * @returns Formatted date string or 'N/A'
      */
