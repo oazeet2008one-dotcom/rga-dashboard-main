@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Download } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -22,8 +23,10 @@ import { CampaignPagination } from '../components/campaign-pagination';
 import { BulkActionBar } from '../components/bulk-action-bar';
 import { DashboardDateFilter } from '@/features/dashboard/components/dashboard-date-filter';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useFileDownload } from '@/hooks/use-file-download';
 import { useCampaigns } from '../hooks/use-campaigns';
 import { useDeleteCampaign, useToggleCampaignStatus } from '../hooks/use-campaign-mutations';
+import { exportService } from '@/features/dashboard/services/export-service';
 import type { Campaign } from '../types';
 import type { PeriodEnum } from '@/features/dashboard/schemas';
 
@@ -102,8 +105,14 @@ export function CampaignsPage() {
     // Selection state
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+    // Export loading state
+    const [isExporting, setIsExporting] = useState(false);
+
     // Debounce search input
     const debouncedSearch = useDebounce(search, 500);
+
+    // File download hook
+    const { downloadBlob } = useFileDownload();
 
     // ==========================================================================
     // Reset Page on Filter Change
@@ -209,6 +218,40 @@ export function CampaignsPage() {
         console.log('Bulk delete:', Array.from(selectedIds));
         // TODO: Implement bulk delete API call
     }, [selectedIds]);
+
+    // ==========================================================================
+    // Export Handler
+    // ==========================================================================
+    const handleExport = useCallback(async () => {
+        setIsExporting(true);
+
+        try {
+            // Call API with current filters
+            const blob = await exportService.downloadCampaignsCsv({
+                startDate: dateRange.startDate,
+                endDate: dateRange.endDate,
+                status: status !== 'ALL' ? status : undefined,
+            });
+
+            // Generate filename with date
+            const today = new Date().toISOString().split('T')[0];
+            const filename = `campaigns-report-${today}.csv`;
+
+            // Trigger download
+            downloadBlob(blob, filename);
+
+            toast.success('Export successful', {
+                description: `Downloaded ${filename}`,
+            });
+        } catch (err) {
+            console.error('Export failed:', err);
+            toast.error('Export failed', {
+                description: err instanceof Error ? err.message : 'Unable to download CSV report',
+            });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [dateRange, status, downloadBlob]);
 
     // ==========================================================================
     // Campaign Action Handlers
@@ -323,6 +366,18 @@ export function CampaignsPage() {
                     </div>
                     <div className="flex items-center gap-3">
                         <DashboardDateFilter value={period} onValueChange={setPeriod} />
+                        <Button
+                            variant="outline"
+                            onClick={handleExport}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Download className="mr-2 h-4 w-4" />
+                            )}
+                            Export CSV
+                        </Button>
                         <Button onClick={handleCreate}>
                             <Plus className="mr-2 h-4 w-4" />
                             Create Campaign
