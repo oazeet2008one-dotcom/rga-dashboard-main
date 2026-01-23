@@ -42,7 +42,7 @@ import { Campaign, STATUS_STYLES, PLATFORM_LABELS } from '../types';
 // Types
 // =============================================================================
 
-export type SortableColumn = 'name' | 'status' | 'platform' | 'spend' | 'impressions' | 'clicks' | 'createdAt';
+export type SortableColumn = 'name' | 'status' | 'platform' | 'spend' | 'impressions' | 'clicks' | 'createdAt' | 'ctr' | 'cpc' | 'cpm' | 'roas' | 'roi';
 
 export interface CampaignsTableProps {
     campaigns: Campaign[];
@@ -79,18 +79,7 @@ const formatNumber = (num: number): string => {
     return new Intl.NumberFormat('th-TH').format(num);
 };
 
-const formatDate = (dateString: string): string => {
-    try {
-        return format(new Date(dateString), 'dd MMM yyyy');
-    } catch {
-        return '-';
-    }
-};
 
-const calculateCTR = (clicks: number, impressions: number): string => {
-    if (impressions === 0) return '0%';
-    return ((clicks / impressions) * 100).toFixed(2) + '%';
-};
 
 // =============================================================================
 // Sortable Header Component
@@ -102,7 +91,7 @@ interface SortableHeaderProps {
     currentSortBy: string;
     currentSortOrder: 'asc' | 'desc';
     onSort: (column: SortableColumn) => void;
-    align?: 'left' | 'right';
+    align?: 'left' | 'center' | 'right';
 }
 
 function SortableHeader({
@@ -125,7 +114,7 @@ function SortableHeader({
         <Button
             variant="ghost"
             size="sm"
-            className={`-ml-3 h-8 flex items-center gap-1 hover:bg-muted/50 ${align === 'right' ? 'justify-end' : ''
+            className={`h-8 flex items-center gap-1 hover:bg-muted/50 ${align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto justify-end' : '-ml-3'
                 }`}
             onClick={() => onSort(column)}
         >
@@ -210,65 +199,124 @@ export function CampaignsTable({
                         </TableHead>
 
                         {/* Status - Sortable */}
-                        <TableHead>
+                        <TableHead className="text-center">
                             <SortableHeader
                                 column="status"
                                 label="Status"
                                 currentSortBy={sortBy}
                                 currentSortOrder={sortOrder}
                                 onSort={onSort}
+                                align="center"
                             />
                         </TableHead>
 
                         {/* Platform */}
-                        <TableHead>
+                        <TableHead className="text-center">
                             <SortableHeader
                                 column="platform"
                                 label="Platform"
                                 currentSortBy={sortBy}
                                 currentSortOrder={sortOrder}
                                 onSort={onSort}
+                                align="center"
                             />
                         </TableHead>
 
                         {/* Spend - Sortable */}
-                        <TableHead className="text-right">
+                        <TableHead className="text-center">
                             <SortableHeader
                                 column="spend"
                                 label="Spent"
                                 currentSortBy={sortBy}
                                 currentSortOrder={sortOrder}
                                 onSort={onSort}
-                                align="right"
+                                align="center"
                             />
                         </TableHead>
 
                         {/* Impressions - Sortable */}
-                        <TableHead className="text-right">
+                        <TableHead className="text-center">
                             <SortableHeader
                                 column="impressions"
                                 label="Impressions"
                                 currentSortBy={sortBy}
                                 currentSortOrder={sortOrder}
                                 onSort={onSort}
-                                align="right"
+                                align="center"
                             />
                         </TableHead>
 
                         {/* Clicks - Sortable */}
-                        <TableHead className="text-right">
+                        <TableHead className="text-center">
                             <SortableHeader
                                 column="clicks"
                                 label="Clicks"
                                 currentSortBy={sortBy}
                                 currentSortOrder={sortOrder}
                                 onSort={onSort}
-                                align="right"
+                                align="center"
                             />
                         </TableHead>
 
-                        {/* CTR (Calculated, not sortable server-side) */}
-                        <TableHead className="text-right">CTR</TableHead>
+                        {/* CTR */}
+                        <TableHead className="text-center">
+                            <SortableHeader
+                                column="ctr"
+                                label="CTR"
+                                currentSortBy={sortBy}
+                                currentSortOrder={sortOrder}
+                                onSort={onSort}
+                                align="center"
+                            />
+                        </TableHead>
+
+                        {/* CPC */}
+                        <TableHead className="text-center">
+                            <SortableHeader
+                                column="cpc"
+                                label="CPC"
+                                currentSortBy={sortBy}
+                                currentSortOrder={sortOrder}
+                                onSort={onSort}
+                                align="center"
+                            />
+                        </TableHead>
+
+                        {/* CPM */}
+                        <TableHead className="text-center">
+                            <SortableHeader
+                                column="cpm"
+                                label="CPM"
+                                currentSortBy={sortBy}
+                                currentSortOrder={sortOrder}
+                                onSort={onSort}
+                                align="center"
+                            />
+                        </TableHead>
+
+                        {/* ROAS */}
+                        <TableHead className="text-center">
+                            <SortableHeader
+                                column="roas"
+                                label="ROAS"
+                                currentSortBy={sortBy}
+                                currentSortOrder={sortOrder}
+                                onSort={onSort}
+                                align="center"
+                            />
+                        </TableHead>
+
+                        {/* ROI */}
+                        <TableHead className="text-center">
+                            <SortableHeader
+                                column="roi"
+                                label="ROI"
+                                currentSortBy={sortBy}
+                                currentSortOrder={sortOrder}
+                                onSort={onSort}
+                                align="center"
+                            />
+                        </TableHead>
 
                         {/* Actions */}
                         <TableHead className="w-[50px]"></TableHead>
@@ -302,7 +350,7 @@ export function CampaignsTable({
                                 </TableCell>
 
                                 {/* Status Badge */}
-                                <TableCell>
+                                <TableCell className="text-center">
                                     <Badge
                                         variant="secondary"
                                         className={STATUS_STYLES[campaign.status]}
@@ -312,28 +360,54 @@ export function CampaignsTable({
                                 </TableCell>
 
                                 {/* Platform */}
-                                <TableCell className="text-muted-foreground">
+                                <TableCell className="text-center text-muted-foreground">
                                     {PLATFORM_LABELS[campaign.platform]}
                                 </TableCell>
 
                                 {/* Spent */}
-                                <TableCell className="text-right font-medium">
+                                <TableCell className="text-center font-medium">
                                     {formatCurrency(campaign.spent)}
                                 </TableCell>
 
                                 {/* Impressions */}
-                                <TableCell className="text-right">
+                                <TableCell className="text-center">
                                     {formatNumber(campaign.impressions)}
                                 </TableCell>
 
                                 {/* Clicks */}
-                                <TableCell className="text-right">
+                                <TableCell className="text-center">
                                     {formatNumber(campaign.clicks)}
                                 </TableCell>
 
                                 {/* CTR */}
-                                <TableCell className="text-right">
-                                    {calculateCTR(campaign.clicks, campaign.impressions)}
+                                <TableCell className="text-center whitespace-nowrap">
+                                    {campaign.ctr}%
+                                </TableCell>
+
+                                {/* CPC */}
+                                <TableCell className="text-center whitespace-nowrap">
+                                    {formatCurrency(campaign.cpc || 0)}
+                                </TableCell>
+
+                                {/* CPM */}
+                                <TableCell className="text-center whitespace-nowrap">
+                                    {formatCurrency(campaign.cpm || 0)}
+                                </TableCell>
+
+                                {/* ROAS */}
+                                <TableCell className={`text-center whitespace-nowrap ${campaign.roas && campaign.roas >= 1 ? 'text-emerald-600 font-medium' : 'text-red-500 font-medium'}`}>
+                                    <div className="flex items-center justify-center gap-1">
+                                        {campaign.roas && campaign.roas >= 1 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                                        {campaign.roas}
+                                    </div>
+                                </TableCell>
+
+                                {/* ROI */}
+                                <TableCell className={`text-center whitespace-nowrap ${campaign.roi && campaign.roi >= 0 ? 'text-emerald-600 font-medium' : 'text-red-500 font-medium'}`}>
+                                    <div className="flex items-center justify-center gap-1">
+                                        {campaign.roi && campaign.roi >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                                        {campaign.roi}%
+                                    </div>
                                 </TableCell>
 
                                 {/* Actions Dropdown */}

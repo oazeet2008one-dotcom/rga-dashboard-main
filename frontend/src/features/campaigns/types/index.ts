@@ -14,6 +14,14 @@ export interface Campaign {
     startDate: string; // ISO date string
     endDate: string;   // ISO date string
     platform: CampaignPlatform;
+    // Metrics for Summary
+    revenue?: number;
+    conversions?: number;
+    roas?: number;
+    roi?: number;
+    ctr?: number;
+    cpc?: number;
+    cpm?: number;
 }
 
 // Status badge styling configuration

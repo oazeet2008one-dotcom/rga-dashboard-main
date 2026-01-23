@@ -52,26 +52,106 @@ export class CampaignsService {
   async findAll(tenantId: string, query: QueryCampaignsDto) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
-    const take = limit;
+    const sortBy = query.sortBy || 'createdAt';
+    const sortOrder = query.sortOrder || 'desc';
 
-    // Repository now handles date filtering for metrics
-    const [items, total] = await this.repository.findAll(tenantId, query);
+    // Fields that exist in the database and can be sorted via SQL
+    const dbSortFields = ['name', 'createdAt', 'status', 'platform'];
+    const isDbSort = dbSortFields.includes(sortBy);
 
-    // Normalize campaigns - metrics are already filtered by repository
-    const normalized = items.map((c) => this.normalizeCampaign(c));
+    if (isDbSort) {
+      // Repository handles pagination and sorting for DB fields
+      const [items, total] = await this.repository.findAll(tenantId, query);
+      const normalized = items.map((c) => this.normalizeCampaign(c));
 
-    return {
-      data: normalized,
-      meta: {
-        page,
-        limit: take,
-        total,
-        totalPages: Math.ceil(total / take) || 1,
-        // Include date range in meta for client awareness
-        ...(query.startDate && { startDate: query.startDate }),
-        ...(query.endDate && { endDate: query.endDate }),
-      },
-    };
+      // NEW: Get global summary for all matching campaigns
+      const summaryRaw = await this.repository.getSummary(tenantId, query);
+      const s = summaryRaw._sum;
+
+      const summary = {
+        spend: this.safe(s.spend),
+        impressions: this.safe(s.impressions),
+        clicks: this.safe(s.clicks),
+        revenue: this.safe(s.revenue),
+        conversions: this.safe(s.conversions),
+        // Global Derived Metrics (Safe Math: defaults to 0 or -100)
+        roas: s.spend ? Number((this.safe(s.revenue) / s.spend).toFixed(2)) : 0,
+        roi: s.spend ? Number(((this.safe(s.revenue) - s.spend) / s.spend * 100).toFixed(2)) : -100,
+        ctr: s.impressions ? Number(((this.safe(s.clicks) / s.impressions) * 100).toFixed(2)) : 0,
+        cpc: s.clicks ? Number((this.safe(s.spend) / s.clicks).toFixed(2)) : 0,
+        cpm: s.impressions ? Number(((this.safe(s.spend) / s.impressions) * 1000).toFixed(2)) : 0,
+      };
+
+      return {
+        data: normalized,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1,
+          ...(query.startDate && { startDate: query.startDate }),
+          ...(query.endDate && { endDate: query.endDate }),
+        },
+        summary,
+      };
+
+    } else {
+      // In-memory sorting for calculated metrics (CTR, ROAS, Spend, etc.)
+      const queryForRepo = {
+        ...query,
+        page: 1,
+        limit: 10000,
+        sortBy: 'createdAt'
+      };
+
+      const [items, total] = await this.repository.findAll(tenantId, queryForRepo);
+
+      // NEW: Get global summary for all matching campaigns
+      const summaryRaw = await this.repository.getSummary(tenantId, query);
+      const s = summaryRaw._sum;
+
+      const summary = {
+        spend: this.safe(s.spend),
+        impressions: this.safe(s.impressions),
+        clicks: this.safe(s.clicks),
+        revenue: this.safe(s.revenue),
+        conversions: this.safe(s.conversions),
+        roas: s.spend ? Number((this.safe(s.revenue) / s.spend).toFixed(2)) : 0,
+        roi: s.spend ? Number(((this.safe(s.revenue) - s.spend) / s.spend * 100).toFixed(2)) : -100,
+        ctr: s.impressions ? Number(((this.safe(s.clicks) / s.impressions) * 100).toFixed(2)) : 0,
+        cpc: s.clicks ? Number((this.safe(s.spend) / s.clicks).toFixed(2)) : 0,
+        cpm: s.impressions ? Number(((this.safe(s.spend) / s.impressions) * 1000).toFixed(2)) : 0,
+      };
+
+      let normalized = items.map((c) => this.normalizeCampaign(c));
+
+      normalized.sort((a, b) => {
+        // @ts-ignore
+        const valA = a[sortBy] ?? 0;
+        // @ts-ignore
+        const valB = b[sortBy] ?? 0;
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      const startIndex = (page - 1) * limit;
+      const paginated = normalized.slice(startIndex, startIndex + limit);
+
+      return {
+        data: paginated,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1,
+          ...(query.startDate && { startDate: query.startDate }),
+          ...(query.endDate && { endDate: query.endDate }),
+        },
+        summary,
+      };
+    }
   }
 
   /**
@@ -215,8 +295,12 @@ export class CampaignsService {
       impressions,
       conversions,
       // Calculated ratios
+      // Calculated ratios
       roas: spend ? Number((revenue / spend).toFixed(2)) : 0,
+      roi: spend ? Number(((revenue - spend) / spend * 100).toFixed(2)) : -100,
       ctr: impressions ? Number(((clicks / impressions) * 100).toFixed(2)) : 0,
+      cpc: clicks ? Number((spend / clicks).toFixed(2)) : 0,
+      cpm: impressions ? Number(((spend / impressions) * 1000).toFixed(2)) : 0,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     };

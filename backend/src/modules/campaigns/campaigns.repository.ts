@@ -10,6 +10,7 @@ export abstract class CampaignsRepository {
   abstract update(tenantId: string, id: string, data: any): Promise<Campaign & { metrics: Metric[] }>;
   abstract remove(tenantId: string, id: string): Promise<void>;
   abstract getMetrics(campaignId: string, startDate?: Date, endDate?: Date): Promise<Metric[]>;
+  abstract getSummary(tenantId: string, query: QueryCampaignsDto): Promise<any>;
 }
 
 @Injectable()
@@ -32,21 +33,17 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     });
   }
 
-  async findAll(tenantId: string, query: QueryCampaignsDto): Promise<[(Campaign & { metrics: Metric[] })[], number]> {
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
+  // ==========================================================================
+  // Helper: Build Where Clause
+  // ==========================================================================
+  private buildWhereClause(tenantId: string, query: QueryCampaignsDto): Prisma.CampaignWhereInput {
     const search = query.search || undefined;
     const status = query.status || undefined;
     const platform = query.platform || undefined;
 
-    // Parse date range for metrics filtering
-    const startDate = query.startDate ? new Date(query.startDate) : undefined;
-    const endDate = query.endDate ? new Date(query.endDate) : undefined;
-
     const where: Prisma.CampaignWhereInput = { tenantId };
 
     if (search) {
-      // Search only string fields, not enum fields
       where.OR = [
         { name: { contains: search } },
         { externalId: { contains: search } },
@@ -54,14 +51,23 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     }
 
     if (status) {
-      // Cast string to CampaignStatus enum
       where.status = status as CampaignStatus;
     }
 
     if (platform) {
-      // Cast string to AdPlatform enum
       where.platform = platform as AdPlatform;
     }
+
+    return where;
+  }
+
+  async findAll(tenantId: string, query: QueryCampaignsDto): Promise<[(Campaign & { metrics: Metric[] })[], number]> {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const startDate = query.startDate ? new Date(query.startDate) : undefined;
+    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+
+    const where = this.buildWhereClause(tenantId, query);
 
     const take = limit;
     const skip = (page - 1) * take;
@@ -70,13 +76,6 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     const sortOrder = query.sortOrder || 'desc';
     const orderBy: any = {};
     orderBy[sortBy] = sortOrder;
-
-    // ==========================================================================
-    // TIME-WINDOW FILTERING: Conditionally filter metrics by date range
-    // ==========================================================================
-    // If startDate or endDate is provided, only include metrics within that range.
-    // Otherwise, include all metrics (backward compatible behavior).
-    // ==========================================================================
 
     const metricsInclude: Prisma.CampaignInclude['metrics'] =
       (startDate || endDate)
@@ -136,6 +135,57 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     return this.prisma.metric.findMany({
       where,
       orderBy: { date: 'desc' },
+    });
+  }
+
+  // ==========================================================================
+  // New Method: Get Global Summary (Aggregated)
+  // ==========================================================================
+  async getSummary(tenantId: string, query: QueryCampaignsDto) {
+    const where = this.buildWhereClause(tenantId, query);
+    const startDate = query.startDate ? new Date(query.startDate) : undefined;
+    const endDate = query.endDate ? new Date(query.endDate) : undefined;
+
+    // 1. Find all matching campaign IDs first
+    const campaigns = await this.prisma.campaign.findMany({
+      where,
+      select: { id: true },
+    });
+
+    const campaignIds = campaigns.map((c) => c.id);
+
+    if (campaignIds.length === 0) {
+      return {
+        _sum: {
+          spend: 0,
+          impressions: 0,
+          clicks: 0,
+          revenue: 0,
+          conversions: 0,
+        }
+      };
+    }
+
+    // 2. Aggregate metrics for these campaigns, respecting date filters
+    const metricWhere: Prisma.MetricWhereInput = {
+      campaignId: { in: campaignIds },
+      ...(startDate || endDate ? {
+        date: {
+          ...(startDate && { gte: startDate }),
+          ...(endDate && { lte: endDate }),
+        },
+      } : {}),
+    };
+
+    return this.prisma.metric.aggregate({
+      where: metricWhere,
+      _sum: {
+        spend: true,
+        impressions: true,
+        clicks: true,
+        revenue: true,
+        conversions: true,
+      },
     });
   }
 }

@@ -1,7 +1,7 @@
 // TanStack Query hooks for fetching campaigns with time-window support
 
 import { useQuery } from '@tanstack/react-query';
-import { CampaignService, CampaignQueryParams } from '../api/campaign-service';
+import { CampaignService, CampaignQueryParams, CampaignListResponse } from '../api/campaign-service';
 import type { Campaign } from '../types';
 
 // =============================================================================
@@ -51,10 +51,10 @@ export const CAMPAIGNS_QUERY_KEY = campaignKeys.all;
  * ```
  */
 export function useCampaigns(params: CampaignQueryParams = {}) {
-    return useQuery<Campaign[], Error>({
+    return useQuery<CampaignListResponse, Error>({
         // Include params in query key for automatic refetch on param change
         queryKey: campaignKeys.list(params),
-        queryFn: () => CampaignService.getCampaigns(params),
+        queryFn: () => CampaignService.getCampaignsPaginated(params),
         staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
         refetchOnWindowFocus: true,
     });

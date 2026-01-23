@@ -13,6 +13,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { DashboardDateFilter } from '@/features/dashboard/components/dashboard-date-filter';
+import type { PeriodEnum } from '@/features/dashboard/schemas';
 
 // =============================================================================
 // Types
@@ -27,8 +29,21 @@ export interface CampaignToolbarProps {
     status: string;
     /** Callback when status filter changes */
     onStatusChange: (value: string) => void;
+    /** Current platform filter */
+    platform: string;
+    /** Callback when platform filter changes */
+    onPlatformChange: (value: string) => void;
+    /** Optional: Show loading state */
     /** Optional: Show loading state */
     isLoading?: boolean;
+    /** Current period filter */
+    period: PeriodEnum;
+    /** Callback when period filter changes */
+    onPeriodChange: (value: PeriodEnum) => void;
+    /** Toggle to show only selected items */
+    showSelectedOnly: boolean;
+    /** Callback when show selected only toggle changes */
+    onShowSelectedOnlyChange: (value: boolean) => void;
 }
 
 // =============================================================================
@@ -39,6 +54,14 @@ const STATUS_OPTIONS = [
     { value: 'ALL', label: 'All Statuses' },
     { value: 'ACTIVE', label: 'Active' },
     { value: 'PAUSED', label: 'Paused' },
+    { value: 'COMPLETED', label: 'Completed' },
+] as const;
+
+const PLATFORM_OPTIONS = [
+    { value: 'ALL', label: 'All Platforms' },
+    { value: 'FACEBOOK', label: 'Facebook' },
+    { value: 'GOOGLE', label: 'Google Ads' },
+    { value: 'TIKTOK', label: 'TikTok' },
 ] as const;
 
 // =============================================================================
@@ -50,7 +73,13 @@ export function CampaignToolbar({
     onSearchChange,
     status,
     onStatusChange,
+    platform,
+    onPlatformChange,
     isLoading = false,
+    period,
+    onPeriodChange,
+    showSelectedOnly,
+    onShowSelectedOnlyChange,
 }: CampaignToolbarProps) {
     const handleClearSearch = () => {
         onSearchChange('');
@@ -95,6 +124,32 @@ export function CampaignToolbar({
                     ))}
                 </SelectContent>
             </Select>
+
+            {/* Platform Filter */}
+            <Select value={platform} onValueChange={onPlatformChange} disabled={isLoading}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectValue placeholder="Filter by platform" />
+                </SelectTrigger>
+                <SelectContent>
+                    {PLATFORM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
+            {/* Only Select Filter */}
+            <Button
+                variant={showSelectedOnly ? 'default' : 'outline'}
+                onClick={() => onShowSelectedOnlyChange(!showSelectedOnly)}
+                className="whitespace-nowrap"
+            >
+                Only Select
+            </Button>
+
+            {/* Date Filter */}
+            <DashboardDateFilter value={period} onValueChange={onPeriodChange} />
         </div>
     );
 }

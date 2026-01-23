@@ -28,6 +28,23 @@ export interface CampaignQueryParams {
 // Paginated Response Interface
 // =============================================================================
 
+// =============================================================================
+// Summary Metrics Interface
+// =============================================================================
+
+export interface CampaignSummaryMetrics {
+    spend: number;
+    impressions: number;
+    clicks: number;
+    revenue: number;
+    conversions: number;
+    roas: number;
+    roi: number;
+    ctr: number;
+    cpc: number;
+    cpm: number;
+}
+
 export interface CampaignListResponse {
     data: Campaign[];
     meta: {
@@ -38,6 +55,7 @@ export interface CampaignListResponse {
         startDate?: string;
         endDate?: string;
     };
+    summary?: CampaignSummaryMetrics;
 }
 
 // =============================================================================
@@ -56,6 +74,14 @@ interface BackendCampaign {
     startDate: string;
     endDate?: string;
     externalId?: string;
+    // Calculated metrics from backend
+    ctr?: number;
+    cpc?: number;
+    cpm?: number;
+    roas?: number;
+    roi?: number;
+    revenue?: number;
+    conversions?: number;
 }
 
 // =============================================================================
@@ -115,6 +141,14 @@ function normalizeCampaign(raw: BackendCampaign): Campaign {
         clicks: raw.clicks ?? 0,
         startDate: raw.startDate,
         endDate: raw.endDate ?? '',
+        // Calculated metrics from backend
+        ctr: raw.ctr ?? 0,
+        cpc: raw.cpc ?? 0,
+        cpm: raw.cpm ?? 0,
+        roas: raw.roas ?? 0,
+        roi: raw.roi ?? 0,
+        revenue: raw.revenue ?? 0,
+        conversions: raw.conversions ?? 0,
     };
 }
 
@@ -234,10 +268,14 @@ export const CampaignService = {
         // Handle paginated response structure
         let items: BackendCampaign[] = [];
         let meta = { page: 1, limit: 10, total: 0, totalPages: 1 };
+        let summary: CampaignSummaryMetrics | undefined;
 
         if (rawData && typeof rawData === 'object' && !Array.isArray(rawData)) {
             items = rawData.data || rawData.items || [];
             meta = rawData.meta || meta;
+            if ('summary' in rawData) {
+                summary = rawData.summary;
+            }
         } else if (Array.isArray(rawData)) {
             items = rawData;
             meta = { page: 1, limit: items.length, total: items.length, totalPages: 1 };
@@ -246,6 +284,7 @@ export const CampaignService = {
         return {
             data: items.map(normalizeCampaign),
             meta,
+            summary,
         };
     },
 

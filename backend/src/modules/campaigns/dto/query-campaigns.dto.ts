@@ -34,7 +34,11 @@ export class QueryCampaignsDto {
   limit: number = 10;
 
   @ApiPropertyOptional({
-    enum: ['name', 'createdAt', 'status', 'platform'],
+    enum: [
+      'name', 'createdAt', 'status', 'platform',
+      'spend', 'impressions', 'clicks', 'revenue', 'conversions',
+      'ctr', 'cpc', 'cpm', 'roas', 'roi'
+    ],
     description: 'Field to sort by'
   })
   @IsOptional()

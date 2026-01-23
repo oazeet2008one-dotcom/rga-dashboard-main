@@ -17,9 +17,10 @@ import {
 } from '@/components/ui/alert-dialog';
 
 import { CampaignsTable, SortableColumn } from '../components/campaigns-table';
+import { CampaignSummary } from '../components/campaign-summary';
 import { CampaignSheet } from '../components/campaign-sheet';
 import { CampaignToolbar } from '../components/campaign-toolbar';
-import { CampaignPagination } from '../components/campaign-pagination';
+
 import { BulkActionBar } from '../components/bulk-action-bar';
 import { DashboardDateFilter } from '@/features/dashboard/components/dashboard-date-filter';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -94,6 +95,7 @@ export function CampaignsPage() {
     // Search and filter state
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('ALL');
+    const [platform, setPlatform] = useState('ALL');
 
     // Pagination state
     const [page, setPage] = useState(1);
@@ -104,6 +106,7 @@ export function CampaignsPage() {
 
     // Selection state
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
     // Export loading state
     const [isExporting, setIsExporting] = useState(false);
@@ -121,7 +124,9 @@ export function CampaignsPage() {
         setPage(1);
         // Clear selection on filter change
         setSelectedIds(new Set());
-    }, [debouncedSearch, status, period, sortBy, sortOrder]);
+        // Reset "Only Select" mode when filters change
+        setShowSelectedOnly(false);
+    }, [debouncedSearch, status, platform, period, sortBy, sortOrder]);
 
     // ==========================================================================
     // Compute Date Range from Period
@@ -131,20 +136,28 @@ export function CampaignsPage() {
     // ==========================================================================
     // Data Fetching with All Filters
     // ==========================================================================
-    const { data: campaigns, isLoading, isError, error, refetch, isFetching } = useCampaigns({
+    // ==========================================================================
+    // Data Fetching with All Filters
+    // ==========================================================================
+    const { data: campaignsResponse, isLoading, isError, error, refetch, isFetching } = useCampaigns({
         page,
         limit: DEFAULT_PAGE_SIZE,
         search: debouncedSearch || undefined,
         status: status !== 'ALL' ? status : undefined,
+        platform: platform !== 'ALL' ? platform : undefined,
         sortBy: sortBy as any,
         sortOrder,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
     });
 
+    const campaigns = campaignsResponse?.data || [];
+    const summary = campaignsResponse?.summary;
+    const meta = campaignsResponse?.meta;
+
     // Pagination info
-    const totalItems = campaigns?.length ?? 0;
-    const totalPages = Math.max(1, Math.ceil(totalItems / DEFAULT_PAGE_SIZE));
+    const totalItems = meta?.total ?? 0;
+    const totalPages = meta?.totalPages ?? 1;
 
     // ==========================================================================
     // Mutations
@@ -157,6 +170,17 @@ export function CampaignsPage() {
     });
 
     const toggleStatusMutation = useToggleCampaignStatus();
+
+    // ==========================================================================
+    // Filtered Campaigns for Display
+    // ==========================================================================
+    const displayedCampaigns = useMemo(() => {
+        if (!campaigns) return [];
+        if (showSelectedOnly) {
+            return campaigns.filter((c) => selectedIds.has(c.id));
+        }
+        return campaigns;
+    }, [campaigns, showSelectedOnly, selectedIds]);
 
     // ==========================================================================
     // Sort Handler
@@ -326,8 +350,10 @@ export function CampaignsPage() {
                         <Skeleton className="h-12 w-full" />
                         <Skeleton className="h-12 w-full" />
                     </div>
+                    {/* Summary Skeleton */}
+                    <Skeleton className="h-[200px] w-full rounded-3xl" />
                 </div>
-            </DashboardLayout>
+            </DashboardLayout >
         );
     }
 
@@ -365,7 +391,6 @@ export function CampaignsPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <DashboardDateFilter value={period} onValueChange={setPeriod} />
                         <Button
                             variant="outline"
                             onClick={handleExport}
@@ -400,7 +425,13 @@ export function CampaignsPage() {
                     onSearchChange={setSearch}
                     status={status}
                     onStatusChange={setStatus}
+                    platform={platform}
+                    onPlatformChange={setPlatform}
                     isLoading={isFetching}
+                    period={period}
+                    onPeriodChange={setPeriod}
+                    showSelectedOnly={showSelectedOnly}
+                    onShowSelectedOnlyChange={setShowSelectedOnly}
                 />
 
                 {/* Bulk Action Bar (shown when items selected) */}
@@ -414,7 +445,7 @@ export function CampaignsPage() {
 
                 {/* Campaigns Table with Sorting and Selection */}
                 <CampaignsTable
-                    campaigns={campaigns || []}
+                    campaigns={displayedCampaigns}
                     isLoading={isFetching}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
@@ -428,15 +459,42 @@ export function CampaignsPage() {
                     onToggleStatus={handleToggleStatus}
                 />
 
-                {/* Pagination */}
-                <CampaignPagination
-                    currentPage={page}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    itemsPerPage={DEFAULT_PAGE_SIZE}
-                    onPageChange={handlePageChange}
-                    disabled={isFetching}
-                />
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-end space-x-2 py-4">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                        {totalItems > 0 ? (
+                            <>
+                                Showing {(page - 1) * DEFAULT_PAGE_SIZE + 1} to {Math.min(page * DEFAULT_PAGE_SIZE, totalItems)} of {totalItems} entries
+                            </>
+                        ) : (
+                            "No campaigns found"
+                        )}
+                    </div>
+                    <div className="space-x-2 flex items-center">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page === 1 || isLoading}
+                        >
+                            &lt; Previous
+                        </Button>
+                        <div className="text-sm font-medium">
+                            Page {page} of {totalPages}
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages || isLoading}
+                        >
+                            Next &gt;
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Campaign Summary Dashboard */}
+                <CampaignSummary summary={campaignsResponse?.summary} isLoading={isLoading} />
             </div>
 
             {/* Create/Edit Campaign Sheet */}
