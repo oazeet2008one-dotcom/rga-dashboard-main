@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { Prisma, AlertRuleType, AlertSeverity, AlertStatus } from '@prisma/client';
 
 // Preset Alert Rules - using Prisma enum types
@@ -72,7 +73,11 @@ const PRESET_RULES: Array<{
 export class AlertService {
     private readonly logger = new Logger(AlertService.name);
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @Inject(forwardRef(() => NotificationService))
+        private readonly notificationService: NotificationService,
+    ) { }
 
     // ============================================
     // Alert Rule Management
@@ -323,6 +328,10 @@ export class AlertService {
                                 },
                             },
                         });
+
+                        // 🔔 Trigger notifications for all tenant users
+                        await this.notificationService.triggerFromAlert(alert);
+
                         newAlerts.push(alert);
                     }
                 }

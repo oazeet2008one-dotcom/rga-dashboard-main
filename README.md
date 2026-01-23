@@ -18,6 +18,20 @@
 
 ### เริ่มต้นใช้งาน (Quick Start)
 
+รันเซิฟเวอร์   
+ฺBackend
+    ```bash
+    cd backend
+    npm run start:dev
+    ``` 
+
+รันแอพพลิเคชัน
+Frontend
+    ```bash
+    cd frontend
+    npm run dev
+    ```
+
 #### A. การติดตั้งฐานข้อมูล (Database)
 1.  ไปที่โฟลเดอร์ root และเริ่มระบบ infrastructure:
     ```bash
@@ -28,7 +42,7 @@
     cd backend
     cp .env.example .env
     npx prisma generate
-    npx prisma migrate dev
+    แบนห้ามใช้ npx prisma migrate dev (หรือใช้ npx prisma migrate dev --name init)
     npm run seed # (ทางเลือก: สร้างข้อมูลจำลองสำหรับทดสอบ)
     ```
 
@@ -36,8 +50,7 @@
 1.  ติดตั้ง dependencies:
     ```bash
     cd backend
-    pnpm install
-    # หรือใช้ npm install
+npm install
     ```
 2.  รันเซิร์ฟเวอร์สำหรับการพัฒนา (Dev Server):
     ```bash
