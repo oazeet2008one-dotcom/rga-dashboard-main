@@ -19,7 +19,9 @@ import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrencyTHB, formatCompactNumber } from '@/lib/formatters';
+import { DashboardDateFilter } from '../dashboard-date-filter';
 import type { TrendDataPoint } from '../../schemas';
+import type { PeriodEnum } from '../../schemas';
 
 // =============================================================================
 // Types & Constants
@@ -68,6 +70,10 @@ const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
 interface TrendChartProps {
     /** Array of trend data points */
     data: TrendDataPoint[];
+    /** Selected period for dashboard data */
+    period: PeriodEnum;
+    /** Callback when period changes */
+    onPeriodChange: (value: PeriodEnum) => void;
     /** Optional class name */
     className?: string;
 }
@@ -129,7 +135,7 @@ function CustomTooltip({ active, payload, activeMetric }: CustomTooltipProps) {
 // Main Component
 // =============================================================================
 
-export function TrendChart({ data, className }: TrendChartProps) {
+export function TrendChart({ data, period, onPeriodChange, className }: TrendChartProps) {
     const [activeMetric, setActiveMetric] = useState<MetricKey>('cost');
 
     const config = METRIC_CONFIG[activeMetric];
@@ -170,9 +176,15 @@ export function TrendChart({ data, className }: TrendChartProps) {
     return (
         <Card className={`h-[400px] flex flex-col ${className ?? ''}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base font-semibold">
-                    Performance Trends
-                </CardTitle>
+                <div className="flex items-center gap-4">
+                    <CardTitle className="text-base font-semibold">
+                        Performance Trends
+                    </CardTitle>
+                    <DashboardDateFilter
+                        value={period}
+                        onValueChange={onPeriodChange}
+                    />
+                </div>
                 <Tabs
                     value={activeMetric}
                     onValueChange={(v) => setActiveMetric(v as MetricKey)}

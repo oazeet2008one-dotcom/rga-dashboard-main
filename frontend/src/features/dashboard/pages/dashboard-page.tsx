@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { DashboardMetrics } from '../components/dashboard-metrics';
-import { DashboardDateFilter } from '../components/dashboard-date-filter';
 import { TrendChart } from '../components/charts/trend-chart';
 import { RecentCampaigns } from '../components/widgets/recent-campaigns';
+import { ConversionFunnel } from '../components/widgets/conversion-funnel';
+import { FinancialOverview } from '../components/widgets/financial-overview';
 import { useDashboardOverview } from '../hooks/use-dashboard';
 import type { PeriodEnum } from '../schemas';
 
@@ -43,6 +44,17 @@ function ErrorState({ error, onRetry }: ErrorStateProps) {
     );
 }
 
+function formatPercentDelta(value: number | null | undefined) {
+    if (value == null) return undefined;
+    const sign = value >= 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}%`;
+}
+
+function deltaClassName(value: number | null | undefined) {
+    if (value == null) return undefined;
+    return value >= 0 ? 'text-emerald-500/70' : 'text-rose-400/70';
+}
+
 // =============================================================================
 // Main Page Component
 // =============================================================================
@@ -66,12 +78,6 @@ export function DashboardPage() {
                         <p className="text-muted-foreground">
                             Monitor your advertising performance across all platforms.
                         </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <DashboardDateFilter
-                            value={period}
-                            onValueChange={setPeriod}
-                        />
                     </div>
                 </div>
 
@@ -97,7 +103,11 @@ export function DashboardPage() {
                             {isLoading ? (
                                 <Skeleton className="h-[400px] w-full rounded-lg" />
                             ) : (
-                                <TrendChart data={data?.trends ?? []} />
+                                <TrendChart
+                                    data={data?.trends ?? []}
+                                    period={period}
+                                    onPeriodChange={setPeriod}
+                                />
                             )}
                         </div>
 
@@ -109,6 +119,38 @@ export function DashboardPage() {
                                 <RecentCampaigns campaigns={data?.recentCampaigns ?? []} />
                             )}
                         </div>
+                    </div>
+                </section>
+
+                {/* Financial Overview & Conversion Funnel */}
+                <section>
+                    <h3 className="sr-only">Financial Overview & Conversion Funnel</h3>
+                    <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
+                        {isLoading ? (
+                            <Skeleton className="h-[400px] w-full rounded-3xl" />
+                        ) : (
+                            <FinancialOverview
+                                subtitle="ROAS"
+                                roi={data?.summary.averageRoas}
+                                total={data?.summary.totalCost}
+                                currency="THB"
+                                breakdown={[]}
+                                summary={[
+                                    {
+                                        label: 'Cost',
+                                        value: data?.summary.totalCost,
+                                        deltaLabel: formatPercentDelta(data?.growth.costGrowth),
+                                        deltaClassName: deltaClassName(data?.growth.costGrowth),
+                                    },
+                                ]}
+                            />
+                        )}
+
+                        {isLoading ? (
+                            <Skeleton className="h-[400px] w-full rounded-3xl" />
+                        ) : (
+                            <ConversionFunnel />
+                        )}
                     </div>
                 </section>
             </div>

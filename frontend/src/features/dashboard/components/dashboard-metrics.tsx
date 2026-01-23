@@ -75,7 +75,14 @@ export function DashboardMetrics({
                     key={metric.title}
                     title={metric.title}
                     icon={metric.icon}
-                    value={summary ? metric.getValue(summary) : '—'}
+                    value={summary ? metric.getValue(summary) : metric.getValue({
+                        totalImpressions: 0,
+                        totalClicks: 0,
+                        totalCost: 0,
+                        totalConversions: 0,
+                        averageCtr: 0,
+                        averageRoas: 0,
+                    })}
                     trend={growth ? metric.getTrend(growth) : null}
                     trendLabel="vs last period"
                     loading={loading}
