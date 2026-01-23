@@ -1,0 +1,149 @@
+{
+    "info": {
+        "_postman_id": "rga-verify-suite",
+        "name": "RGA Verifications",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Login (Get Token)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "var jsonData = pm.response.json();",
+                            "pm.environment.set(\"jwt_token\", jsonData.accessToken);",
+                            "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"email\": \"admin@rga.com\",\n    \"password\": \"password123\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/auth/login",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "login"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "2. Seed Heavy (10k Rows)",
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"count\": 10000\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/verify/seed-heavy",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verify",
+                        "seed-heavy"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "3. Trigger Alert Now",
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/verify/trigger-alert-now",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verify",
+                        "trigger-alert-now"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "4. Check Memory",
+            "request": {
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/verify/memory-check",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "verify",
+                        "memory-check"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3000/api/v1",
+            "type": "string"
+        }
+    ]
+}
