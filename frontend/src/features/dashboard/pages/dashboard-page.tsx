@@ -17,6 +17,7 @@ import { ConversionFunnel } from '../components/widgets/conversion-funnel';
 import { FinancialOverview } from '../components/widgets/financial-overview';
 import { useDashboardOverview } from '../hooks/use-dashboard';
 import type { PeriodEnum } from '../schemas';
+import { IntegrationChecklist } from '@/components/IntegrationChecklist';
 
 // =============================================================================
 // Error State Component
@@ -92,6 +93,11 @@ export function DashboardPage() {
                         growth={data?.growth}
                         loading={isLoading}
                     />
+                </section>
+
+                <section>
+                    <h3 className="sr-only">Integration Checklist</h3>
+                    <IntegrationChecklist />
                 </section>
 
                 {/* Charts & Campaigns Grid - Responsive Layout */}

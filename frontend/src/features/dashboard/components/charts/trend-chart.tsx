@@ -140,6 +140,18 @@ export function TrendChart({ data, period, onPeriodChange, className }: TrendCha
 
     const config = METRIC_CONFIG[activeMetric];
 
+    const formatYAxisTick = (value: number) => {
+        if (activeMetric === 'cost') return formatCurrencyTHB(value);
+        return formatCompactNumber(value);
+    };
+
+    const yDomain = useMemo(() => {
+        const values = data.map((d) => Number((d as any)[activeMetric] ?? 0));
+        const max = Math.max(0, ...values);
+        const paddedMax = max <= 0 ? 1 : max * 1.15;
+        return [0, paddedMax] as [number, number];
+    }, [data, activeMetric]);
+
     // Format XAxis tick
     const formatXAxis = (dateStr: string) => {
         try {
@@ -230,11 +242,12 @@ export function TrendChart({ data, period, onPeriodChange, className }: TrendCha
                                 className="text-muted-foreground"
                             />
                             <YAxis
-                                tickFormatter={(v) => formatCompactNumber(v)}
+                                domain={yDomain}
+                                tickFormatter={formatYAxisTick}
                                 tick={{ fontSize: 12 }}
                                 tickLine={false}
                                 axisLine={false}
-                                width={50}
+                                width={activeMetric === 'cost' ? 84 : 50}
                                 className="text-muted-foreground"
                             />
                             <Tooltip
