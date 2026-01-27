@@ -1,7 +1,7 @@
 // Campaign Module Type Definitions
 
 export type CampaignStatus = 'active' | 'paused' | 'completed' | 'draft';
-export type CampaignPlatform = 'facebook' | 'google' | 'tiktok';
+export type CampaignPlatform = 'facebook' | 'google' | 'tiktok' | 'line';
 
 export interface Campaign {
     id: string;
@@ -37,4 +37,5 @@ export const PLATFORM_LABELS: Record<CampaignPlatform, string> = {
     facebook: 'Facebook',
     google: 'Google Ads',
     tiktok: 'TikTok',
+    line: 'Line Ads',
 };

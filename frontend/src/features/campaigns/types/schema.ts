@@ -16,7 +16,7 @@ export const createCampaignSchema = z.object({
         .max(100, { message: 'Campaign name must be less than 100 characters' }),
 
     // Platform selection - required enum
-    platform: z.enum(['facebook', 'google', 'tiktok'], {
+    platform: z.enum(['facebook', 'google', 'tiktok', 'line'], {
         required_error: 'Please select a platform',
     }),
 

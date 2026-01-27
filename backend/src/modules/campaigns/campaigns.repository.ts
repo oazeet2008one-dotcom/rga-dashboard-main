@@ -38,24 +38,50 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
   // ==========================================================================
   private buildWhereClause(tenantId: string, query: QueryCampaignsDto): Prisma.CampaignWhereInput {
     const search = query.search || undefined;
-    const status = query.status || undefined;
-    const platform = query.platform || undefined;
+
+    // Handle multi-select Status
+    let statusFilter: Prisma.EnumCampaignStatusFilter | undefined;
+    if (query.status && query.status !== 'ALL') {
+      const statuses = query.status.split(',').filter(s => s !== 'ALL') as CampaignStatus[];
+      if (statuses.length > 0) {
+        statusFilter = statuses.length === 1 ? { equals: statuses[0] } : { in: statuses };
+      }
+    }
+
+    // Handle multi-select Platform
+    let platformFilter: Prisma.EnumAdPlatformFilter | undefined;
+    if (query.platform && query.platform !== 'ALL') {
+      const platforms = query.platform.split(',').filter(p => p !== 'ALL').map(p => {
+        if (p === 'GOOGLE') return 'GOOGLE_ADS';
+        return p;
+      }) as AdPlatform[];
+
+      if (platforms.length > 0) {
+        platformFilter = platforms.length === 1 ? { equals: platforms[0] } : { in: platforms };
+      }
+    }
+
+    const ids = query.ids ? query.ids.split(',').filter(id => id.trim().length > 0) : undefined;
 
     const where: Prisma.CampaignWhereInput = { tenantId };
 
+    if (ids && ids.length > 0) {
+      where.id = { in: ids };
+    }
+
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { externalId: { contains: search } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { externalId: { contains: search, mode: 'insensitive' } },
       ];
     }
 
-    if (status) {
-      where.status = status as CampaignStatus;
+    if (statusFilter) {
+      where.status = statusFilter;
     }
 
-    if (platform) {
-      where.platform = platform as AdPlatform;
+    if (platformFilter) {
+      where.platform = platformFilter;
     }
 
     return where;
@@ -162,6 +188,7 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
           clicks: 0,
           revenue: 0,
           conversions: 0,
+          budget: 0,
         }
       };
     }
@@ -177,15 +204,32 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
       } : {}),
     };
 
-    return this.prisma.metric.aggregate({
-      where: metricWhere,
+    // Parallel: Aggregate Metrics AND Sum Budget
+    // Note: Budget is a campaign-level field, while others are metric-level
+    const [metricsAgg, budgetAgg] = await Promise.all([
+      this.prisma.metric.aggregate({
+        where: metricWhere,
+        _sum: {
+          spend: true,
+          impressions: true,
+          clicks: true,
+          revenue: true,
+          conversions: true,
+        },
+      }),
+      this.prisma.campaign.aggregate({
+        where,
+        _sum: {
+          budget: true,
+        },
+      }),
+    ]);
+
+    return {
       _sum: {
-        spend: true,
-        impressions: true,
-        clicks: true,
-        revenue: true,
-        conversions: true,
+        ...metricsAgg._sum,
+        budget: budgetAgg._sum.budget,
       },
-    });
+    };
   }
 }

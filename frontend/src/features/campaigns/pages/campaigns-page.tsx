@@ -20,6 +20,8 @@ import { CampaignsTable, SortableColumn } from '../components/campaigns-table';
 import { CampaignSummary } from '../components/campaign-summary';
 import { CampaignSheet } from '../components/campaign-sheet';
 import { CampaignToolbar } from '../components/campaign-toolbar';
+import { CampaignAnalytics } from '../components/campaign-analytics';
+import { CampaignVisualization } from '../components/campaign-visualization';
 
 import { BulkActionBar } from '../components/bulk-action-bar';
 import { DashboardDateFilter } from '@/features/dashboard/components/dashboard-date-filter';
@@ -36,6 +38,8 @@ import type { PeriodEnum } from '@/features/dashboard/schemas';
 // =============================================================================
 
 const DEFAULT_PAGE_SIZE = 10;
+const MAX_SELECTION_LIMIT = 10;
+const GLOBAL_QUERY_LIMIT = 1000;
 
 // =============================================================================
 // Period to Date Range Converter
@@ -94,8 +98,8 @@ export function CampaignsPage() {
 
     // Search and filter state
     const [search, setSearch] = useState('');
-    const [status, setStatus] = useState('ALL');
-    const [platform, setPlatform] = useState('ALL');
+    const [status, setStatus] = useState<Set<string>>(new Set(['ALL']));
+    const [platform, setPlatform] = useState<Set<string>>(new Set(['ALL']));
 
     // Pagination state
     const [page, setPage] = useState(1);
@@ -137,14 +141,16 @@ export function CampaignsPage() {
     // Data Fetching with All Filters
     // ==========================================================================
     // ==========================================================================
-    // Data Fetching with All Filters
+    // Data Fetching with All Filters (Paginated for Table)
     // ==========================================================================
     const { data: campaignsResponse, isLoading, isError, error, refetch, isFetching } = useCampaigns({
-        page,
-        limit: DEFAULT_PAGE_SIZE,
+        page: showSelectedOnly ? 1 : page,
+        limit: showSelectedOnly ? 100 : DEFAULT_PAGE_SIZE, // Show all selected items (up to 100)
+        // Only filter by IDs if we have selections
+        ids: showSelectedOnly && selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
         search: debouncedSearch || undefined,
-        status: status !== 'ALL' ? status : undefined,
-        platform: platform !== 'ALL' ? platform : undefined,
+        status: status.has('ALL') ? undefined : Array.from(status).join(','),
+        platform: platform.has('ALL') ? undefined : Array.from(platform).join(','),
         sortBy: sortBy as any,
         sortOrder,
         startDate: dateRange.startDate,
@@ -154,6 +160,33 @@ export function CampaignsPage() {
     const campaigns = campaignsResponse?.data || [];
     const summary = campaignsResponse?.summary;
     const meta = campaignsResponse?.meta;
+
+    // ==========================================================================
+    // Global Data Fetching (Unpaginated for Charts/Analytics)
+    // ==========================================================================
+    // Fetch all items (up to limit) that match the filters, ignoring pagination
+    const { data: globalCampaignsResponse, isLoading: isGlobalLoading } = useCampaigns({
+        page: 1,
+        limit: GLOBAL_QUERY_LIMIT,
+        ids: showSelectedOnly
+            ? (selectedIds.size > 0 ? Array.from(selectedIds) : ['00000000-0000-0000-0000-000000000000'])
+            : undefined,
+        search: debouncedSearch || undefined,
+        status: status.has('ALL') ? undefined : Array.from(status).join(','),
+        platform: platform.has('ALL') ? undefined : Array.from(platform).join(','),
+        sortBy: sortBy as any,
+        sortOrder,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+    });
+
+    const globalCampaigns = globalCampaignsResponse?.data || [];
+    // Use global summary if available (it aggregates everything), otherwise fall back to paginated summary
+    // Actually, backend usually returns summary for "matching filters" not "matching page", 
+    // but just to be safe and consistent with charts, we can use global summary if we wanted.
+    // However, the existing 'summary' usually reflects total metrics for the QUERY, not the PAGE.
+    // Let's stick with the 'summary' from the main query for the top cards as that's standard,
+    // but use 'globalCampaigns' for the charts.
 
     // Pagination info
     const totalItems = meta?.total ?? 0;
@@ -174,13 +207,11 @@ export function CampaignsPage() {
     // ==========================================================================
     // Filtered Campaigns for Display
     // ==========================================================================
-    const displayedCampaigns = useMemo(() => {
-        if (!campaigns) return [];
-        if (showSelectedOnly) {
-            return campaigns.filter((c) => selectedIds.has(c.id));
-        }
-        return campaigns;
-    }, [campaigns, showSelectedOnly, selectedIds]);
+    // Paginated list for Table
+    const displayedCampaigns = campaigns;
+
+    // Full list for Charts
+    const displayedGlobalCampaigns = globalCampaigns;
 
     // ==========================================================================
     // Sort Handler
@@ -205,6 +236,12 @@ export function CampaignsPage() {
             if (next.has(id)) {
                 next.delete(id);
             } else {
+                if (next.size >= MAX_SELECTION_LIMIT) {
+                    toast.error('Selection limit reached', {
+                        description: `You can only select up to ${MAX_SELECTION_LIMIT} campaigns.`
+                    });
+                    return next;
+                }
                 next.add(id);
             }
             return next;
@@ -212,13 +249,32 @@ export function CampaignsPage() {
     }, []);
 
     const handleToggleAll = useCallback((isChecked: boolean) => {
-        if (isChecked && campaigns) {
-            // Select all on current page
-            setSelectedIds(new Set(campaigns.map((c) => c.id)));
-        } else {
-            // Clear all
-            setSelectedIds(new Set());
-        }
+        if (!campaigns) return;
+
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            const currentPageIds = campaigns.map((c) => c.id);
+
+            if (isChecked) {
+                // Limit selection to max
+                const remainingSlots = MAX_SELECTION_LIMIT - next.size;
+                if (remainingSlots <= 0) {
+                    toast.error('Selection limit reached', { description: `You have already selected ${MAX_SELECTION_LIMIT} campaigns.` });
+                    return next;
+                }
+
+                const itemsToAdd = currentPageIds.slice(0, remainingSlots);
+                itemsToAdd.forEach((id) => next.add(id));
+
+                if (itemsToAdd.length < currentPageIds.length) {
+                    toast.info('Selection capped', { description: 'Only some items were selected to stay within the 10-item limit.' });
+                }
+            } else {
+                // Remove all current page items (keep others)
+                currentPageIds.forEach((id) => next.delete(id));
+            }
+            return next;
+        });
     }, [campaigns]);
 
     const handleClearSelection = useCallback(() => {
@@ -226,22 +282,22 @@ export function CampaignsPage() {
     }, []);
 
     // ==========================================================================
-    // Bulk Action Handlers (Visual Only - TODO: Implement API)
+    // Bulk Action Handlers (TODO: Implement API)
     // ==========================================================================
     const handleBulkPause = useCallback(() => {
-        console.log('Bulk pause:', Array.from(selectedIds));
+        toast.info('Bulk Pause', { description: 'This feature is coming soon.' });
         // TODO: Implement bulk pause API call
-    }, [selectedIds]);
+    }, []);
 
     const handleBulkEnable = useCallback(() => {
-        console.log('Bulk enable:', Array.from(selectedIds));
+        toast.info('Bulk Enable', { description: 'This feature is coming soon.' });
         // TODO: Implement bulk enable API call
-    }, [selectedIds]);
+    }, []);
 
     const handleBulkDelete = useCallback(() => {
-        console.log('Bulk delete:', Array.from(selectedIds));
+        toast.info('Bulk Delete', { description: 'This feature is coming soon.' });
         // TODO: Implement bulk delete API call
-    }, [selectedIds]);
+    }, []);
 
     // ==========================================================================
     // Export Handler
@@ -254,7 +310,7 @@ export function CampaignsPage() {
             const blob = await exportService.downloadCampaignsCsv({
                 startDate: dateRange.startDate,
                 endDate: dateRange.endDate,
-                status: status !== 'ALL' ? status : undefined,
+                status: status.has('ALL') ? undefined : Array.from(status).join(','),
             });
 
             // Generate filename with date
@@ -298,7 +354,8 @@ export function CampaignsPage() {
     };
 
     const handleView = (campaign: Campaign) => {
-        console.log('View campaign:', campaign.id);
+        // Navigate to campaign detail page
+        window.location.href = `/campaigns/${campaign.id}`;
     };
 
     const handleDeleteClick = (campaign: Campaign) => {
@@ -320,7 +377,7 @@ export function CampaignsPage() {
 
     const handlePageChange = (newPage: number) => {
         setPage(newPage);
-        setSelectedIds(new Set()); // Clear selection on page change
+        // Persist selection on page change (do not clear)
     };
 
     // ==========================================================================
@@ -403,10 +460,7 @@ export function CampaignsPage() {
                             )}
                             Export CSV
                         </Button>
-                        <Button onClick={handleCreate}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create Campaign
-                        </Button>
+
                     </div>
                 </div>
 
@@ -434,6 +488,10 @@ export function CampaignsPage() {
                     onShowSelectedOnlyChange={setShowSelectedOnly}
                 />
 
+
+
+
+
                 {/* Bulk Action Bar (shown when items selected) */}
                 <BulkActionBar
                     selectedCount={selectedIds.size}
@@ -442,6 +500,8 @@ export function CampaignsPage() {
                     onEnable={handleBulkEnable}
                     onDelete={handleBulkDelete}
                 />
+
+                {/* Pagination Header (Removed - Moved to Table) */}
 
                 {/* Campaigns Table with Sorting and Selection */}
                 <CampaignsTable
@@ -457,44 +517,32 @@ export function CampaignsPage() {
                     onEdit={handleEdit}
                     onDelete={handleDeleteClick}
                     onToggleStatus={handleToggleStatus}
+
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    pageSize={DEFAULT_PAGE_SIZE}
+                    onPageChange={handlePageChange}
                 />
 
-                {/* Pagination Controls */}
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <div className="flex-1 text-sm text-muted-foreground">
-                        {totalItems > 0 ? (
-                            <>
-                                Showing {(page - 1) * DEFAULT_PAGE_SIZE + 1} to {Math.min(page * DEFAULT_PAGE_SIZE, totalItems)} of {totalItems} entries
-                            </>
-                        ) : (
-                            "No campaigns found"
-                        )}
-                    </div>
-                    <div className="space-x-2 flex items-center">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage((p) => Math.max(1, p - 1))}
-                            disabled={page === 1 || isLoading}
-                        >
-                            &lt; Previous
-                        </Button>
-                        <div className="text-sm font-medium">
-                            Page {page} of {totalPages}
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={page === totalPages || isLoading}
-                        >
-                            Next &gt;
-                        </Button>
-                    </div>
-                </div>
 
-                {/* Campaign Summary Dashboard */}
+
+                {/* Campaign Summary Dashboard (Middle Section) */}
                 <CampaignSummary summary={campaignsResponse?.summary} isLoading={isLoading} />
+
+                {/* Visualization Panel (Bottom) */}
+                {!isLoading && campaignsResponse?.summary && (
+                    <>
+                        <CampaignVisualization
+                            campaigns={displayedGlobalCampaigns}
+                            summary={campaignsResponse.summary}
+                            onDownload={handleExport}
+                        />
+
+                        {/* Campaign Analytics (Conversion Rate) */}
+                        <CampaignAnalytics campaigns={displayedGlobalCampaigns} />
+                    </>
+                )}
             </div>
 
             {/* Create/Edit Campaign Sheet */}

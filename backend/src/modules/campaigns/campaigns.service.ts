@@ -56,20 +56,22 @@ export class CampaignsService {
     const sortOrder = query.sortOrder || 'desc';
 
     // Fields that exist in the database and can be sorted via SQL
-    const dbSortFields = ['name', 'createdAt', 'status', 'platform'];
+    const dbSortFields = ['name', 'createdAt', 'status', 'platform', 'budget', 'startDate', 'endDate', 'updatedAt'];
     const isDbSort = dbSortFields.includes(sortBy);
 
     if (isDbSort) {
-      // Repository handles pagination and sorting for DB fields
-      const [items, total] = await this.repository.findAll(tenantId, query);
-      const normalized = items.map((c) => this.normalizeCampaign(c));
+      // Parallel Execution: Fetch data and summary concurrently
+      const [[items, total], summaryRaw] = await Promise.all([
+        this.repository.findAll(tenantId, query),
+        this.repository.getSummary(tenantId, query),
+      ]);
 
-      // NEW: Get global summary for all matching campaigns
-      const summaryRaw = await this.repository.getSummary(tenantId, query);
+      const normalized = items.map((c) => this.normalizeCampaign(c));
       const s = summaryRaw._sum;
 
       const summary = {
         spend: this.safe(s.spend),
+        budget: this.safe(s.budget),
         impressions: this.safe(s.impressions),
         clicks: this.safe(s.clicks),
         revenue: this.safe(s.revenue),
@@ -104,14 +106,17 @@ export class CampaignsService {
         sortBy: 'createdAt'
       };
 
-      const [items, total] = await this.repository.findAll(tenantId, queryForRepo);
+      // Parallel Execution: Fetch all data (for sorting) and summary concurrently
+      const [[items, total], summaryRaw] = await Promise.all([
+        this.repository.findAll(tenantId, queryForRepo),
+        this.repository.getSummary(tenantId, query),
+      ]);
 
-      // NEW: Get global summary for all matching campaigns
-      const summaryRaw = await this.repository.getSummary(tenantId, query);
       const s = summaryRaw._sum;
 
       const summary = {
         spend: this.safe(s.spend),
+        budget: this.safe(s.budget),
         impressions: this.safe(s.impressions),
         clicks: this.safe(s.clicks),
         revenue: this.safe(s.revenue),

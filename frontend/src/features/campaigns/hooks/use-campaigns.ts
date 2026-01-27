@@ -57,6 +57,7 @@ export function useCampaigns(params: CampaignQueryParams = {}) {
         queryFn: () => CampaignService.getCampaignsPaginated(params),
         staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
         refetchOnWindowFocus: true,
+        keepPreviousData: true,
     });
 }
 

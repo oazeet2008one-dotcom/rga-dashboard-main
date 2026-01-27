@@ -18,6 +18,8 @@ export interface CampaignQueryParams {
     status?: string;
     sortBy?: 'name' | 'createdAt' | 'status' | 'platform';
     sortOrder?: 'asc' | 'desc';
+    /** List of Campaign IDs to filter by */
+    ids?: string[];
     /** Metrics aggregation start date (ISO 8601: YYYY-MM-DD) */
     startDate?: string;
     /** Metrics aggregation end date (ISO 8601: YYYY-MM-DD) */
@@ -34,6 +36,7 @@ export interface CampaignQueryParams {
 
 export interface CampaignSummaryMetrics {
     spend: number;
+    budget: number;
     impressions: number;
     clicks: number;
     revenue: number;
@@ -93,7 +96,7 @@ const PLATFORM_MAP: Record<string, CampaignPlatform> = {
     GOOGLE: 'google',
     FACEBOOK: 'facebook',
     TIKTOK: 'tiktok',
-    LINE_ADS: 'google', // Fallback for unsupported platforms
+    LINE_ADS: 'line',
 };
 
 // Reverse mapping for POST requests (Frontend -> Backend)
@@ -101,6 +104,7 @@ const PLATFORM_REVERSE_MAP: Record<CampaignPlatform, string> = {
     google: 'GOOGLE_ADS',
     facebook: 'FACEBOOK',
     tiktok: 'TIKTOK',
+    line: 'LINE_ADS',
 };
 
 // =============================================================================
@@ -204,6 +208,7 @@ export const CampaignService = {
         // Time-window filtering
         if (params.startDate) queryParams.set('startDate', params.startDate);
         if (params.endDate) queryParams.set('endDate', params.endDate);
+        if (params.ids && params.ids.length > 0) queryParams.set('ids', params.ids.join(','));
 
         const queryString = queryParams.toString();
         const url = queryString ? `/campaigns?${queryString}` : '/campaigns';
@@ -211,8 +216,6 @@ export const CampaignService = {
         const response = await apiClient.get(url);
         const rawData = response.data;
 
-        // DEBUG: Log raw response to browser console
-        console.log('[CampaignService] Raw API Response:', rawData);
 
         // Robust unwrapping for multiple response formats
         let items: BackendCampaign[] = [];
@@ -239,7 +242,6 @@ export const CampaignService = {
             items = [];
         }
 
-        console.log('[CampaignService] Extracted items count:', items.length);
         return items.map(normalizeCampaign);
     },
 
@@ -258,6 +260,7 @@ export const CampaignService = {
         if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
         if (params.startDate) queryParams.set('startDate', params.startDate);
         if (params.endDate) queryParams.set('endDate', params.endDate);
+        if (params.ids && params.ids.length > 0) queryParams.set('ids', params.ids.join(','));
 
         const queryString = queryParams.toString();
         const url = queryString ? `/campaigns?${queryString}` : '/campaigns';

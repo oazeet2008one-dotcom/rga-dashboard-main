@@ -3,7 +3,7 @@
 // Campaign Toolbar - Search and Filter Controls
 // =============================================================================
 
-import { Search, X } from 'lucide-react';
+import { Search, X, ListFilter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +13,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+    DropdownMenuLabel,
+    DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { DashboardDateFilter } from '@/features/dashboard/components/dashboard-date-filter';
 import type { PeriodEnum } from '@/features/dashboard/schemas';
 
@@ -26,13 +35,13 @@ export interface CampaignToolbarProps {
     /** Callback when search changes */
     onSearchChange: (value: string) => void;
     /** Current status filter */
-    status: string;
+    status: Set<string>;
     /** Callback when status filter changes */
-    onStatusChange: (value: string) => void;
+    onStatusChange: (value: Set<string>) => void;
     /** Current platform filter */
-    platform: string;
+    platform: Set<string>;
     /** Callback when platform filter changes */
-    onPlatformChange: (value: string) => void;
+    onPlatformChange: (value: Set<string>) => void;
     /** Optional: Show loading state */
     /** Optional: Show loading state */
     isLoading?: boolean;
@@ -62,6 +71,7 @@ const PLATFORM_OPTIONS = [
     { value: 'FACEBOOK', label: 'Facebook' },
     { value: 'GOOGLE', label: 'Google Ads' },
     { value: 'TIKTOK', label: 'TikTok' },
+    { value: 'LINE_ADS', label: 'Line Ads' },
 ] as const;
 
 // =============================================================================
@@ -83,6 +93,34 @@ export function CampaignToolbar({
 }: CampaignToolbarProps) {
     const handleClearSearch = () => {
         onSearchChange('');
+    };
+
+    const handleToggle = (
+        currentSet: Set<string>,
+        onChange: (val: Set<string>) => void,
+        value: string
+    ) => {
+        const next = new Set(currentSet);
+        if (value === 'ALL') {
+            onChange(new Set(['ALL']));
+            return;
+        }
+
+        if (next.has('ALL')) {
+            next.delete('ALL');
+        }
+
+        if (next.has(value)) {
+            next.delete(value);
+        } else {
+            next.add(value);
+        }
+
+        if (next.size === 0) {
+            onChange(new Set(['ALL']));
+        } else {
+            onChange(next);
+        }
     };
 
     return (
@@ -112,32 +150,90 @@ export function CampaignToolbar({
             </div>
 
             {/* Status Filter */}
-            <Select value={status} onValueChange={onStatusChange} disabled={isLoading}>
-                <SelectTrigger className="w-full sm:w-[160px]">
-                    <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                    {STATUS_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-[160px] justify-between border-dashed">
+                        {status.has('ALL') ? 'All Statuses' : `${status.size} Selected`}
+                        <ListFilter className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[200px]" align="start">
+                    <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                        checked={status.has('ALL')}
+                        onCheckedChange={() => onStatusChange(new Set(['ALL']))}
+                        onSelect={(e) => e.preventDefault()}
+                    >
+                        All Statuses
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    {STATUS_OPTIONS.slice(1).map((option) => (
+                        <DropdownMenuCheckboxItem
+                            key={option.value}
+                            checked={status.has(option.value)}
+                            onCheckedChange={() => handleToggle(status, onStatusChange, option.value)}
+                            onSelect={(e) => e.preventDefault()}
+                        >
                             {option.label}
-                        </SelectItem>
+                        </DropdownMenuCheckboxItem>
                     ))}
-                </SelectContent>
-            </Select>
+                    {status.size > 0 && !status.has('ALL') && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onSelect={() => onStatusChange(new Set(['ALL']))}
+                                className="justify-center text-center text-sm"
+                            >
+                                Clear filters
+                            </DropdownMenuItem>
+                        </>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Platform Filter */}
-            <Select value={platform} onValueChange={onPlatformChange} disabled={isLoading}>
-                <SelectTrigger className="w-full sm:w-[160px]">
-                    <SelectValue placeholder="Filter by platform" />
-                </SelectTrigger>
-                <SelectContent>
-                    {PLATFORM_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-[160px] justify-between border-dashed">
+                        {platform.has('ALL') ? 'All Platforms' : `${platform.size} Selected`}
+                        <ListFilter className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[200px]" align="start">
+                    <DropdownMenuLabel>Filter Platform</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                        checked={platform.has('ALL')}
+                        onCheckedChange={() => onPlatformChange(new Set(['ALL']))}
+                        onSelect={(e) => e.preventDefault()}
+                    >
+                        All Platforms
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    {PLATFORM_OPTIONS.slice(1).map((option) => (
+                        <DropdownMenuCheckboxItem
+                            key={option.value}
+                            checked={platform.has(option.value)}
+                            onCheckedChange={() => handleToggle(platform, onPlatformChange, option.value)}
+                            onSelect={(e) => e.preventDefault()}
+                        >
                             {option.label}
-                        </SelectItem>
+                        </DropdownMenuCheckboxItem>
                     ))}
-                </SelectContent>
-            </Select>
+                    {platform.size > 0 && !platform.has('ALL') && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onSelect={() => onPlatformChange(new Set(['ALL']))}
+                                className="justify-center text-center text-sm"
+                            >
+                                Clear filters
+                            </DropdownMenuItem>
+                        </>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Only Select Filter */}
             <Button

@@ -183,6 +183,7 @@ export function CampaignSheet({
                                             <SelectItem value="google">Google Ads</SelectItem>
                                             <SelectItem value="facebook">Facebook</SelectItem>
                                             <SelectItem value="tiktok">TikTok</SelectItem>
+                                            <SelectItem value="line">Line Ads</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />

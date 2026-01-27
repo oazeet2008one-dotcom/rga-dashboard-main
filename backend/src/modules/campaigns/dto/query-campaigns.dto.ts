@@ -9,6 +9,11 @@ export class QueryCampaignsDto {
   @IsOptional()
   search?: string;
 
+  @ApiPropertyOptional({ description: 'Filter by specific IDs (comma-separated)', example: 'uuid1,uuid2' })
+  @IsOptional()
+  @IsString()
+  ids?: string;
+
   @ApiPropertyOptional({ description: 'Filter by platform (GOOGLE_ADS, FACEBOOK, TIKTOK, etc.)' })
   @IsOptional()
   @IsString()

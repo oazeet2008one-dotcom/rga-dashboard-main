@@ -22,7 +22,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   @Roles(UserRole.ADMIN)
@@ -75,4 +75,3 @@ export class UsersController {
     return this.usersService.remove(tenantId, id);
   }
 }
-
