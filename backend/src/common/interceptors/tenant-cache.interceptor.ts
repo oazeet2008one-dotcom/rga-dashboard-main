@@ -16,6 +16,11 @@ export class TenantCacheInterceptor extends CacheInterceptor {
         const user = request.user;
         const tenantId = user?.tenantId || 'anonymous';
 
+        const url: string = request?.originalUrl || request?.url || '';
+        if (url.includes('/dashboard/overview')) {
+            return undefined;
+        }
+
         // Get the original cache key
         const originalKey = super.trackBy(context);
 

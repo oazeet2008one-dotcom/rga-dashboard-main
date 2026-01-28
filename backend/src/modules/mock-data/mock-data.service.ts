@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { CampaignStatus, AdPlatform } from '@prisma/client';
 import {
     DashboardOverviewDataDto,
@@ -8,6 +9,18 @@ import {
     SummaryMetricsDto,
     GrowthMetricsDto
 } from '../dashboard/dto/dashboard-overview.dto';
+
+function stableUuidFromString(input: string): string {
+    const bytes = createHash('sha256').update(input).digest();
+    const uuidBytes = bytes.subarray(0, 16);
+
+    // RFC 4122 variant + v4 version
+    uuidBytes[6] = (uuidBytes[6] & 0x0f) | 0x40;
+    uuidBytes[8] = (uuidBytes[8] & 0x3f) | 0x80;
+
+    const hex = Buffer.from(uuidBytes).toString('hex');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 @Injectable()
 export class MockDataService {
@@ -114,7 +127,7 @@ export class MockDataService {
     private generateRecentCampaigns(count = 5): RecentCampaignDto[] {
         const campaigns: RecentCampaignDto[] = [
             {
-                id: 'mock-cmp-1',
+                id: stableUuidFromString('mock-cmp-1'),
                 name: 'Summer Sale 2026 - Phase 1',
                 status: CampaignStatus.ACTIVE,
                 platform: AdPlatform.FACEBOOK,
@@ -125,7 +138,7 @@ export class MockDataService {
                 budgetUtilization: 85
             },
             {
-                id: 'mock-cmp-2',
+                id: stableUuidFromString('mock-cmp-2'),
                 name: 'Brand Awareness Q1',
                 status: CampaignStatus.ACTIVE,
                 platform: AdPlatform.GOOGLE_ADS,
@@ -136,7 +149,7 @@ export class MockDataService {
                 budgetUtilization: 92
             },
             {
-                id: 'mock-cmp-3',
+                id: stableUuidFromString('mock-cmp-3'),
                 name: 'Retargeting - Cart Abandoners',
                 status: CampaignStatus.PAUSED,
                 platform: AdPlatform.TIKTOK,
@@ -147,7 +160,7 @@ export class MockDataService {
                 budgetUtilization: 45
             },
             {
-                id: 'mock-cmp-4',
+                id: stableUuidFromString('mock-cmp-4'),
                 name: 'New Product Launch',
                 status: CampaignStatus.ACTIVE,
                 platform: AdPlatform.LINE_ADS,
@@ -158,7 +171,7 @@ export class MockDataService {
                 budgetUtilization: 60
             },
             {
-                id: 'mock-cmp-5',
+                id: stableUuidFromString('mock-cmp-5'),
                 name: 'Competitor Conquesting',
                 status: CampaignStatus.ENDED,
                 platform: AdPlatform.GOOGLE_ADS,
@@ -178,7 +191,7 @@ export class MockDataService {
                 const conversions = Math.floor(clicks * (0.01 + Math.random() * 0.12));
 
                 campaigns.push({
-                    id: `mock-cmp-${i}`,
+                    id: stableUuidFromString(`mock-cmp-${i}`),
                     name: `Mock Campaign #${i}`,
                     status: Math.random() > 0.3 ? CampaignStatus.ACTIVE : CampaignStatus.PAUSED,
                     platform: Math.random() > 0.5 ? AdPlatform.FACEBOOK : AdPlatform.GOOGLE_ADS,

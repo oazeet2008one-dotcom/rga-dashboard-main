@@ -15,6 +15,7 @@ import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { integrationService, parseOAuthCallback, isOAuthCallback } from '../api/integration-service';
+import { dashboardKeys } from '@/features/dashboard/hooks/use-dashboard';
 import type {
     PlatformId,
     IntegrationStatusResponse,
@@ -173,6 +174,9 @@ export function useIntegrationAuth() {
 
             // Refresh statuses
             queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses() });
+
+            // Refresh dashboard data (demo -> live switch)
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
         },
         onError: (error: Error, variables) => {
             const platformName = PLATFORM_CONFIGS[variables.platform].name;
@@ -242,6 +246,9 @@ export function useIntegrationAuth() {
         onSuccess: (data, platform) => {
             toast.success(`${PLATFORM_CONFIGS[platform].name} disconnected`);
             queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses() });
+
+            // Refresh dashboard data (live -> demo switch)
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
         },
         onError: (error, platform) => {
             toast.error(`Failed to disconnect ${PLATFORM_CONFIGS[platform].name}`);

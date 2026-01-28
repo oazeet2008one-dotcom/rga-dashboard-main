@@ -17,9 +17,13 @@ import {
  * Safely converts Prisma Decimal | null | number to native JS number.
  * Handles null/undefined by returning defaultValue (default: 0).
  */
-function toNumber(value: Prisma.Decimal | number | null | undefined, defaultValue = 0): number {
+function toNumber(value: Prisma.Decimal | number | string | null | undefined, defaultValue = 0): number {
   if (value === null || value === undefined) {
     return defaultValue;
+  }
+  if (typeof value === 'string') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : defaultValue;
   }
   // Prisma.Decimal has toNumber() method, native number does not
   if (typeof value === 'object' && 'toNumber' in value) {
@@ -74,7 +78,7 @@ export class DashboardService {
           gte: currentStartDate,
           lte: today,
         },
-        // ✅ Include all data (real + mock) - will show 0 if no data exists
+        // Include all data (real + mock) - will show 0 if no data exists
       },
       _sum: {
         impressions: true,
@@ -92,7 +96,7 @@ export class DashboardService {
           gte: previousStartDate,
           lt: currentStartDate,
         },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -176,7 +180,7 @@ export class DashboardService {
       where: {
         campaign: campaignFilter,
         date: { gte: currentStartDate, lte: today },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
     });
@@ -186,7 +190,7 @@ export class DashboardService {
       where: {
         campaign: campaignFilter,
         date: { gte: previousStartDate, lt: currentStartDate },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
     });
@@ -240,7 +244,7 @@ export class DashboardService {
       where: {
         campaign: { tenantId },
         date: { gte: startDate },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -456,7 +460,7 @@ export class DashboardService {
           gte: startDate,
           lte: today,
         },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: {
         sessions: true,
@@ -590,7 +594,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -606,7 +610,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: previousPeriod.startDate, lte: previousPeriod.endDate },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -623,7 +627,7 @@ export class DashboardService {
       where: {
         tenantId,
         date: { gte: startDate, lte: endDate },
-        // ✅ Include all data (real + mock)
+        // Include all data (real + mock)
       },
       _sum: {
         impressions: true,
@@ -651,7 +655,7 @@ export class DashboardService {
         metrics: {
           where: {
             date: { gte: startDate, lte: endDate },
-            // ✅ Include all data (real + mock)
+            // Include all data (real + mock)
           },
           select: {
             spend: true,
@@ -728,7 +732,7 @@ export class DashboardService {
       const spending = metrics.reduce((sum, m) => sum + Number(m.spend || 0), 0);
       const impressions = metrics.reduce((sum, m) => sum + (m.impressions || 0), 0);
       const clicks = metrics.reduce((sum, m) => sum + (m.clicks || 0), 0);
-      const conversions = metrics.reduce((sum, m) => sum + (m.conversions || 0), 0);
+      const conversions = metrics.reduce((sum, m) => sum + toNumber(m.conversions), 0);
       const budget = Number(c.budget) || 0;
 
       return {

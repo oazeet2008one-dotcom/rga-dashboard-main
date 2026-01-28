@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -24,7 +24,7 @@ import SeoWebAnalytics from "./pages/SeoWebAnalytics";
 import EcommerceInsights from "./pages/EcommerceInsights";
 import CrmLeadsInsights from "./pages/CrmLeadsInsights";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useAuthStore } from '@/stores/auth-store';
+import { useAuthStore, selectUser } from '@/stores/auth-store';
 import { useAuthEventListener } from '@/lib/auth-events';
 
 function Router() {
@@ -68,21 +68,27 @@ function Router() {
   );
 }
 
-// React Query Best Practice: ตั้งค่า staleTime และ cacheTime
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30 * 1000,      // 30 วินาที - data จะถือว่า fresh ไม่ต้อง refetch
-      cacheTime: 5 * 60 * 1000,  // 5 นาที - เก็บ cache ไว้
-      refetchOnWindowFocus: false, // ไม่ refetch เมื่อกลับมาที่ window
-    },
-  },
-});
-
 function App() {
   const [, setLocation] = useLocation();
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore(selectUser);
+
+  const tenantKey = user?.tenantId ?? 'anonymous';
+
+  // React Query Best Practice: ตั้งค่า staleTime และ cacheTime
+  // Create a new QueryClient per-tenant to prevent cross-tenant cache reuse.
+  const queryClient = useMemo(() => {
+    return new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 30 * 1000,
+          cacheTime: 5 * 60 * 1000,
+          refetchOnWindowFocus: false,
+        },
+      },
+    });
+  }, [tenantKey]);
 
   // ✅ Initialize auth on app mount
   useEffect(() => {
