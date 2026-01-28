@@ -147,11 +147,23 @@ export class GoogleAdsClientService {
       const customerId = resourceName.replace('customers/', '');
 
       try {
-        // Create customer instance for this account (using itself as login_customer_id)
+        // ========================================================
+        // CRITICAL FIX: MCC Impersonation for Test/Standard Access
+        // ========================================================
+        // When using Standard/Test Access via MCC, we MUST use the MCC ID
+        // as login_customer_id to "impersonate" access to child accounts.
+        // Using the child ID as login_customer_id causes "invalid_grant" error.
+        // ========================================================
+        const mccLoginCustomerId = this.configService.get<string>('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
+
+        if (!mccLoginCustomerId) {
+          this.logger.warn(`GOOGLE_ADS_LOGIN_CUSTOMER_ID not configured. Using customerId as fallback (may fail for MCC-managed accounts).`);
+        }
+
         const customer = this.client.Customer({
           customer_id: customerId,
           refresh_token: refreshToken,
-          login_customer_id: customerId, // Use this account as login context
+          login_customer_id: mccLoginCustomerId || customerId, // 🔑 Use MCC ID for impersonation
         });
 
         // First, get info about this account itself

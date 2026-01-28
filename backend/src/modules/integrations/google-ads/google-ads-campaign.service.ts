@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GoogleAdsApiService } from './services/google-ads-api.service';
 import { GoogleAdsMapperService } from './services/google-ads-mapper.service';
@@ -15,25 +15,30 @@ export class GoogleAdsCampaignService {
 
   /**
    * Helper to find account by ID (UUID) or Customer ID
+   * Refactored to prevent Prisma UUID validation error when passing numeric Customer ID
    */
   private async findAccount(idOrCustomerId: string) {
-    // 1. Try to find by Internal ID (UUID)
-    let account = await this.prisma.googleAdsAccount.findUnique({
-      where: { id: idOrCustomerId },
-    });
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(idOrCustomerId);
 
-    // 2. If not found, try to find by Customer ID
-    if (!account) {
-      // Remove hyphens just in case, though DB usually stores clean ID
+    let account;
+
+    if (isUuid) {
+      // Case A: Input is a valid UUID, search by primary key
+      account = await this.prisma.googleAdsAccount.findUnique({
+        where: { id: idOrCustomerId },
+      });
+    } else {
+      // Case B: Input is likely a Customer ID (10 digits), search by customerId field
       const cleanId = idOrCustomerId.replace(/-/g, '');
       account = await this.prisma.googleAdsAccount.findFirst({
         where: { customerId: cleanId },
       });
     }
 
+    // Fallback: Not found
     if (!account) {
       this.logger.error(`Google Ads account not found for identifier: ${idOrCustomerId}`);
-      throw new Error(`Google Ads account not found for identifier: ${idOrCustomerId}`);
+      throw new NotFoundException(`Google Ads account not found for identifier: ${idOrCustomerId}`);
     }
 
     return account;

@@ -216,7 +216,6 @@ export const CampaignService = {
         const response = await apiClient.get(url);
         const rawData = response.data;
 
-
         // Robust unwrapping for multiple response formats
         let items: BackendCampaign[] = [];
 

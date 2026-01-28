@@ -241,7 +241,7 @@ export class MetricsService {
                 impressions: acc.impressions + (m.impressions ?? 0),
                 clicks: acc.clicks + (m.clicks ?? 0),
                 spend: acc.spend + toNumber(m.spend),
-                conversions: acc.conversions + (m.conversions ?? 0),
+                conversions: acc.conversions + toNumber(m.conversions),
                 revenue: acc.revenue + toNumber(m.revenue),
             }),
             {

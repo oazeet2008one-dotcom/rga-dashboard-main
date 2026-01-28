@@ -14,7 +14,6 @@ import { EncryptionService } from '../../../common/services/encryption.service';
 @Injectable()
 export class GoogleAdsOAuthService {
   private readonly logger = new Logger(GoogleAdsOAuthService.name);
-  private oauth2Client;
 
   constructor(
     private readonly configService: ConfigService,
@@ -24,8 +23,14 @@ export class GoogleAdsOAuthService {
     private readonly unifiedSyncService: UnifiedSyncService,
     private readonly encryptionService: EncryptionService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {
-    this.oauth2Client = new google.auth.OAuth2(
+  ) { }
+
+  /**
+   * Create a fresh OAuth2Client instance for each request
+   * Prevents Singleton State Pollution / Race Conditions
+   */
+  private createOAuthClient() {
+    return new google.auth.OAuth2(
       this.configService.get('GOOGLE_CLIENT_ID'),
       this.configService.get('GOOGLE_CLIENT_SECRET'),
       this.configService.get('GOOGLE_REDIRECT_URI_ADS'),
@@ -42,7 +47,9 @@ export class GoogleAdsOAuthService {
       JSON.stringify({ userId, tenantId, timestamp: Date.now() }),
     ).toString('base64');
 
-    const authUrl = this.oauth2Client.generateAuthUrl({
+    const oauth2Client = this.createOAuthClient();
+
+    const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline', // Get refresh token
       scope: scopes,
       state: state,
@@ -61,7 +68,20 @@ export class GoogleAdsOAuthService {
       const { userId, tenantId } = stateData;
 
       // Exchange code for tokens
-      const { tokens } = await this.oauth2Client.getToken(code);
+      const oauth2Client = this.createOAuthClient();
+      const { tokens } = await oauth2Client.getToken(code);
+
+      // --- DIAGNOSTIC TRAP START ---
+      try {
+        if (tokens.refresh_token) {
+          this.logger.log(`[OAuth Trap] ✅ Received Refresh Token: ${tokens.refresh_token.substring(0, 5)}...`);
+        } else {
+          this.logger.warn(`[OAuth Trap] ⚠️ WARNING: No refresh_token received! Google did not send one.`);
+        }
+      } catch (e) {
+        // ignore log error
+      }
+      // --- DIAGNOSTIC TRAP END ---
 
       if (!tokens.access_token || !tokens.refresh_token) {
         throw new BadRequestException('Failed to get tokens from Google');
@@ -109,7 +129,7 @@ export class GoogleAdsOAuthService {
         tempToken: tempToken,
       };
     } catch (error) {
-      console.error('Error in handleCallback:', error);
+      this.logger.error('Error in handleCallback:', error);
       // Re-throw BadRequestException as-is, wrap others
       if (error instanceof BadRequestException) {
         throw error;
@@ -319,7 +339,7 @@ export class GoogleAdsOAuthService {
 
       return results;
     } catch (error) {
-      console.error('Failed to save client accounts:', error);
+      this.logger.error('Failed to save client accounts:', error);
       throw new Error(`Failed to save client accounts: ${error.message}`);
     }
   }
@@ -362,28 +382,40 @@ export class GoogleAdsOAuthService {
       throw new BadRequestException('Google Ads account not found');
     }
 
-    // Check if token is expired
+    // Check if token is expired (or close to expiring in 5 mins)
     const now = new Date();
-    if (account.tokenExpiresAt && account.tokenExpiresAt < now) {
-      // Refresh token
-      this.oauth2Client.setCredentials({
+    const expiryBuffer = 5 * 60 * 1000; // 5 minutes
+
+    // If no expiry date OR expired OR about to expire
+    if (!account.tokenExpiresAt || (account.tokenExpiresAt.getTime() - expiryBuffer) < now.getTime()) {
+
+      this.logger.log(`[Token Refresh] Refreshing token for account ${customerId} (Expires: ${account.tokenExpiresAt})`);
+
+      const oauth2Client = this.createOAuthClient();
+
+      oauth2Client.setCredentials({
         refresh_token: this.encryptionService.decrypt(account.refreshToken),
       });
 
-      const { credentials } = await this.oauth2Client.refreshAccessToken();
+      try {
+        const { credentials } = await oauth2Client.refreshAccessToken();
 
-      // Update in database
-      await this.prisma.googleAdsAccount.update({
-        where: { id: account.id },
-        data: {
-          accessToken: this.encryptionService.encrypt(credentials.access_token),
-          tokenExpiresAt: credentials.expiry_date
-            ? new Date(credentials.expiry_date)
-            : null,
-        },
-      });
+        // Update in database
+        await this.prisma.googleAdsAccount.update({
+          where: { id: account.id },
+          data: {
+            accessToken: this.encryptionService.encrypt(credentials.access_token),
+            tokenExpiresAt: credentials.expiry_date
+              ? new Date(credentials.expiry_date)
+              : null,
+          },
+        });
 
-      return credentials.access_token;
+        return credentials.access_token;
+      } catch (error) {
+        this.logger.error(`[Token Refresh] Failed: ${error.message}`);
+        throw error;
+      }
     }
 
     return this.encryptionService.decrypt(account.accessToken);

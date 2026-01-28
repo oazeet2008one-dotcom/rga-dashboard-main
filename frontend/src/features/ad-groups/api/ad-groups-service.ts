@@ -128,9 +128,6 @@ export const AdGroupService = {
         const response = await apiClient.get<AdGroupListResponse>('/ad-groups', { params });
         const rawData = response.data;
 
-        // DEBUG: Log raw response
-        console.log('[AdGroupService] Raw API Response:', rawData);
-
         // Handle different response formats
         let items: BackendAdGroup[] = [];
 
@@ -147,7 +144,6 @@ export const AdGroupService = {
             }
         }
 
-        console.log('[AdGroupService] Extracted items count:', items.length);
         return items.map(normalizeAdGroup);
     },
 
@@ -165,7 +161,6 @@ export const AdGroupService = {
      */
     async createAdGroup(formData: CreateAdGroupFormValues): Promise<AdGroup> {
         const payload = toBackendPayload(formData);
-        console.log('[AdGroupService] Create payload:', payload);
         const response = await apiClient.post<BackendAdGroup>('/ad-groups', payload);
         return normalizeAdGroup(response.data);
     },

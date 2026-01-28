@@ -23,59 +23,9 @@ export class GoogleAdsIntegrationService {
   ) { }
 
   /**
-   * @deprecated This method uses a removed APIConnection model
-   * TODO: Refactor in Sprint 3 - Remove or reimplement
+   * @deprecated Legacy connect() method removed in Sprint 3.
+   * Use GoogleAdsOAuthService.handleCallback() + completeConnection() for new OAuth flow.
    */
-  async connect(tenantId: string, dto: ConnectGoogleAdsDto) {
-    // TODO: Refactor in Sprint 3 - APIConnection model was removed in Schema V2
-    // Options:
-    // 1. Use GoogleAdsAccount model directly
-    // 2. Create a new integration pattern
-    throw new Error('Legacy connect() method is deprecated. Use OAuth flow instead.');
-
-    /* 
-    // Original broken code (APIConnection model doesn't exist):
-    const connection = await this.prisma.aPIConnection.create({
-      data: {
-        tenantId,
-        platform: 'GOOGLE_ADS',
-        credentials: JSON.stringify({
-          clientId: dto.clientId,
-          clientSecret: dto.clientSecret,
-          developerToken: dto.developerToken,
-          refreshToken: dto.refreshToken,
-          customerId: dto.customerId,
-        }),
-        isActive: true,
-      },
-    });
-
-    let isValid = false;
-    try {
-      const customer = this.clientService.getCustomer(
-        dto.customerId,
-        dto.refreshToken,
-      );
-      await customer.query('SELECT customer.id FROM customer LIMIT 1');
-      isValid = true;
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      isValid = false;
-    }
-
-    if (!isValid) {
-      await this.prisma.aPIConnection.update({
-        where: { id: connection.id },
-        data: { isActive: false },
-      });
-    }
-
-    return {
-      ...connection,
-      connectionValid: isValid,
-    };
-    */
-  }
 
   async getAuthUrl(userId: string, tenantId: string) {
     return {

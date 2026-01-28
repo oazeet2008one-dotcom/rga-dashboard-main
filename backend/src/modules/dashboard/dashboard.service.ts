@@ -667,7 +667,7 @@ export class DashboardService {
     const totalImpressions = currentMetrics._sum.impressions || 0;
     const totalClicks = currentMetrics._sum.clicks || 0;
     const totalCost = Number(currentMetrics._sum.spend) || 0;
-    const totalConversions = currentMetrics._sum.conversions || 0;
+    const totalConversions = toNumber(currentMetrics._sum.conversions);
     const totalRevenue = Number(currentMetrics._sum.revenue) || 0;
 
     const averageCpm = totalImpressions > 0 ? (totalCost / totalImpressions) * 1000 : 0;
@@ -693,7 +693,8 @@ export class DashboardService {
     const prevImpressions = previousMetrics._sum.impressions || 0;
     const prevClicks = previousMetrics._sum.clicks || 0;
     const prevCost = Number(previousMetrics._sum.spend) || 0;
-    const prevConversions = previousMetrics._sum.conversions || 0;
+
+    const prevConversions = toNumber(previousMetrics._sum.conversions);
     const prevRevenue = Number(previousMetrics._sum.revenue) || 0;
 
     const prevCtr = prevImpressions > 0 ? (prevClicks / prevImpressions) * 100 : 0;
@@ -718,7 +719,7 @@ export class DashboardService {
       impressions: m._sum.impressions || 0,
       clicks: m._sum.clicks || 0,
       cost: Number(m._sum.spend) || 0,
-      conversions: m._sum.conversions || 0,
+      conversions: toNumber(m._sum.conversions),
     }));
 
     // Format recent campaigns with metrics
