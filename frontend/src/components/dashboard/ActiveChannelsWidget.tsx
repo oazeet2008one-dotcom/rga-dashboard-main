@@ -5,6 +5,7 @@ import { SkeletonWrapper } from '@/components/ui/skeleton-wrapper';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService } from '@/services/dashboard-service';
 import { useDateRange } from '@/contexts/DateRangeContext';
+import { useAuthStore, selectUser } from '@/stores/auth-store';
 
 interface ChannelRowProps {
     name: string;
@@ -41,9 +42,11 @@ function ChannelRow({ name, isConnected, icon, metricLabel, metricValue, color }
 export function ActiveChannelsWidget() {
     const { status, isLoading: isStatusLoading } = useIntegrationStatus();
     const { dateRange } = useDateRange();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     const { data: performanceData, isLoading: isPerformanceLoading } = useQuery({
-        queryKey: ['dashboard', 'performanceByPlatform', dateRange],
+        queryKey: ['dashboard', tenantId, 'performanceByPlatform', dateRange],
         queryFn: async () => {
             const response = await dashboardService.getPerformanceByPlatform(dateRange);
             return response.data;

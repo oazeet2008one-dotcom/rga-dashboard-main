@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { integrationService, parseOAuthCallback, isOAuthCallback } from '../api/integration-service';
 import { dashboardKeys } from '@/features/dashboard/hooks/use-dashboard';
+import { useAuthStore, selectUser } from '@/stores/auth-store';
 import type {
     PlatformId,
     IntegrationStatusResponse,
@@ -29,8 +30,8 @@ import { PLATFORM_CONFIGS } from '../types';
 
 export const integrationQueryKeys = {
     all: ['integrations'] as const,
-    status: (platform: PlatformId) => ['integrations', 'status', platform] as const,
-    allStatuses: () => ['integrations', 'statuses', 'all'] as const,
+    status: (tenantId: string | undefined, platform: PlatformId) => ['integrations', tenantId, 'status', platform] as const,
+    allStatuses: (tenantId: string | undefined) => ['integrations', tenantId, 'statuses', 'all'] as const,
 };
 
 // ============================================
@@ -40,6 +41,8 @@ export const integrationQueryKeys = {
 export function useIntegrationAuth() {
     const [, setLocation] = useLocation();
     const queryClient = useQueryClient();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     // ============================================
     // OAuth Callback State
@@ -67,7 +70,7 @@ export function useIntegrationAuth() {
         isLoading: isLoadingStatuses,
         refetch: refetchStatuses,
     } = useQuery({
-        queryKey: integrationQueryKeys.allStatuses(),
+        queryKey: integrationQueryKeys.allStatuses(tenantId),
         queryFn: () => integrationService.getAllStatuses(),
         staleTime: 30000, // 30 seconds
         refetchOnWindowFocus: true,
@@ -173,7 +176,7 @@ export function useIntegrationAuth() {
             });
 
             // Refresh statuses
-            queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses() });
+            queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses(tenantId) });
 
             // Refresh dashboard data (demo -> live switch)
             queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });
@@ -207,7 +210,7 @@ export function useIntegrationAuth() {
                     // Sandbox mode - direct connect
                     const result = await integrationService.connectTikTokSandbox();
                     toast.success('TikTok Sandbox connected successfully!');
-                    queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses() });
+                    queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses(tenantId) });
                     setPendingPlatform(null);
                     return;
                 }
@@ -245,7 +248,7 @@ export function useIntegrationAuth() {
         },
         onSuccess: (data, platform) => {
             toast.success(`${PLATFORM_CONFIGS[platform].name} disconnected`);
-            queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses() });
+            queryClient.invalidateQueries({ queryKey: integrationQueryKeys.allStatuses(tenantId) });
 
             // Refresh dashboard data (live -> demo switch)
             queryClient.invalidateQueries({ queryKey: dashboardKeys.overview() });

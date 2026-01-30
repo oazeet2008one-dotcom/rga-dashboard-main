@@ -24,7 +24,6 @@ import { TikTokAdsModule } from './modules/integrations/tiktok/tiktok-ads.module
 import { LineAdsModule } from './modules/integrations/line-ads/line-ads.module';
 import { AlertModule } from './modules/alerts/alert.module';
 import { HealthModule } from './modules/health/health.module';
-import { MockDataModule } from './modules/mock-data/mock-data.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
 import { CommonModule } from './common/common.module';
@@ -83,7 +82,6 @@ import { CommonModule } from './common/common.module';
     LineAdsModule,
     AlertModule, // Alert System
     HealthModule, // Health Check
-    MockDataModule, // Mock Data Seeding
     NotificationModule, // Notification System (Sprint 4)
     CommonModule, // Shared Services (Encryption, etc.)
     // eslint-disable-next-line @typescript-eslint/no-var-requires

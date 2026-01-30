@@ -135,16 +135,21 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
   }
 
   async update(tenantId: string, id: string, data: any): Promise<Campaign & { metrics: Metric[] }> {
-    return this.prisma.campaign.update({
-      where: { id },
+    await this.prisma.campaign.updateMany({
+      where: { id, tenantId },
       data,
+    });
+
+    // Fetch the updated record with metrics (tenant-scoped)
+    return this.prisma.campaign.findFirstOrThrow({
+      where: { id, tenantId },
       include: { metrics: true },
     });
   }
 
   async remove(tenantId: string, id: string): Promise<void> {
-    await this.prisma.campaign.delete({
-      where: { id },
+    await this.prisma.campaign.deleteMany({
+      where: { id, tenantId },
     });
   }
 

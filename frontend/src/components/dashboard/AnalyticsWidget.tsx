@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/services/api-client";
 import { Button } from "@/components/ui/button";
 import { useDateRange } from "@/contexts/DateRangeContext";
+import { useAuthStore, selectUser } from '@/stores/auth-store';
 
 interface AnalyticsData {
     connected: boolean;
@@ -29,9 +30,11 @@ const GA4Icon = () => (
 export function AnalyticsWidget() {
     // ✅ Use global date range context
     const { dateRange, dateRangeLabel, startDateString } = useDateRange();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     const { data, isLoading, error } = useQuery<AnalyticsData>({
-        queryKey: ['analytics', 'basic', dateRange], // Include dateRange in query key for refetch
+        queryKey: ['analytics', tenantId, 'basic', dateRange], // Include dateRange in query key for refetch
         queryFn: async () => {
             const response = await apiClient.get(`/integrations/google-analytics/basic?startDate=${startDateString}`);
             return response.data;
