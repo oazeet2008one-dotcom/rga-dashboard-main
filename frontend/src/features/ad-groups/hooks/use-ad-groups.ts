@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { AdGroupService } from '../api/ad-groups-service';
+import { useAuthStore, selectUser } from '@/stores/auth-store';
 import type {
     AdGroup,
     CreateAdGroupFormValues,
@@ -17,8 +18,8 @@ import type {
 export const AD_GROUPS_QUERY_KEY = ['ad-groups'] as const;
 
 // Key factory for campaign-specific queries
-export const getAdGroupsQueryKey = (campaignId?: string) =>
-    campaignId ? [...AD_GROUPS_QUERY_KEY, campaignId] : AD_GROUPS_QUERY_KEY;
+export const getAdGroupsQueryKey = (campaignId?: string, tenantId?: string) =>
+    campaignId ? [...AD_GROUPS_QUERY_KEY, tenantId, campaignId] : [...AD_GROUPS_QUERY_KEY, tenantId];
 
 // =============================================================================
 // Query Hooks
@@ -29,8 +30,11 @@ export const getAdGroupsQueryKey = (campaignId?: string) =>
  * @param campaignId - Optional: Filter ad groups by parent campaign
  */
 export function useAdGroups(campaignId?: string) {
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
+
     return useQuery<AdGroup[], Error>({
-        queryKey: getAdGroupsQueryKey(campaignId),
+        queryKey: getAdGroupsQueryKey(campaignId, tenantId),
         queryFn: () => AdGroupService.getAdGroups(campaignId),
         enabled: !!campaignId, // Only fetch if campaignId is provided
         staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
@@ -42,8 +46,11 @@ export function useAdGroups(campaignId?: string) {
  * Hook for fetching all ad groups (no campaign filter)
  */
 export function useAllAdGroups() {
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
+
     return useQuery<AdGroup[], Error>({
-        queryKey: AD_GROUPS_QUERY_KEY,
+        queryKey: getAdGroupsQueryKey(undefined, tenantId),
         queryFn: () => AdGroupService.getAdGroups(),
         staleTime: 1000 * 60 * 5,
         refetchOnWindowFocus: true,
@@ -54,8 +61,11 @@ export function useAllAdGroups() {
  * Hook for fetching a single ad group by ID
  */
 export function useAdGroup(id: string) {
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
+
     return useQuery<AdGroup, Error>({
-        queryKey: [...AD_GROUPS_QUERY_KEY, 'detail', id],
+        queryKey: [...AD_GROUPS_QUERY_KEY, tenantId, 'detail', id],
         queryFn: () => AdGroupService.getAdGroupById(id),
         enabled: !!id,
         staleTime: 1000 * 60 * 5,
@@ -81,12 +91,14 @@ interface DeleteMutationOptions {
  */
 export function useCreateAdGroup(options?: MutationOptions) {
     const queryClient = useQueryClient();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     return useMutation<AdGroup, Error, CreateAdGroupFormValues>({
         mutationFn: AdGroupService.createAdGroup,
         onSuccess: (adGroup) => {
             // Invalidate all ad-groups queries to refresh lists
-            queryClient.invalidateQueries({ queryKey: AD_GROUPS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: getAdGroupsQueryKey(undefined, tenantId) });
             toast.success('Ad Group created', {
                 description: `"${adGroup.name}" has been created successfully.`,
             });
@@ -106,11 +118,13 @@ export function useCreateAdGroup(options?: MutationOptions) {
  */
 export function useUpdateAdGroup(options?: MutationOptions) {
     const queryClient = useQueryClient();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     return useMutation<AdGroup, Error, { id: string; data: UpdateAdGroupFormValues }>({
         mutationFn: ({ id, data }) => AdGroupService.updateAdGroup(id, data),
         onSuccess: (adGroup) => {
-            queryClient.invalidateQueries({ queryKey: AD_GROUPS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: getAdGroupsQueryKey(undefined, tenantId) });
             toast.success('Ad Group updated', {
                 description: `"${adGroup.name}" has been updated.`,
             });
@@ -130,11 +144,13 @@ export function useUpdateAdGroup(options?: MutationOptions) {
  */
 export function useDeleteAdGroup(options?: DeleteMutationOptions) {
     const queryClient = useQueryClient();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     return useMutation<void, Error, string>({
         mutationFn: AdGroupService.deleteAdGroup,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: AD_GROUPS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: getAdGroupsQueryKey(undefined, tenantId) });
             toast.success('Ad Group deleted', {
                 description: 'The ad group has been removed.',
             });
@@ -154,12 +170,14 @@ export function useDeleteAdGroup(options?: DeleteMutationOptions) {
  */
 export function useToggleAdGroupStatus(options?: MutationOptions) {
     const queryClient = useQueryClient();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     return useMutation<AdGroup, Error, { id: string; currentStatus: AdGroup['status'] }>({
         mutationFn: ({ id, currentStatus }) =>
             AdGroupService.toggleAdGroupStatus(id, currentStatus),
         onSuccess: (adGroup) => {
-            queryClient.invalidateQueries({ queryKey: AD_GROUPS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: getAdGroupsQueryKey(undefined, tenantId) });
             toast.success(`Ad Group ${adGroup.status === 'active' ? 'activated' : 'paused'}`, {
                 description: `"${adGroup.name}" is now ${adGroup.status}.`,
             });

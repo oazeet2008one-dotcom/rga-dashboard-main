@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { CampaignService, CampaignQueryParams, CampaignListResponse } from '../api/campaign-service';
 import type { Campaign } from '../types';
+import { useAuthStore, selectUser } from '@/stores/auth-store';
 
 // =============================================================================
 // Query Keys Factory
@@ -10,8 +11,10 @@ import type { Campaign } from '../types';
 
 export const campaignKeys = {
     all: ['campaigns'] as const,
-    list: (params: CampaignQueryParams = {}) => [...campaignKeys.all, 'list', params] as const,
-    detail: (id: string) => [...campaignKeys.all, 'detail', id] as const,
+    list: (tenantId: string | undefined, params: CampaignQueryParams = {}) =>
+        [...campaignKeys.all, tenantId, 'list', params] as const,
+    detail: (tenantId: string | undefined, id: string) =>
+        [...campaignKeys.all, tenantId, 'detail', id] as const,
 } as const;
 
 // Legacy key for backward compatibility
@@ -51,9 +54,12 @@ export const CAMPAIGNS_QUERY_KEY = campaignKeys.all;
  * ```
  */
 export function useCampaigns(params: CampaignQueryParams = {}) {
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
+
     return useQuery<CampaignListResponse, Error>({
         // Include params in query key for automatic refetch on param change
-        queryKey: campaignKeys.list(params),
+        queryKey: campaignKeys.list(tenantId, params),
         queryFn: () => CampaignService.getCampaignsPaginated(params),
         staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
         refetchOnWindowFocus: true,
@@ -65,8 +71,11 @@ export function useCampaigns(params: CampaignQueryParams = {}) {
  * Hook for fetching a single campaign by ID
  */
 export function useCampaign(id: string) {
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
+
     return useQuery<Campaign, Error>({
-        queryKey: campaignKeys.detail(id),
+        queryKey: campaignKeys.detail(tenantId, id),
         queryFn: () => CampaignService.getCampaignById(id),
         enabled: !!id, // Only fetch if ID is provided
         staleTime: 1000 * 60 * 5,

@@ -1,7 +1,6 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DateRangeUtil } from '../../common/utils/date-range.util';
-import { MockDataSeederService } from './mock-data-seeder.service';
 import { CampaignStatus, AdPlatform, Prisma, UserRole } from '@prisma/client';
 import {
   PeriodEnum,
@@ -42,7 +41,6 @@ function toNumber(value: Prisma.Decimal | number | string | null | undefined, de
 export class DashboardService {
   constructor(
     private prisma: PrismaService,
-    private readonly mockDataSeeder: MockDataSeederService,
   ) { }
 
   async getSummary(tenantId: string, days: number = 30) {
@@ -264,7 +262,7 @@ export class DashboardService {
     // 2. Fetch Campaign Details for the top campaigns
     const campaignIds = aggregatedMetrics.map(m => m.campaignId);
     const campaigns = await this.prisma.campaign.findMany({
-      where: { id: { in: campaignIds } },
+      where: { id: { in: campaignIds }, tenantId },
       select: { id: true, name: true, platform: true, status: true },
     });
 
@@ -370,40 +368,6 @@ export class DashboardService {
     };
   }
 
-  async seedMockData(tenantId: string) {
-    // 1. Seed Google Ads Campaigns
-    const campaigns = await this.prisma.campaign.findMany({
-      where: { tenantId },
-    });
-
-    let adsCount = 0;
-    for (const campaign of campaigns) {
-      const result = await this.mockDataSeeder.seedCampaignMetrics(campaign.id, 90);
-      adsCount += result.createdCount;
-    }
-
-    // 2. Seed GA4 Properties
-    const ga4Accounts = await this.prisma.googleAnalyticsAccount.findMany({
-      where: { tenantId },
-    });
-
-    let ga4Count = 0;
-    for (const account of ga4Accounts) {
-      if (account.propertyId) {
-        const result = await this.mockDataSeeder.seedGA4Metrics(tenantId, account.propertyId, 90);
-        ga4Count += result.createdCount;
-      }
-    }
-
-    return {
-      success: true,
-      seeded: {
-        adsMetrics: adsCount,
-        ga4Metrics: ga4Count,
-      }
-    };
-  }
-
   async getPerformanceByPlatform(tenantId: string, days = 30) {
     const { startDate, endDate: today } = DateRangeUtil.getDateRange(days);
 
@@ -428,7 +392,7 @@ export class DashboardService {
     // Fetch campaign details to map to platform
     const campaignIds = campaignMetrics.map(m => m.campaignId);
     const campaigns = await this.prisma.campaign.findMany({
-      where: { id: { in: campaignIds } },
+      where: { id: { in: campaignIds }, tenantId },
       select: { id: true, platform: true },
     });
 
@@ -508,32 +472,6 @@ export class DashboardService {
         conversions: 0, // Could map key events if available
       },
     ];
-  }
-
-  async clearMockData(tenantId: string) {
-    // 1. Delete Mock Metrics for Tenant's Campaigns
-    const metricsResult = await this.prisma.metric.deleteMany({
-      where: {
-        campaign: { tenantId },
-        isMockData: true,
-      },
-    });
-
-    // 2. Delete Mock WebAnalytics (GA4) for Tenant
-    const ga4Result = await this.prisma.webAnalyticsDaily.deleteMany({
-      where: {
-        tenantId,
-        isMockData: true,
-      },
-    });
-
-    return {
-      success: true,
-      cleared: {
-        adsMetrics: metricsResult.count,
-        ga4Metrics: ga4Result.count,
-      }
-    };
   }
 
   // ============================================================

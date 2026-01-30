@@ -74,7 +74,7 @@ function App() {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore(selectUser);
 
-  const tenantKey = user?.tenantId ?? 'anonymous';
+  const tenantKey = user?.tenantId ?? user?.tenant?.id ?? 'anonymous';
 
   // React Query Best Practice: ตั้งค่า staleTime และ cacheTime
   // Create a new QueryClient per-tenant to prevent cross-tenant cache reuse.
@@ -102,7 +102,7 @@ function App() {
   });
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient} key={tenantKey}>
       <ErrorBoundary>
         <ThemeProvider defaultTheme="light">
           {/* ✅ REMOVED: AuthProvider - Zustand doesn't need a Provider */}

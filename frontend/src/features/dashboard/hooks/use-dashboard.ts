@@ -6,6 +6,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardOverview } from '../services/dashboard.service';
 import type { DashboardOverviewData, PeriodEnum } from '../schemas';
+import { useAuthStore, selectUser } from '@/stores/auth-store';
 
 // =============================================================================
 // Query Keys Factory
@@ -68,6 +69,9 @@ interface UseDashboardOverviewOptions {
  * ```
  */
 export function useDashboardOverview(options: UseDashboardOverviewOptions = {}) {
+    const user = useAuthStore(selectUser);
+    const authTenantId = user?.tenantId ?? user?.tenant?.id;
+
     const {
         period = '7d',
         startDate,
@@ -78,8 +82,10 @@ export function useDashboardOverview(options: UseDashboardOverviewOptions = {}) 
         staleTime = 5 * 60 * 1000, // 5 minutes default
     } = options;
 
+    const tenantIdForCacheKey = tenantId ?? authTenantId;
+
     return useQuery<DashboardOverviewData, Error>({
-        queryKey: dashboardKeys.overviewByPeriod(period, tenantId),
+        queryKey: dashboardKeys.overviewByPeriod(period, tenantIdForCacheKey),
         queryFn: () => getDashboardOverview({ period, startDate, endDate, tenantId }),
         enabled,
         staleTime,
@@ -90,7 +96,7 @@ export function useDashboardOverview(options: UseDashboardOverviewOptions = {}) 
         // TODO: When upgrading to TanStack Query v5, replace with:
         // import { keepPreviousData } from '@tanstack/react-query';
         // placeholderData: keepPreviousData,
-        keepPreviousData: true,
+        keepPreviousData: false,
     });
 }
 

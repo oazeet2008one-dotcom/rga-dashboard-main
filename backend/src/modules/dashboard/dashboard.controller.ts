@@ -154,14 +154,4 @@ export class DashboardController {
   async getOnboardingStatus(@CurrentUser('tenantId') tenantId: string) {
     return this.dashboardService.getOnboardingStatus(tenantId);
   }
-
-  @Post('seed')
-  async seedMockData(@CurrentUser('tenantId') tenantId: string) {
-    return this.dashboardService.seedMockData(tenantId);
-  }
-
-  @Delete('seed')
-  async clearMockData(@CurrentUser('tenantId') tenantId: string) {
-    return this.dashboardService.clearMockData(tenantId);
-  }
 }

@@ -71,7 +71,16 @@ export const useAuthStore = create<AuthState>()(
 
                     // ✅ Contract: api-client interceptor auto-unwraps { success, data }
                     // So response.data already contains { user, accessToken, refreshToken }
-                    const { accessToken, refreshToken, user } = response.data;
+                    const { accessToken, refreshToken, user: rawUser } = response.data;
+
+                    const user: User = {
+                        ...(rawUser as User),
+                        name:
+                            (rawUser as any).name ??
+                            `${(rawUser as any).firstName ?? ''} ${(rawUser as any).lastName ?? ''}`.trim() ??
+                            (rawUser as any).email,
+                        tenantId: (rawUser as any).tenantId ?? (rawUser as any).tenant?.id,
+                    };
 
                     // ✅ Use token-manager (single source of truth)
                     setTokens(accessToken, refreshToken);
@@ -126,7 +135,16 @@ export const useAuthStore = create<AuthState>()(
 
                     // ✅ Contract: api-client interceptor auto-unwraps { success, data }
                     // So response.data already contains { user, accessToken, refreshToken }
-                    const { accessToken, refreshToken, user } = response.data;
+                    const { accessToken, refreshToken, user: rawUser } = response.data;
+
+                    const user: User = {
+                        ...(rawUser as User),
+                        name:
+                            (rawUser as any).name ??
+                            `${(rawUser as any).firstName ?? ''} ${(rawUser as any).lastName ?? ''}`.trim() ??
+                            (rawUser as any).email,
+                        tenantId: (rawUser as any).tenantId ?? (rawUser as any).tenant?.id,
+                    };
 
                     // ✅ Use token-manager (single source of truth)
                     setTokens(accessToken, refreshToken);

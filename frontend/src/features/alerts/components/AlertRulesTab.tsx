@@ -3,8 +3,11 @@
 // =============================================================================
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { alertService } from '@/services/alert-service';
+import { useAuthStore, selectUser } from '@/stores/auth-store';
+import type { AlertRule } from '@/services/alert-service';
 import {
     Plus,
     Pencil,
@@ -36,7 +39,6 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { alertService, type AlertRule } from '@/services/alert-service';
 import { RuleFormDialog } from './RuleFormDialog';
 import { cn } from '@/lib/utils';
 
@@ -137,6 +139,8 @@ function EmptyState({ onAddRule }: { onAddRule: () => void }) {
 
 export function AlertRulesTab() {
     const queryClient = useQueryClient();
+    const user = useAuthStore(selectUser);
+    const tenantId = user?.tenantId;
 
     // Dialog states
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -148,7 +152,7 @@ export function AlertRulesTab() {
     // =========================================================================
 
     const { data: rules = [], isLoading, isError } = useQuery({
-        queryKey: ['alert-rules'],
+        queryKey: ['alert-rules', tenantId],
         queryFn: async () => {
             const response = await alertService.getRules();
             return response.data as AlertRule[];
@@ -163,7 +167,7 @@ export function AlertRulesTab() {
         mutationFn: (data: Parameters<typeof alertService.createRule>[0]) =>
             alertService.createRule(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
+            queryClient.invalidateQueries({ queryKey: ['alert-rules', tenantId] });
             setIsFormOpen(false);
             toast.success('Rule created', { description: 'Alert rule has been created successfully.' });
         },
@@ -178,7 +182,7 @@ export function AlertRulesTab() {
         mutationFn: ({ id, data }: { id: string; data: Partial<AlertRule> }) =>
             alertService.updateRule(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
+            queryClient.invalidateQueries({ queryKey: ['alert-rules', tenantId] });
             setIsFormOpen(false);
             setEditingRule(null);
             toast.success('Rule updated', { description: 'Alert rule has been updated.' });
@@ -194,13 +198,13 @@ export function AlertRulesTab() {
         mutationFn: (id: string) => alertService.toggleRule(id),
         onMutate: async (id) => {
             // Cancel outgoing refetches
-            await queryClient.cancelQueries({ queryKey: ['alert-rules'] });
+            await queryClient.cancelQueries({ queryKey: ['alert-rules', tenantId] });
 
             // Snapshot previous value
-            const previousRules = queryClient.getQueryData<AlertRule[]>(['alert-rules']);
+            const previousRules = queryClient.getQueryData<AlertRule[]>(['alert-rules', tenantId]);
 
             // Optimistically update
-            queryClient.setQueryData<AlertRule[]>(['alert-rules'], (old) =>
+            queryClient.setQueryData<AlertRule[]>(['alert-rules', tenantId], (old) =>
                 old?.map((rule) =>
                     rule.id === id ? { ...rule, isActive: !rule.isActive } : rule
                 )
@@ -210,18 +214,18 @@ export function AlertRulesTab() {
         },
         onError: (err, id, context) => {
             // Rollback on error
-            queryClient.setQueryData(['alert-rules'], context?.previousRules);
+            queryClient.setQueryData(['alert-rules', tenantId], context?.previousRules);
             toast.error('Failed to toggle rule');
         },
         onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
+            queryClient.invalidateQueries({ queryKey: ['alert-rules', tenantId] });
         },
     });
 
     const deleteMutation = useMutation({
         mutationFn: (id: string) => alertService.deleteRule(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
+            queryClient.invalidateQueries({ queryKey: ['alert-rules', tenantId] });
             setDeletingRule(null);
             toast.success('Rule deleted', { description: 'Alert rule has been removed.' });
         },
