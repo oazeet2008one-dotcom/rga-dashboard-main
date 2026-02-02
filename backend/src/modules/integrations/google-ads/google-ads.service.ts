@@ -4,7 +4,7 @@ import {
     PlatformCredentials,
     DateRange
 } from '../common/marketing-platform.adapter';
-import { Campaign, Metric } from '@prisma/client';
+import { Campaign, Metric, Prisma, AdPlatform } from '@prisma/client';
 import { GoogleAdsCampaignService } from './google-ads-campaign.service';
 
 /**
@@ -33,12 +33,15 @@ export class GoogleAdsService implements MarketingPlatformAdapter {
         this.logger.log(`Fetching Google Ads campaigns for account ${credentials.accountId}`);
         try {
             const result = await this.campaignService.fetchCampaigns(credentials.accountId);
-            // TODO: Refactor in Sprint 3 - proper type mapping
-            // Current implementation returns raw API data which may have different types
-            return result.campaigns.map(c => ({
-                ...c,
-                platform: 'GOOGLE_ADS' as const,
-            })) as unknown as Partial<Campaign>[];
+            return result.campaigns.map((c: any): Partial<Campaign> => ({
+                externalId: String(c.externalId ?? c.id ?? ''),
+                name: c.name,
+                status: c.status,
+                platform: AdPlatform.GOOGLE_ADS,
+                budget: new Prisma.Decimal(c.budget ?? 0),
+                startDate: c.startDate ?? null,
+                endDate: c.endDate ?? null,
+            }));
         } catch (error) {
             this.logger.error(`Failed to fetch campaigns: ${error.message}`);
             throw error;
@@ -59,9 +62,24 @@ export class GoogleAdsService implements MarketingPlatformAdapter {
                 range.startDate,
                 range.endDate
             );
-            // TODO: Refactor in Sprint 3 - proper type mapping
-            // Current implementation returns raw API data with ctr/cpc/cpm that aren't in DB
-            return metrics as unknown as Partial<Metric>[];
+
+            return (metrics as any[]).map((m: any): Partial<Metric> => {
+                const spend = m.spend ?? m.cost ?? 0;
+                const revenue = m.revenue ?? m.conversionValue ?? 0;
+                const spendNum = typeof spend === 'number' ? spend : Number(spend);
+                const revenueNum = typeof revenue === 'number' ? revenue : Number(revenue);
+                const roasNum = spendNum > 0 ? revenueNum / spendNum : 0;
+
+                return {
+                    date: m.date,
+                    impressions: m.impressions ?? 0,
+                    clicks: m.clicks ?? 0,
+                    conversions: Math.trunc(m.conversions ?? 0),
+                    spend: new Prisma.Decimal(spendNum || 0),
+                    revenue: new Prisma.Decimal(revenueNum || 0),
+                    roas: new Prisma.Decimal(roasNum),
+                };
+            });
         } catch (error) {
             this.logger.error(`Failed to fetch metrics: ${error.message}`);
             return [];

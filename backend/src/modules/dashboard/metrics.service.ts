@@ -214,6 +214,170 @@ export class MetricsService {
         };
     }
 
+    async getTimeSeries(
+        tenantId: string,
+        metric: 'impressions' | 'clicks' | 'spend' | 'conversions' | 'revenue' | 'sessions',
+        startDate: Date,
+        endDate: Date,
+    ) {
+        if (metric === 'sessions') {
+            const rows = await this.prisma.webAnalyticsDaily.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+                _sum: {
+                    sessions: true,
+                },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.sessions ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'impressions') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+                _sum: { impressions: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.impressions ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'clicks') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+                _sum: { clicks: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.clicks ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'conversions') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+                _sum: { conversions: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: r._sum.conversions ?? 0,
+                })),
+            };
+        }
+
+        if (metric === 'spend') {
+            const rows = await this.prisma.metric.groupBy({
+                by: ['date'],
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate,
+                    },
+                },
+                _sum: { spend: true },
+                orderBy: {
+                    date: 'asc',
+                },
+            });
+            return {
+                metric,
+                startDate,
+                endDate,
+                data: rows.map((r) => ({
+                    date: r.date.toISOString().split('T')[0],
+                    value: toNumber(r._sum.spend),
+                })),
+            };
+        }
+
+        const rows = await this.prisma.metric.groupBy({
+            by: ['date'],
+            where: {
+                tenantId,
+                date: {
+                    gte: startDate,
+                    lte: endDate,
+                },
+            },
+            _sum: { revenue: true },
+            orderBy: {
+                date: 'asc',
+            },
+        });
+        return {
+            metric,
+            startDate,
+            endDate,
+            data: rows.map((r) => ({
+                date: r.date.toISOString().split('T')[0],
+                value: toNumber(r._sum.revenue),
+            })),
+        };
+    }
+
     /**
      * Get campaign performance metrics
      */

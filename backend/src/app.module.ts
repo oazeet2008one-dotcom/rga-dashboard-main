@@ -23,6 +23,7 @@ import { GoogleAnalyticsModule } from './modules/integrations/google-analytics/g
 import { TikTokAdsModule } from './modules/integrations/tiktok/tiktok-ads.module';
 import { LineAdsModule } from './modules/integrations/line-ads/line-ads.module';
 import { AlertModule } from './modules/alerts/alert.module';
+import { SeoModule } from './modules/seo/seo.module';
 import { HealthModule } from './modules/health/health.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
@@ -81,6 +82,7 @@ import { CommonModule } from './common/common.module';
     TikTokAdsModule,
     LineAdsModule,
     AlertModule, // Alert System
+    SeoModule,
     HealthModule, // Health Check
     NotificationModule, // Notification System (Sprint 4)
     CommonModule, // Shared Services (Encryption, etc.)

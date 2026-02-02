@@ -183,36 +183,65 @@ model Tenant {
   deletedAt DateTime? @map("deleted_at")
 
   // Relations
-  users                   User[]
-  roles                   Role[]
-  integrations            Integration[]
-  campaigns               Campaign[]
-  metrics                 Metric[]
-  alerts                  Alert[]
-  alertRules              AlertRule[]
-  alertHistories          AlertHistory[]
-  reports                 Report[]
-  syncLogs                SyncLog[]
-  auditLogs               AuditLog[]
-  notifications           Notification[]
-  platformTokens          PlatformToken[]
-  googleAdsAccounts       GoogleAdsAccount[]
-  googleAnalyticsAccounts GoogleAnalyticsAccount[]
-  facebookAdsAccounts     FacebookAdsAccount[]
-  tiktokAdsAccounts       TikTokAdsAccount[]
-  lineAdsAccounts         LineAdsAccount[]
-  webAnalyticsDaily       WebAnalyticsDaily[]
-  adGroups                AdGroup[]
+  users                    User[]
+  roles                    Role[]
+  integrations             Integration[]
+  campaigns                Campaign[]
+  metrics                  Metric[]
+  alerts                   Alert[]
+  alertRules               AlertRule[]
+  alertHistories           AlertHistory[]
+  reports                  Report[]
+  syncLogs                 SyncLog[]
+  auditLogs                AuditLog[]
+  notifications            Notification[]
+  platformTokens           PlatformToken[]
+  googleAdsAccounts        GoogleAdsAccount[]
+  googleAnalyticsAccounts  GoogleAnalyticsAccount[]
+  facebookAdsAccounts      FacebookAdsAccount[]
+  tiktokAdsAccounts        TikTokAdsAccount[]
+  lineAdsAccounts          LineAdsAccount[]
+  webAnalyticsDaily        WebAnalyticsDaily[]
+  searchConsolePerformance SearchConsolePerformance[]
+  adGroups                 AdGroup[]
 
   @@map("tenants")
 }
 
-/// User - ผู้ใช้งานในระบบ
-model User {
+model SearchConsolePerformance {
   id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId String   @map("tenant_id") @db.Uuid
-  email    String   @map("email") @db.VarChar(255)
-  password String   @map("password_hash") @db.VarChar(255)
+  siteUrl  String   @map("site_url") @db.Text
+  date     DateTime @map("date") @db.Date
+
+  page    String? @map("page") @db.Text
+  query   String? @map("query") @db.Text
+  device  String? @map("device") @db.VarChar(50)
+  country String? @map("country") @db.VarChar(10)
+
+  clicks      Int     @default(0) @map("clicks")
+  impressions Int     @default(0) @map("impressions")
+  ctr         Decimal @default(0) @map("ctr") @db.Decimal(10, 6)
+  position    Decimal @default(0) @map("position") @db.Decimal(10, 4)
+
+  externalKey String @map("external_key") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalKey], name: "search_console_perf_tenant_key_unique")
+  @@index([tenantId, date(sort: Desc)], name: "idx_search_console_perf_tenant_date")
+  @@index([siteUrl], name: "idx_search_console_perf_site_url")
+  @@map("search_console_performance")
+}
+
+/// User - ผู้ใช้งานในระบบ
+model User {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  email    String @map("email") @db.VarChar(255)
+  password String @map("password_hash") @db.VarChar(255)
 
   // Profile
   firstName String? @map("first_name") @db.VarChar(100)
@@ -604,10 +633,10 @@ model Metric {
   roas           Decimal @default(0) @map("roas") @db.Decimal(10, 4)
 
   // Revenue & E-commerce
-  revenue              Decimal @default(0) @map("revenue") @db.Decimal(15, 2)
-  orders               Int     @default(0) @map("orders")
-  averageOrderValue    Decimal @default(0) @map("average_order_value") @db.Decimal(10, 2)
-  cartAbandonmentRate  Decimal @default(0) @map("cart_abandonment_rate") @db.Decimal(8, 4)
+  revenue             Decimal @default(0) @map("revenue") @db.Decimal(15, 2)
+  orders              Int     @default(0) @map("orders")
+  averageOrderValue   Decimal @default(0) @map("average_order_value") @db.Decimal(10, 2)
+  cartAbandonmentRate Decimal @default(0) @map("cart_abandonment_rate") @db.Decimal(8, 4)
 
   // SEO / Web Analytics
   organicTraffic     Int     @default(0) @map("organic_traffic")
@@ -734,15 +763,15 @@ model Alert {
 
 /// Alert History - Historical record of triggered alerts
 model AlertHistory {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  alertId          String   @map("alert_id") @db.Uuid
-  tenantId         String   @map("tenant_id") @db.Uuid
-  triggeredAt      DateTime @default(now()) @map("triggered_at")
-  metricValue      Decimal? @map("metric_value") @db.Decimal(15, 4)
-  thresholdValue   Decimal? @map("threshold_value") @db.Decimal(15, 4)
-  message          String?  @map("message") @db.Text
-  metadata         Json?    @map("metadata") @db.JsonB
-  notificationSent Boolean  @default(false) @map("notification_sent")
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alertId            String    @map("alert_id") @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  triggeredAt        DateTime  @default(now()) @map("triggered_at")
+  metricValue        Decimal?  @map("metric_value") @db.Decimal(15, 4)
+  thresholdValue     Decimal?  @map("threshold_value") @db.Decimal(15, 4)
+  message            String?   @map("message") @db.Text
+  metadata           Json?     @map("metadata") @db.JsonB
+  notificationSent   Boolean   @default(false) @map("notification_sent")
   notificationSentAt DateTime? @map("notification_sent_at")
 
   // Relations
@@ -835,9 +864,9 @@ model Report {
   scheduleDayOfMonth Int?    @map("schedule_day_of_month")
 
   // Export
-  exportFormat String?  @map("export_format") @db.VarChar(10)
-  fileUrl      String?  @map("file_url") @db.Text
-  fileSize     Int?     @map("file_size")
+  exportFormat String?   @map("export_format") @db.VarChar(10)
+  fileUrl      String?   @map("file_url") @db.Text
+  fileSize     Int?      @map("file_size")
   generatedAt  DateTime? @map("generated_at")
 
   // Timestamps
@@ -859,20 +888,20 @@ model Report {
 
 /// Sync Log - ETL/Sync history
 model SyncLog {
-  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId      String      @map("tenant_id") @db.Uuid
-  integrationId String?     @map("integration_id") @db.Uuid
-  platform      AdPlatform  @map("platform")
-  accountId     String?     @map("account_id") @db.VarChar(255)
-  syncType      SyncType?   @map("sync_type")
-  status        SyncStatus  @default(PENDING) @map("status")
-  startedAt     DateTime    @default(now()) @map("started_at")
-  completedAt   DateTime?   @map("completed_at")
-  errorMessage  String?     @map("error_message") @db.Text
-  recordsCount  Int?        @map("records_count")
-  recordsSync   Int         @default(0) @map("records_sync")
-  data          Json?       @map("data") @db.JsonB
-  createdAt     DateTime    @default(now()) @map("created_at")
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String     @map("tenant_id") @db.Uuid
+  integrationId String?    @map("integration_id") @db.Uuid
+  platform      AdPlatform @map("platform")
+  accountId     String?    @map("account_id") @db.VarChar(255)
+  syncType      SyncType?  @map("sync_type")
+  status        SyncStatus @default(PENDING) @map("status")
+  startedAt     DateTime   @default(now()) @map("started_at")
+  completedAt   DateTime?  @map("completed_at")
+  errorMessage  String?    @map("error_message") @db.Text
+  recordsCount  Int?       @map("records_count")
+  recordsSync   Int        @default(0) @map("records_sync")
+  data          Json?      @map("data") @db.JsonB
+  createdAt     DateTime   @default(now()) @map("created_at")
 
   // Relations
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)

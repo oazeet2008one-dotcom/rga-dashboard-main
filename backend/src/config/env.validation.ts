@@ -20,6 +20,10 @@ export const envValidationSchema = Joi.object({
         'string.empty': 'DATABASE_URL is required',
         'any.required': 'DATABASE_URL is required',
     }),
+    DIRECT_URL: Joi.string().required().messages({
+        'string.empty': 'DIRECT_URL is required',
+        'any.required': 'DIRECT_URL is required',
+    }),
 
     // ============================================
     // JWT Authentication
@@ -28,17 +32,31 @@ export const envValidationSchema = Joi.object({
         'string.min': 'JWT_SECRET must be at least 32 characters',
         'any.required': 'JWT_SECRET is required',
     }),
-    JWT_EXPIRES_IN: Joi.string().default('15m'),
-    JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+    JWT_REFRESH_SECRET: Joi.string().min(32).required().messages({
+        'string.min': 'JWT_REFRESH_SECRET must be at least 32 characters',
+        'any.required': 'JWT_REFRESH_SECRET is required',
+    }),
+    JWT_ACCESS_EXPIRY: Joi.string().default('15m'),
+    JWT_REFRESH_EXPIRY: Joi.string().default('7d'),
+    JWT_EXPIRES_IN: Joi.string().optional(),
+    JWT_REFRESH_EXPIRES_IN: Joi.string().optional(),
 
     // ============================================
     // Google OAuth (Required for integrations)
     // ============================================
-    GOOGLE_CLIENT_ID: Joi.string().required().messages({
-        'any.required': 'GOOGLE_CLIENT_ID is required for Google integrations',
+    GOOGLE_CLIENT_ID: Joi.string().when('NODE_ENV', {
+        is: 'production',
+        then: Joi.required().messages({
+            'any.required': 'GOOGLE_CLIENT_ID is required for Google integrations',
+        }),
+        otherwise: Joi.optional(),
     }),
-    GOOGLE_CLIENT_SECRET: Joi.string().required().messages({
-        'any.required': 'GOOGLE_CLIENT_SECRET is required for Google integrations',
+    GOOGLE_CLIENT_SECRET: Joi.string().when('NODE_ENV', {
+        is: 'production',
+        then: Joi.required().messages({
+            'any.required': 'GOOGLE_CLIENT_SECRET is required for Google integrations',
+        }),
+        otherwise: Joi.optional(),
     }),
     GOOGLE_REDIRECT_URI_ADS: Joi.string().uri().optional(),
     GOOGLE_REDIRECT_URI_ANALYTICS: Joi.string().uri().optional(),
@@ -101,4 +119,8 @@ export const envValidationSchema = Joi.object({
     SWAGGER_TITLE: Joi.string().optional(),
     SWAGGER_DESCRIPTION: Joi.string().optional(),
     SWAGGER_VERSION: Joi.string().optional(),
+
+    GSC_SERVICE_ACCOUNT_JSON: Joi.string().optional(),
+    GSC_SERVICE_ACCOUNT_KEY_FILE: Joi.string().optional(),
+    GSC_SITE_URL: Joi.string().optional(),
 });

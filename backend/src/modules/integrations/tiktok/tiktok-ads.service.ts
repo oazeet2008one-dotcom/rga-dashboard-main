@@ -1,7 +1,7 @@
-import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MarketingPlatformAdapter, PlatformCredentials, DateRange } from '../common/marketing-platform.adapter';
-import { Campaign, Metric } from '@prisma/client';
+import { Campaign, Metric, CampaignStatus, AdPlatform, Prisma } from '@prisma/client';
 import axios from 'axios';
 
 @Injectable()
@@ -50,9 +50,9 @@ export class TikTokAdsService implements MarketingPlatformAdapter {
       return campaigns.map((c: any) => ({
         externalId: c.campaign_id,
         name: c.campaign_name,
-        status: c.operation_status, // ENABLE, DISABLE
-        budget: parseFloat(c.budget || '0'),
-        platform: 'TIKTOK',
+        status: this.mapStatus(c.operation_status),
+        budget: new Prisma.Decimal(parseFloat(c.budget || '0')),
+        platform: AdPlatform.TIKTOK,
       }));
     } catch (error) {
       this.logger.error(`Failed to fetch TikTok campaigns: ${error.message}`);
@@ -81,9 +81,6 @@ export class TikTokAdsService implements MarketingPlatformAdapter {
             'clicks',
             'spend',
             'conversion',
-            'ctr',
-            'cpc',
-            'cpm',
           ]),
           start_date: range.startDate.toISOString().split('T')[0],
           end_date: range.endDate.toISOString().split('T')[0],
@@ -107,15 +104,29 @@ export class TikTokAdsService implements MarketingPlatformAdapter {
         date: new Date(row.metrics.stat_time_day),
         impressions: parseInt(row.metrics.impressions),
         clicks: parseInt(row.metrics.clicks),
-        spend: parseFloat(row.metrics.spend),
+        spend: new Prisma.Decimal(parseFloat(row.metrics.spend)),
         conversions: parseInt(row.metrics.conversion),
-        ctr: parseFloat(row.metrics.ctr),
-        cpc: parseFloat(row.metrics.cpc),
-        cpm: parseFloat(row.metrics.cpm),
+        revenue: new Prisma.Decimal(0),
+        roas: new Prisma.Decimal(0),
       }));
     } catch (error) {
       this.logger.error(`Failed to fetch TikTok metrics: ${error.message}`);
       return [];
+    }
+  }
+
+  private mapStatus(status: string): CampaignStatus {
+    switch (status?.toUpperCase()) {
+      case 'ENABLE':
+      case 'ENABLED':
+      case 'ACTIVE':
+        return CampaignStatus.ACTIVE;
+      case 'DISABLE':
+      case 'DISABLED':
+      case 'PAUSED':
+        return CampaignStatus.PAUSED;
+      default:
+        return CampaignStatus.PAUSED;
     }
   }
 }

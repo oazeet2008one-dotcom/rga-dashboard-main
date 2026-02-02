@@ -239,8 +239,14 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email: string) {
-    const accessExpiry = this.config.get<string>('JWT_ACCESS_EXPIRY', '15m');
-    const refreshExpiry = this.config.get<string>('JWT_REFRESH_EXPIRY', '7d');
+    const accessExpiry =
+      this.config.get<string>('JWT_ACCESS_EXPIRY') ||
+      this.config.get<string>('JWT_EXPIRES_IN') ||
+      '15m';
+    const refreshExpiry =
+      this.config.get<string>('JWT_REFRESH_EXPIRY') ||
+      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ||
+      '7d';
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(

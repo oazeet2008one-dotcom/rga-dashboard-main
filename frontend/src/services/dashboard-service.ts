@@ -1,6 +1,6 @@
 import { apiClient } from './api-client';
 import { DateRangeOption } from '@/types/dateRange';
-import { ApiResponse, Campaign, DashboardMetricPoint } from '@/types/api';
+import { Campaign, DashboardMetricPoint } from '@/types/api';
 
 // Proper type for Platform Performance data
 export interface PlatformPerformance {
@@ -11,28 +11,40 @@ export interface PlatformPerformance {
     conversions: number;
 }
 
+export interface TimeSeriesPoint {
+    date: string;
+    value: number;
+}
+
+export interface TimeSeriesResponse {
+    metric: string;
+    startDate: string;
+    endDate: string;
+    data: TimeSeriesPoint[];
+}
+
 export const dashboardService = {
-    getSummary: () => apiClient.get<ApiResponse<any>>('/dashboard/summary'), // TODO: Define Summary Type
+    getSummary: () => apiClient.get<any>('/dashboard/summary'),
     getTrends: (days?: number) => apiClient.get<DashboardMetricPoint[]>('/dashboard/trends', { params: { days } }),
     getOverview: (startDate?: string, endDate?: string) =>
-        apiClient.get<ApiResponse<any>>('/dashboard/overview', { params: { startDate, endDate } }),
+        apiClient.get<any>('/dashboard/overview', { params: { startDate, endDate } }),
     getTopCampaigns: (limit?: number, sortBy?: string, days?: number) =>
         apiClient.get<Campaign[]>('/dashboard/top-campaigns', { params: { limit, sortBy, days } }),
     // Fixed: Use proper PlatformPerformance[] type instead of any
     getPerformanceByPlatform: (startDate?: string, endDate?: string) =>
         apiClient.get<PlatformPerformance[]>('/dashboard/performance-by-platform', { params: { startDate, endDate } }),
     getTimeSeries: (metric: string, startDate?: string, endDate?: string) =>
-        apiClient.get<ApiResponse<any>>('/dashboard/time-series', { params: { metric, startDate, endDate } }),
+        apiClient.get<TimeSeriesResponse>('/dashboard/time-series', { params: { metric, startDate, endDate } }),
 
     // Metrics Trends
     getMetricsTrends: (period: DateRangeOption = '7d', compare: 'previous_period' = 'previous_period') =>
-        apiClient.get<ApiResponse<any>>('/dashboard/metrics/trends', { params: { period, compare } }),
+        apiClient.get<any>('/dashboard/metrics/trends', { params: { period, compare } }),
     getDailyMetrics: (period: DateRangeOption = '7d') =>
-        apiClient.get<ApiResponse<any>>('/dashboard/metrics/daily', { params: { period } }),
+        apiClient.get<any>('/dashboard/metrics/daily', { params: { period } }),
 
     // Summary by Platform (Multi-channel)
     getSummaryByPlatform: (days: number = 30, platform: string = 'ALL') =>
-        apiClient.get<ApiResponse<any>>('/dashboard/summary-by-platform', { params: { days, platform } }),
+        apiClient.get<any>('/dashboard/summary-by-platform', { params: { days, platform } }),
 
     // Exports
     exportCampaignsCSV: (platform?: string, status?: string) =>

@@ -9,7 +9,7 @@ import {
     DateRange
 } from '../common/marketing-platform.adapter';
 import { firstValueFrom } from 'rxjs';
-import { Campaign, Metric, CampaignStatus, AdPlatform } from '@prisma/client';
+import { Campaign, Metric, CampaignStatus, AdPlatform, Prisma } from '@prisma/client';
 import { FacebookCampaignResponse, FacebookInsightsResponse } from './interfaces/facebook-api.types';
 
 /**
@@ -72,19 +72,21 @@ export class FacebookAdsService implements MarketingPlatformAdapter {
                 }),
             );
 
-            // TODO: Refactor in Sprint 3 - budget should be Decimal, not number
-            const campaigns = data.data.map((c) => ({
+            const campaigns: Partial<Campaign>[] = data.data.map((c) => ({
                 externalId: c.id,
                 name: c.name,
                 status: this.mapStatus(c.status),
                 platform: AdPlatform.FACEBOOK,
-                budget: c.daily_budget ? Number(c.daily_budget) / 100 : (c.lifetime_budget ? Number(c.lifetime_budget) / 100 : 0),
+                budget: new Prisma.Decimal(
+                    c.daily_budget
+                        ? Number(c.daily_budget) / 100
+                        : (c.lifetime_budget ? Number(c.lifetime_budget) / 100 : 0),
+                ),
                 startDate: c.start_time ? new Date(c.start_time) : null,
                 endDate: c.stop_time ? new Date(c.stop_time) : null,
             }));
 
-            // Type assertion to fix Prisma Decimal type mismatch
-            return campaigns as unknown as Partial<Campaign>[];
+            return campaigns;
         } catch (error) {
             this.logger.error(`Failed to fetch campaigns: ${error.message}`);
             throw error;
@@ -117,9 +119,7 @@ export class FacebookAdsService implements MarketingPlatformAdapter {
                 }),
             );
 
-            // TODO: Refactor in Sprint 3 - ctr/cpc/cpm are NOT in DB schema
-            // These are calculated fields and should not be in Partial<Metric>
-            const metrics = data.data.map((m) => {
+            const metrics: Partial<Metric>[] = data.data.map((m) => {
                 const spend = Number(m.spend) || 0;
                 const revenue = m.purchase_roas ? (spend * Number(m.purchase_roas[0]?.value || 0)) : 0;
                 const impressions = Number(m.impressions) || 0;
@@ -129,16 +129,14 @@ export class FacebookAdsService implements MarketingPlatformAdapter {
                     date: new Date(m.date_start),
                     impressions,
                     clicks,
-                    spend,
-                    conversions: Number(m.conversions?.[0]?.value || 0),
-                    revenue,
-                    roas: spend > 0 ? revenue / spend : 0,
-                    // Note: ctr, cpc, cpm are NOT in DB - removed from return object
+                    spend: new Prisma.Decimal(spend),
+                    conversions: Math.trunc(Number(m.conversions?.[0]?.value || 0)),
+                    revenue: new Prisma.Decimal(revenue),
+                    roas: new Prisma.Decimal(spend > 0 ? revenue / spend : 0),
                 };
             });
 
-            // Type assertion to fix Prisma Decimal type mismatch
-            return metrics as unknown as Partial<Metric>[];
+            return metrics;
         } catch (error) {
             this.logger.error(`Failed to fetch metrics: ${error.message}`);
             throw error;

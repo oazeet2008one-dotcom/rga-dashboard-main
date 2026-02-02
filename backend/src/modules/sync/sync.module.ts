@@ -9,6 +9,7 @@ import { FacebookAdsModule } from '../integrations/facebook/facebook-ads.module'
 import { TikTokAdsModule } from '../integrations/tiktok/tiktok-ads.module';
 import { LineAdsModule } from '../integrations/line-ads/line-ads.module';
 import { IntegrationFactory } from '../integrations/common/integration.factory';
+import { SyncController } from './sync.controller';
 
 @Module({
     imports: [
@@ -20,6 +21,7 @@ import { IntegrationFactory } from '../integrations/common/integration.factory';
         TikTokAdsModule,
         LineAdsModule,
     ],
+    controllers: [SyncController],
     providers: [
         SyncSchedulerService,
         UnifiedSyncService,

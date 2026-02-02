@@ -4,6 +4,24 @@ import { IntegrationFactory } from '../integrations/common/integration.factory';
 import { AdPlatform, Prisma } from '@prisma/client';
 import { MarketingPlatformAdapter } from '../integrations/common/marketing-platform.adapter';
 
+function toNumber(value: any, defaultValue = 0): number {
+    if (value === null || value === undefined) return defaultValue;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : defaultValue;
+    if (typeof value === 'string') {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : defaultValue;
+    }
+    if (typeof value === 'object' && typeof value.toNumber === 'function') {
+        return value.toNumber();
+    }
+    const n = Number(value);
+    return Number.isFinite(n) ? n : defaultValue;
+}
+
+function toUTCDateOnly(date: Date): Date {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
 @Injectable()
 export class UnifiedSyncService {
     private readonly logger = new Logger(UnifiedSyncService.name);
@@ -28,6 +46,20 @@ export class UnifiedSyncService {
         };
 
         this.logger.log('Unified sync completed', results);
+        return results;
+    }
+
+    async syncAllForTenant(tenantId: string) {
+        this.logger.log(`Starting unified sync for tenant ${tenantId}...`);
+
+        const results = {
+            [AdPlatform.GOOGLE_ADS]: await this.syncPlatformForTenant(AdPlatform.GOOGLE_ADS, tenantId),
+            [AdPlatform.FACEBOOK]: await this.syncPlatformForTenant(AdPlatform.FACEBOOK, tenantId),
+            [AdPlatform.GOOGLE_ANALYTICS]: await this.syncPlatformForTenant(AdPlatform.GOOGLE_ANALYTICS, tenantId),
+            [AdPlatform.TIKTOK]: await this.syncPlatformForTenant(AdPlatform.TIKTOK, tenantId),
+            [AdPlatform.LINE_ADS]: await this.syncPlatformForTenant(AdPlatform.LINE_ADS, tenantId),
+        };
+
         return results;
     }
 
@@ -77,6 +109,47 @@ export class UnifiedSyncService {
         return { success, failed };
     }
 
+    async syncPlatformForTenant(platform: AdPlatform, tenantId: string) {
+        this.logger.log(`Syncing accounts for platform ${platform} (tenant ${tenantId})`);
+        let accounts: any[] = [];
+
+        switch (platform) {
+            case AdPlatform.GOOGLE_ADS:
+                accounts = await this.prisma.googleAdsAccount.findMany({ where: { tenantId, status: 'ENABLED' } });
+                break;
+            case AdPlatform.FACEBOOK:
+                accounts = await this.prisma.facebookAdsAccount.findMany({ where: { tenantId, status: 'ACTIVE' } });
+                break;
+            case AdPlatform.GOOGLE_ANALYTICS:
+                accounts = await this.prisma.googleAnalyticsAccount.findMany({ where: { tenantId, status: 'ACTIVE' } });
+                break;
+            case AdPlatform.TIKTOK:
+                accounts = await this.prisma.tikTokAdsAccount.findMany({ where: { tenantId, status: 'ACTIVE' } });
+                break;
+            case AdPlatform.LINE_ADS:
+                accounts = await this.prisma.lineAdsAccount.findMany({ where: { tenantId, status: 'ACTIVE' } });
+                break;
+            default:
+                this.logger.warn(`Platform ${platform} not supported for tenant sync`);
+                return { success: 0, failed: 0 };
+        }
+
+        let success = 0;
+        let failed = 0;
+
+        for (const account of accounts) {
+            try {
+                await this.syncAccount(platform, account.id, tenantId, account);
+                success++;
+            } catch (error) {
+                this.logger.error(`Failed to sync account ${account.id} (${platform}, tenant ${tenantId}): ${error.message}`);
+                failed++;
+            }
+        }
+
+        return { success, failed };
+    }
+
     /**
      * Sync a specific account using the Adapter Pattern
      */
@@ -91,7 +164,22 @@ export class UnifiedSyncService {
         const credentials = {
             accessToken: accountData.accessToken,
             refreshToken: accountData.refreshToken,
-            accountId: platform === AdPlatform.GOOGLE_ANALYTICS ? accountData.propertyId : (accountData.customerId || accountData.accountId),
+            accountId: (() => {
+                switch (platform) {
+                    case AdPlatform.GOOGLE_ANALYTICS:
+                        return accountData.propertyId;
+                    case AdPlatform.GOOGLE_ADS:
+                        return accountData.customerId;
+                    case AdPlatform.FACEBOOK:
+                        return accountData.accountId;
+                    case AdPlatform.TIKTOK:
+                        return accountData.advertiserId;
+                    case AdPlatform.LINE_ADS:
+                        return accountData.channelId;
+                    default:
+                        return accountData.accountId;
+                }
+            })(),
         };
 
         // 2. Fetch Campaigns (if applicable)
@@ -115,15 +203,19 @@ export class UnifiedSyncService {
 
         } else {
             // Ads Logic: Fetch Campaign Level Metrics
+            const campaignWhere: Prisma.CampaignWhereInput = { tenantId, platform };
+            if (platform === AdPlatform.GOOGLE_ADS) {
+                campaignWhere.googleAdsAccountId = accountId;
+            } else if (platform === AdPlatform.FACEBOOK) {
+                campaignWhere.facebookAdsAccountId = accountId;
+            } else if (platform === AdPlatform.TIKTOK) {
+                campaignWhere.tiktokAdsAccountId = accountId;
+            } else if (platform === AdPlatform.LINE_ADS) {
+                campaignWhere.lineAdsAccountId = accountId;
+            }
+
             const dbCampaigns = await this.prisma.campaign.findMany({
-                where: {
-                    tenantId,
-                    platform,
-                    OR: [
-                        { googleAdsAccountId: accountId },
-                        { facebookAdsAccountId: accountId }
-                    ]
-                }
+                where: campaignWhere,
             });
 
             for (const campaign of dbCampaigns) {
@@ -162,7 +254,14 @@ export class UnifiedSyncService {
 
     private async saveCampaign(tenantId: string, platform: AdPlatform, accountId: string, data: any) {
         // Common logic to upsert campaign
-        const fkField = platform === AdPlatform.GOOGLE_ADS ? 'googleAdsAccountId' : 'facebookAdsAccountId';
+        const fkField =
+            platform === AdPlatform.GOOGLE_ADS
+                ? 'googleAdsAccountId'
+                : platform === AdPlatform.FACEBOOK
+                    ? 'facebookAdsAccountId'
+                    : platform === AdPlatform.TIKTOK
+                        ? 'tiktokAdsAccountId'
+                        : 'lineAdsAccountId';
 
         // Check existence
         const existing = await this.prisma.campaign.findFirst({
@@ -206,42 +305,53 @@ export class UnifiedSyncService {
      */
     private async saveCampaignMetrics(tenantId: string, platform: AdPlatform, campaignId: string, metrics: any[]) {
         for (const m of metrics) {
-            // Use findFirst + create/update instead of compound unique key
-            const existing = await this.prisma.metric.findFirst({
-                where: { campaignId, date: m.date },
-            });
+            const date = toUTCDateOnly(new Date(m.date));
 
-            const metricData: Prisma.MetricUncheckedCreateInput = {
-                tenantId,
-                campaignId,
-                platform,
-                date: m.date,
-                impressions: m.impressions ?? 0,
-                clicks: m.clicks ?? 0,
-                spend: m.spend ?? 0,
-                conversions: m.conversions ?? 0,
-                revenue: m.revenue ?? 0,
-                roas: m.spend > 0 ? m.revenue / m.spend : 0,
-                // Note: cpc, ctr, cpm are NOT stored in DB - they are calculated fields
-            };
+            const hour = 0;
+            const source = 'sync';
 
-            if (existing) {
-                await this.prisma.metric.update({
-                    where: { id: existing.id },
-                    data: {
-                        impressions: metricData.impressions,
-                        clicks: metricData.clicks,
-                        spend: metricData.spend,
-                        conversions: metricData.conversions,
-                        revenue: metricData.revenue,
-                        roas: metricData.roas,
+            const spendNum = toNumber(m.spend);
+            const revenueNum = toNumber(m.revenue);
+            const roasNum = spendNum > 0 ? revenueNum / spendNum : 0;
+
+            const impressions = m.impressions ?? 0;
+            const clicks = m.clicks ?? 0;
+            const conversions = m.conversions ?? 0;
+
+            await this.prisma.metric.upsert({
+                where: {
+                    metrics_unique_key: {
+                        tenantId,
+                        campaignId,
+                        date,
+                        hour,
+                        platform,
+                        source,
                     },
-                });
-            } else {
-                await this.prisma.metric.create({
-                    data: metricData,
-                });
-            }
+                },
+                create: {
+                    tenantId,
+                    campaignId,
+                    platform,
+                    date,
+                    hour,
+                    source,
+                    impressions,
+                    clicks,
+                    spend: spendNum,
+                    conversions,
+                    revenue: revenueNum,
+                    roas: roasNum,
+                },
+                update: {
+                    impressions,
+                    clicks,
+                    spend: spendNum,
+                    conversions,
+                    revenue: revenueNum,
+                    roas: roasNum,
+                },
+            });
         }
     }
 
@@ -250,32 +360,33 @@ export class UnifiedSyncService {
      */
     private async saveWebAnalytics(tenantId: string, propertyId: string, metrics: any[]) {
         for (const m of metrics) {
-            // Use findFirst instead of compound unique key
-            const existing = await this.prisma.webAnalyticsDaily.findFirst({
-                where: { tenantId, propertyId, date: m.date },
-            });
+            const date = toUTCDateOnly(new Date(m.date));
 
-            if (existing) {
-                await this.prisma.webAnalyticsDaily.update({
-                    where: { id: existing.id },
-                    data: {
-                        activeUsers: m.impressions ?? 0,
-                        sessions: m.clicks ?? 0,
-                        newUsers: 0,
-                        engagementRate: 0,
-                    },
-                });
-            } else {
-                await this.prisma.webAnalyticsDaily.create({
-                    data: {
+            await this.prisma.webAnalyticsDaily.upsert({
+                where: {
+                    web_analytics_daily_unique: {
                         tenantId,
                         propertyId,
-                        date: m.date,
-                        activeUsers: m.impressions ?? 0,
-                        sessions: m.clicks ?? 0,
+                        date,
                     },
-                });
-            }
+                },
+                create: {
+                    tenantId,
+                    propertyId,
+                    date,
+                    activeUsers: m.impressions ?? 0,
+                    sessions: m.clicks ?? 0,
+                    newUsers: 0,
+                    screenPageViews: 0,
+                    engagementRate: 0,
+                    bounceRate: 0,
+                    avgSessionDuration: 0,
+                },
+                update: {
+                    activeUsers: m.impressions ?? 0,
+                    sessions: m.clicks ?? 0,
+                },
+            });
         }
     }
 
@@ -290,6 +401,12 @@ export class UnifiedSyncService {
                 break;
             case AdPlatform.GOOGLE_ANALYTICS:
                 await this.prisma.googleAnalyticsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
+                break;
+            case AdPlatform.TIKTOK:
+                await this.prisma.tikTokAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
+                break;
+            case AdPlatform.LINE_ADS:
+                await this.prisma.lineAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
                 break;
         }
     }

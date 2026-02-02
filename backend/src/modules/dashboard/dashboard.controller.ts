@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Post, Delete, Query, UseGuards, Request, Res, UseInterceptors } from '@nestjs/common';
+﻿import { Controller, Get, Post, Delete, Query, UseGuards, Request, Res, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -9,6 +9,7 @@ import { ExportService } from './export.service';
 import { GetDashboardOverviewDto, DashboardOverviewResponseDto, PeriodEnum } from './dto/dashboard-overview.dto';
 import { TenantCacheInterceptor } from '../../common/interceptors/tenant-cache.interceptor';
 import { IntegrationSwitchService } from '../data-sources/integration-switch.service';
+import { DateRangeUtil } from '../../common/utils/date-range.util';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
@@ -46,7 +47,12 @@ export class DashboardController {
     @CurrentUser('tenantId') tenantId: string,
     @Query('range') range: string,
     @Query('compare') compare: string,
-  ) { }
+  ) {
+    const period = range || '7d';
+    const compareWith = compare === 'previous_period' ? 'previous_period' : undefined;
+
+    return this.metricsService.getMetricsTrends(tenantId, period, compareWith);
+  }
 
   @Get('summary')
   async getSummary(@Request() req, @Query('days') days?: string) {
@@ -97,6 +103,65 @@ export class DashboardController {
       days = parseInt(startDate.replace('d', ''), 10);
     }
     return this.dashboardService.getPerformanceByPlatform(req.user.tenantId, days);
+  }
+
+  @Get('time-series')
+  @ApiOperation({ summary: 'Get time-series for a single metric' })
+  @ApiQuery({ name: 'metric', required: true, description: 'Metric name (impressions, clicks, spend, conversions, revenue, sessions)' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (YYYY-MM-DD). If omitted, defaults to last 30 days.' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (YYYY-MM-DD). If omitted, defaults to today.' })
+  @ApiResponse({ status: 200, description: 'Time-series data' })
+  async getTimeSeries(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('metric') metric: string,
+    @Query('startDate') startDateStr?: string,
+    @Query('endDate') endDateStr?: string,
+  ) {
+    const allowedMetrics = new Set([
+      'impressions',
+      'clicks',
+      'spend',
+      'conversions',
+      'revenue',
+      'sessions',
+    ]);
+
+    if (!metric || !allowedMetrics.has(metric)) {
+      throw new BadRequestException('Invalid metric. Allowed: impressions, clicks, spend, conversions, revenue, sessions');
+    }
+
+    let startDate: Date;
+    let endDate: Date;
+
+    if (startDateStr || endDateStr) {
+      if (!startDateStr || !endDateStr) {
+        throw new BadRequestException('startDate and endDate must be provided together');
+      }
+
+      startDate = new Date(startDateStr);
+      endDate = new Date(endDateStr);
+
+      if (isNaN(startDate.getTime())) {
+        throw new BadRequestException('Invalid startDate format. Use YYYY-MM-DD.');
+      }
+      if (isNaN(endDate.getTime())) {
+        throw new BadRequestException('Invalid endDate format. Use YYYY-MM-DD.');
+      }
+      if (startDate > endDate) {
+        throw new BadRequestException('startDate must be before or equal to endDate');
+      }
+    } else {
+      const range30 = DateRangeUtil.getDateRange(30);
+      startDate = range30.startDate;
+      endDate = range30.endDate;
+    }
+
+    return this.metricsService.getTimeSeries(
+      tenantId,
+      metric as 'impressions' | 'clicks' | 'spend' | 'conversions' | 'revenue' | 'sessions',
+      startDate,
+      endDate,
+    );
   }
 
   @Get('metrics/trends')

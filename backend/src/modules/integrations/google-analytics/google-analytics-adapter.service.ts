@@ -4,7 +4,7 @@ import {
     PlatformCredentials,
     DateRange
 } from '../common/marketing-platform.adapter';
-import { Campaign, Metric } from '@prisma/client';
+import { Campaign, Metric, Prisma } from '@prisma/client';
 import { GoogleAnalyticsApiService } from './google-analytics-api.service';
 
 /**
@@ -66,20 +66,21 @@ export class GoogleAnalyticsAdapterService implements MarketingPlatformAdapter {
                 return [];
             }
 
-            // TODO: Refactor in Sprint 3 - ctr/cpc/cpm are NOT in DB schema
-            const metrics = response.rows.map((row: any) => ({
-                date: this.parseDate(row.dimensionValues[0].value),
-                impressions: Number(row.metricValues[0].value), // Mapping Active Users -> Impressions (approx)
-                clicks: Number(row.metricValues[1].value),      // Mapping Sessions -> Clicks (approx)
-                conversions: Number(row.metricValues[2].value),
-                revenue: Number(row.metricValues[3].value),
-                spend: 0, // GA4 doesn't track ad spend directly unless linked
-                roas: 0,
-                // Note: ctr, cpc, cpm are NOT in DB - removed from return object
-            }));
+            const metrics: Partial<Metric>[] = response.rows.map((row: any) => {
+                const revenue = Number(row.metricValues[3].value);
 
-            // Type assertion to fix Prisma Decimal type mismatch
-            return metrics as unknown as Partial<Metric>[];
+                return {
+                    date: this.parseDate(row.dimensionValues[0].value),
+                    impressions: Number(row.metricValues[0].value), // Mapping Active Users -> Impressions (approx)
+                    clicks: Number(row.metricValues[1].value),      // Mapping Sessions -> Clicks (approx)
+                    conversions: Math.trunc(Number(row.metricValues[2].value)),
+                    revenue: new Prisma.Decimal(revenue),
+                    spend: new Prisma.Decimal(0), // GA4 doesn't track ad spend directly unless linked
+                    roas: new Prisma.Decimal(0),
+                };
+            });
+
+            return metrics;
 
         } catch (error) {
             this.logger.error(`Failed to fetch metrics: ${error.message}`);
