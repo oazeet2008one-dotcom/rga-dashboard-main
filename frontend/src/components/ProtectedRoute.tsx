@@ -24,10 +24,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   // Initialize auth on mount
   useEffect(() => {
-    if (!isInitialized) {
-      initializeAuth();
-    }
-  }, [isInitialized, initializeAuth]);
+    initializeAuth();
+  }, [initializeAuth]);
 
   // Wait for auth initialization
   if (!isInitialized || isLoading) {

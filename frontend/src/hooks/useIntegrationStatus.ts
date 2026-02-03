@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { integrationService } from '@/services/integration-service';
+import {
+    useAuthStore,
+    selectIsAuthenticated,
+    selectIsInitialized,
+} from '@/stores/auth-store';
+import { hasToken } from '@/lib/token-manager';
 
 export interface IntegrationStatus {
     googleAds: boolean;
@@ -10,6 +16,9 @@ export interface IntegrationStatus {
 }
 
 export function useIntegrationStatus() {
+    const isAuthenticated = useAuthStore(selectIsAuthenticated);
+    const isInitialized = useAuthStore(selectIsInitialized);
+
     const [status, setStatus] = useState<IntegrationStatus>({
         googleAds: false,
         facebookAds: false,
@@ -25,6 +34,22 @@ export function useIntegrationStatus() {
     const [isSyncing, setIsSyncing] = useState(false);
 
     const fetchStatus = useCallback(async () => {
+        if (!isInitialized || !isAuthenticated || !hasToken()) {
+            setStatus({
+                googleAds: false,
+                facebookAds: false,
+                lineAds: false,
+                tiktokAds: false,
+                googleAnalytics: false,
+            });
+            setAccounts([]);
+            setGa4Account(null);
+            setLineAdsAccounts([]);
+            setTiktokAdsAccounts([]);
+            setIsLoading(false);
+            return;
+        }
+
         try {
             setIsLoading(true);
 
@@ -61,7 +86,7 @@ export function useIntegrationStatus() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [isAuthenticated, isInitialized]);
 
     const syncGoogleAds = async () => {
         try {

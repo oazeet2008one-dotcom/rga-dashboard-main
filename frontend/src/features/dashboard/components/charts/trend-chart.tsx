@@ -158,7 +158,7 @@ export function TrendChart({
     customRange,
     onCustomRangeChange
 }: TrendChartProps) {
-    const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['cost']);
+    const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['cost', 'impressions', 'clicks']);
 
     // Toggle metric selection
     const toggleMetric = (metric: MetricKey) => {
@@ -280,7 +280,7 @@ export function TrendChart({
                             />
                             <YAxis
                                 tickFormatter={(v) => formatCompactNumber(v)}
-                                tick={{ fontSize: 11 }}
+                                tick={false}
                                 tickLine={false}
                                 axisLine={false}
                                 width={45}

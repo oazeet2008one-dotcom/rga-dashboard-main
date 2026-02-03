@@ -86,6 +86,11 @@ export const platformConfig: Record<
         icon: '📘',
         color: '#1877F2',
     },
+    [AdPlatform.INSTAGRAM]: {
+        name: 'Instagram',
+        icon: '📸',
+        color: '#DD2A7B',
+    },
     [AdPlatform.TIKTOK]: {
         name: 'TikTok',
         icon: '🎵',

@@ -8,9 +8,19 @@ import { BrandLogo } from './ui/brand-logo';
 import { PLATFORMS } from '../constants/platforms';
 import { useIntegrationStatus, IntegrationStatus } from '../hooks/useIntegrationStatus';
 
+const CHECKLIST_PLATFORM_IDS = [
+    'google-ads',
+    'facebook-ads',
+    'instagram-ads',
+    'line-ads',
+    'tiktok-ads',
+] as const;
+
 const statusKeyMap: Record<string, keyof IntegrationStatus> = {
     'google-ads': 'googleAds',
     'facebook-ads': 'facebookAds',
+    // Instagram Ads is part of Meta Ads in this system (shared connection status)
+    'instagram-ads': 'facebookAds',
     'line-ads': 'lineAds',
     'tiktok-ads': 'tiktokAds',
 };
@@ -34,6 +44,12 @@ const PLATFORM_STYLES: Record<string, {
         iconRing: 'group-hover:ring-blue-200/80 dark:group-hover:ring-blue-700/50',
         glowColor: 'group-hover:shadow-blue-100/50 dark:group-hover:shadow-blue-900/30',
     },
+    'instagram-ads': {
+        bgGradient: 'from-pink-50/50 to-fuchsia-50/30 dark:from-pink-950/20 dark:to-fuchsia-950/10',
+        hoverBorder: 'hover:border-pink-200 dark:hover:border-pink-800',
+        iconRing: 'group-hover:ring-pink-200/80 dark:group-hover:ring-pink-700/50',
+        glowColor: 'group-hover:shadow-pink-100/50 dark:group-hover:shadow-pink-900/30',
+    },
     'line-ads': {
         bgGradient: 'from-emerald-50/50 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/10',
         hoverBorder: 'hover:border-emerald-200 dark:hover:border-emerald-800',
@@ -53,9 +69,7 @@ export function IntegrationChecklist() {
     const { status, isLoading } = useIntegrationStatus();
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    const platforms = PLATFORMS.filter((p) =>
-        ['google-ads', 'facebook-ads', 'line-ads', 'tiktok-ads'].includes(p.id)
-    );
+    const platforms = PLATFORMS.filter((p) => CHECKLIST_PLATFORM_IDS.includes(p.id as any));
 
     if (isLoading) {
         return (
@@ -95,7 +109,7 @@ export function IntegrationChecklist() {
 
             {isCollapsed ? null : (
                 <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         {platforms.map((platform) => {
                             const statusKey = statusKeyMap[platform.id];
                             const isConnected = statusKey ? status[statusKey] : false;

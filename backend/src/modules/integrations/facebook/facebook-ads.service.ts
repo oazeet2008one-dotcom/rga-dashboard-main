@@ -113,6 +113,7 @@ export class FacebookAdsService implements MarketingPlatformAdapter {
                             until: range.endDate.toISOString().split('T')[0],
                         },
                         time_increment: 1, // Daily breakdown
+                        breakdowns: 'publisher_platform',
                     },
                 }),
             );
@@ -124,9 +125,14 @@ export class FacebookAdsService implements MarketingPlatformAdapter {
                 const revenue = m.purchase_roas ? (spend * Number(m.purchase_roas[0]?.value || 0)) : 0;
                 const impressions = Number(m.impressions) || 0;
                 const clicks = Number(m.clicks) || 0;
+                const publisherPlatform = (m.publisher_platform || '').toLowerCase();
+                const platform = publisherPlatform === 'instagram'
+                    ? ('INSTAGRAM' as any as AdPlatform)
+                    : AdPlatform.FACEBOOK;
 
                 return {
                     date: new Date(m.date_start),
+                    platform,
                     impressions,
                     clicks,
                     spend,

@@ -156,28 +156,48 @@ export class DashboardService {
     const { startDate: currentStartDate, endDate: today } = DateRangeUtil.getDateRange(days);
     const { startDate: previousStartDate } = DateRangeUtil.getPreviousPeriodDateRange(currentStartDate, days);
 
-    // Build where clause based on platform - properly type cast
-    const campaignFilter: Prisma.CampaignWhereInput = { tenantId };
-    const campaignFilterActive: Prisma.CampaignWhereInput = { tenantId, status: CampaignStatus.ACTIVE };
+    const platformEnum = platform as AdPlatform;
 
-    if (platform !== 'ALL') {
-      campaignFilter.platform = platform as AdPlatform;
-      campaignFilterActive.platform = platform as AdPlatform;
+    // Campaign counts:
+    // - For most platforms, campaigns are stored on Campaign.platform.
+    // - For INSTAGRAM, Campaign.platform remains FACEBOOK (Meta), while Metric.platform is INSTAGRAM.
+    let totalCampaigns = 0;
+    let activeCampaigns = 0;
+
+    if (platform === 'ALL') {
+      totalCampaigns = await this.prisma.campaign.count({ where: { tenantId } });
+      activeCampaigns = await this.prisma.campaign.count({ where: { tenantId, status: CampaignStatus.ACTIVE } });
+    } else if (platformEnum === ('INSTAGRAM' as any as AdPlatform)) {
+      const campaignIds = await this.prisma.metric.groupBy({
+        by: ['campaignId'],
+        where: {
+          tenantId,
+          platform: 'INSTAGRAM' as any,
+          date: { gte: currentStartDate, lte: today },
+        },
+      });
+      const ids = campaignIds.map((c) => c.campaignId);
+      totalCampaigns = ids.length;
+      activeCampaigns = ids.length
+        ? await this.prisma.campaign.count({
+          where: { tenantId, status: CampaignStatus.ACTIVE, id: { in: ids } },
+        })
+        : 0;
+    } else {
+      totalCampaigns = await this.prisma.campaign.count({
+        where: { tenantId, platform: platformEnum },
+      });
+      activeCampaigns = await this.prisma.campaign.count({
+        where: { tenantId, status: CampaignStatus.ACTIVE, platform: platformEnum },
+      });
     }
-
-    // Get campaigns filtered by platform
-    const totalCampaigns = await this.prisma.campaign.count({
-      where: campaignFilter,
-    });
-    const activeCampaigns = await this.prisma.campaign.count({
-      where: campaignFilterActive,
-    });
 
     // Get metrics for current period
     const currentMetrics = await this.prisma.metric.aggregate({
       where: {
-        campaign: campaignFilter,
+        tenantId,
         date: { gte: currentStartDate, lte: today },
+        ...(platform !== 'ALL' ? { platform: platformEnum } : {}),
         // Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
@@ -186,8 +206,9 @@ export class DashboardService {
     // Get metrics for previous period
     const previousMetrics = await this.prisma.metric.aggregate({
       where: {
-        campaign: campaignFilter,
+        tenantId,
         date: { gte: previousStartDate, lt: currentStartDate },
+        ...(platform !== 'ALL' ? { platform: platformEnum } : {}),
         // Include all data (real + mock)
       },
       _sum: { impressions: true, clicks: true, spend: true, conversions: true },
@@ -201,8 +222,9 @@ export class DashboardService {
     // Check if mock data
     const hasMockData = await this.prisma.metric.findFirst({
       where: {
-        campaign: campaignFilter,
+        tenantId,
         date: { gte: currentStartDate, lte: today },
+        ...(platform !== 'ALL' ? { platform: platformEnum } : {}),
         isMockData: true,
       },
     });
@@ -371,11 +393,10 @@ export class DashboardService {
   async getPerformanceByPlatform(tenantId: string, days = 30) {
     const { startDate, endDate: today } = DateRangeUtil.getDateRange(days);
 
-    // 1. Get Campaign Metrics (Google Ads, Facebook Ads)
-    const campaignMetrics = await this.prisma.metric.groupBy({
-      by: ['campaignId'],
+    const platformMetrics = await this.prisma.metric.groupBy({
+      by: ['platform'],
       where: {
-        campaign: { tenantId },
+        tenantId,
         date: {
           gte: startDate,
           lte: today,
@@ -389,30 +410,21 @@ export class DashboardService {
       },
     });
 
-    // Fetch campaign details to map to platform
-    const campaignIds = campaignMetrics.map(m => m.campaignId);
-    const campaigns = await this.prisma.campaign.findMany({
-      where: { id: { in: campaignIds }, tenantId },
-      select: { id: true, platform: true },
-    });
-
-    const campaignPlatformMap = new Map(campaigns.map(c => [c.id, c.platform]));
-
-    // Aggregate by platform
-    const platformData = {
+    const platformData: Record<string, { spend: number; impressions: number; clicks: number; conversions: number }> = {
       GOOGLE_ADS: { spend: 0, impressions: 0, clicks: 0, conversions: 0 },
       FACEBOOK: { spend: 0, impressions: 0, clicks: 0, conversions: 0 },
+      INSTAGRAM: { spend: 0, impressions: 0, clicks: 0, conversions: 0 },
       TIKTOK: { spend: 0, impressions: 0, clicks: 0, conversions: 0 },
       LINE_ADS: { spend: 0, impressions: 0, clicks: 0, conversions: 0 },
     };
 
-    for (const metric of campaignMetrics) {
-      const platform = campaignPlatformMap.get(metric.campaignId);
-      if (platform && platformData[platform]) {
-        platformData[platform].spend += toNumber(metric._sum.spend);
-        platformData[platform].impressions += metric._sum.impressions ?? 0;
-        platformData[platform].clicks += metric._sum.clicks ?? 0;
-        platformData[platform].conversions += metric._sum.conversions ?? 0;
+    for (const m of platformMetrics) {
+      const key = String(m.platform);
+      if (platformData[key]) {
+        platformData[key].spend += toNumber(m._sum.spend);
+        platformData[key].impressions += m._sum.impressions ?? 0;
+        platformData[key].clicks += m._sum.clicks ?? 0;
+        platformData[key].conversions += m._sum.conversions ?? 0;
       }
     }
 
@@ -449,6 +461,13 @@ export class DashboardService {
         impressions: platformData.FACEBOOK.impressions,
         clicks: platformData.FACEBOOK.clicks,
         conversions: platformData.FACEBOOK.conversions,
+      },
+      {
+        platform: 'INSTAGRAM',
+        spend: platformData.INSTAGRAM.spend,
+        impressions: platformData.INSTAGRAM.impressions,
+        clicks: platformData.INSTAGRAM.clicks,
+        conversions: platformData.INSTAGRAM.conversions,
       },
       {
         platform: 'TIKTOK',
@@ -597,6 +616,7 @@ export class DashboardService {
           },
           select: {
             spend: true,
+            platform: true,
             impressions: true,
             clicks: true,
             conversions: true,
@@ -655,18 +675,69 @@ export class DashboardService {
       roiGrowth: calculateGrowth(summary.averageRoi, prevRoi),
     };
 
-    // Format trends
-    const trends = dailyMetrics.map((m) => ({
-      date: m.date.toISOString().split('T')[0],
-      impressions: m._sum.impressions || 0,
-      clicks: m._sum.clicks || 0,
-      cost: Number(m._sum.spend) || 0,
-      conversions: toNumber(m._sum.conversions),
-    }));
+    const dailyMap = new Map<
+      string,
+      {
+        impressions: number;
+        clicks: number;
+        cost: number;
+        conversions: number;
+      }
+    >();
+
+    for (const m of dailyMetrics) {
+      const key = m.date.toISOString().split('T')[0];
+      dailyMap.set(key, {
+        impressions: m._sum.impressions || 0,
+        clicks: m._sum.clicks || 0,
+        cost: Number(m._sum.spend) || 0,
+        conversions: toNumber(m._sum.conversions),
+      });
+    }
+
+    const trends: Array<{ date: string; impressions: number; clicks: number; cost: number; conversions: number }> = [];
+
+    // If there is no data at all for this range, return empty trends.
+    // This avoids rendering a misleading flat zero line in charts.
+    if (dailyMetrics.length > 0) {
+      const cursor = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0, 0));
+      const last = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 0, 0, 0, 0));
+
+      while (cursor.getTime() <= last.getTime()) {
+        const key = cursor.toISOString().split('T')[0];
+        const found = dailyMap.get(key);
+
+        trends.push({
+          date: key,
+          impressions: found?.impressions ?? 0,
+          clicks: found?.clicks ?? 0,
+          cost: found?.cost ?? 0,
+          conversions: found?.conversions ?? 0,
+        });
+
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+    }
 
     // Format recent campaigns with metrics
     const recentCampaigns = campaignsWithSpend.map((c) => {
       const metrics = c.metrics as any[]; // Cast to any array to bypass stale type definitions
+      const spendByPlatform = new Map<AdPlatform, number>();
+
+      for (const m of metrics) {
+        const p = (m.platform as AdPlatform) || c.platform;
+        spendByPlatform.set(p, (spendByPlatform.get(p) ?? 0) + Number(m.spend || 0));
+      }
+
+      let dominantPlatform: AdPlatform | undefined;
+      let dominantSpend = -1;
+      for (const [p, s] of spendByPlatform.entries()) {
+        if (s > dominantSpend) {
+          dominantSpend = s;
+          dominantPlatform = p;
+        }
+      }
+
       const spending = metrics.reduce((sum, m) => sum + Number(m.spend || 0), 0);
       const impressions = metrics.reduce((sum, m) => sum + (m.impressions || 0), 0);
       const clicks = metrics.reduce((sum, m) => sum + (m.clicks || 0), 0);
@@ -677,7 +748,7 @@ export class DashboardService {
         id: c.id,
         name: c.name,
         status: c.status,
-        platform: c.platform,
+        platform: dominantPlatform || c.platform,
         spending,
         impressions,
         clicks,

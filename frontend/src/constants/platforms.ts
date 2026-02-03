@@ -1,4 +1,4 @@
-import { LucideIcon, BarChart3, Facebook, MessageCircle, Share2 } from 'lucide-react';
+import { LucideIcon, BarChart3, Facebook, Instagram, MessageCircle, Share2 } from 'lucide-react';
 
 export interface PlatformConfig {
     id: string;
@@ -31,6 +31,14 @@ export const PLATFORMS: PlatformConfig[] = [
         icon: Facebook,
         color: 'text-blue-600',
         description: 'Import ad performance data from Facebook/Meta Ads Manager.',
+        connectUrl: '/auth/facebook/ads/url',
+    },
+    {
+        id: 'instagram-ads',
+        name: 'Instagram Ads',
+        icon: Instagram,
+        color: 'text-pink-600',
+        description: 'Import ad performance data from Instagram/Meta Ads Manager.',
         connectUrl: '/auth/facebook/ads/url',
     },
     {

@@ -26,6 +26,7 @@ export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
 export const AdPlatformSchema = z.enum([
     'GOOGLE_ADS',
     'FACEBOOK',
+    'INSTAGRAM',
     'TIKTOK',
     'LINE_ADS',
     'GOOGLE_ANALYTICS',

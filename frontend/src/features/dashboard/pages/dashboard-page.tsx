@@ -59,9 +59,15 @@ function deltaClassName(value: number | null | undefined) {
     return value >= 0 ? 'text-emerald-500/70' : 'text-rose-400/70';
 }
 
+function combineGrowth(a: number | null | undefined, b: number | null | undefined): number | null {
+    if (a == null || b == null) return null;
+    return ((1 + a / 100) * (1 + b / 100) - 1) * 100;
+}
+
 const PLATFORM_LABELS: Partial<Record<AdPlatform, string>> = {
     GOOGLE_ADS: 'GOOGLE ADS',
     FACEBOOK: 'FACEBOOK',
+    INSTAGRAM: 'INSTAGRAM',
     TIKTOK: 'TIKTOK',
     LINE_ADS: 'LINE',
     // GA4 removed - not an advertising platform
@@ -70,6 +76,7 @@ const PLATFORM_LABELS: Partial<Record<AdPlatform, string>> = {
 const PLATFORM_COLORS: Partial<Record<AdPlatform, string>> = {
     GOOGLE_ADS: '#94a3b8',
     FACEBOOK: '#1877F2',
+    INSTAGRAM: '#DD2A7B',
     TIKTOK: '#111827',
     LINE_ADS: '#06C755',
     // GA4 removed - not an advertising platform
@@ -79,6 +86,7 @@ const PLATFORM_COLORS: Partial<Record<AdPlatform, string>> = {
 const PLATFORM_ORDER: AdPlatform[] = [
     'GOOGLE_ADS',
     'FACEBOOK',
+    'INSTAGRAM',
     'TIKTOK',
     'LINE_ADS',
 ];
@@ -145,7 +153,7 @@ function buildPlatformFunnelStages(campaigns: RecentCampaign[] | undefined) {
 
 export function DashboardPage() {
     // Period state for date filtering
-    const [period, setPeriod] = useState<PeriodEnum>('7d');
+    const [period, setPeriod] = useState<PeriodEnum>('30d');
     const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
 
     // Fetch dashboard data with selected period or custom range
@@ -289,10 +297,14 @@ export function DashboardPage() {
                                     {
                                         label: 'Revenue',
                                         value: estimatedRevenue,
+                                        deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
+                                        deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
                                     },
                                     {
                                         label: 'Profit',
                                         value: estimatedProfit,
+                                        deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
+                                        deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
                                     },
                                     {
                                         label: 'Cost',
