@@ -16,7 +16,7 @@ export const SeoService = {
         const response = await apiClient.get('/seo/keyword-intent');
         return response.data;
     },
-    getTrafficByLocation: async (): Promise<{ country: string, city: string, traffic: number, countryCode: string }[]> => {
+    getTrafficByLocation: async (): Promise<{ country: string, city: string, traffic: number, keywords: number, countryCode: string }[]> => {
         const response = await apiClient.get('/seo/traffic-by-location');
         return response.data;
     }

@@ -23,8 +23,8 @@ export function SeoSummaryCards({ data, isLoading }: SeoSummaryCardsProps) {
             title: "Goal Completions",
             value: data.goalCompletions !== null ? data.goalCompletions.toLocaleString() : "-",
             icon: Target,
-            trend: "-",
-            trendUp: true,
+            trend: `${data.goalCompletionsTrend && data.goalCompletionsTrend > 0 ? '+' : ''}${data.goalCompletionsTrend ?? 0}%`,
+            trendUp: (data.goalCompletionsTrend ?? 0) >= 0,
             description: "Completed conversion goals",
             color: "text-green-500",
             bg: "bg-green-50"

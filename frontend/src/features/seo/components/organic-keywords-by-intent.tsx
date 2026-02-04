@@ -7,6 +7,8 @@ interface IntentData {
     type: string;
     keywords: number;
     traffic: number;
+    keywordsTrend?: number;
+    trafficTrend?: number;
 }
 
 export function OrganicKeywordsByIntent({ isLoading }: { isLoading?: boolean }) {
@@ -25,7 +27,7 @@ export function OrganicKeywordsByIntent({ isLoading }: { isLoading?: boolean }) 
     const data = intentData || [];
 
     // Helper to get data by type safely
-    const getByType = (t: string) => data.find((d: IntentData) => d.type === t) || { type: t, keywords: 0, traffic: 0 };
+    const getByType = (t: string) => data.find((d: IntentData) => d.type === t) || { type: t, keywords: 0, traffic: 0, keywordsTrend: 0, trafficTrend: 0 };
 
     const branded = getByType('branded');
     const nonBranded = getByType('non_branded');
@@ -42,7 +44,6 @@ export function OrganicKeywordsByIntent({ isLoading }: { isLoading?: boolean }) 
             <CardHeader className="p-3 pb-2 border-b">
                 <div className="flex justify-between items-center">
                     <CardTitle className="text-xs font-semibold text-gray-700">Organic keywords by intent</CardTitle>
-                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">Beta</span>
                 </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -120,13 +121,6 @@ function IntentRow({
 }) {
     return (
         <tr className={`relative group ${showBorderTop ? 'border-t-2 border-muted' : ''}`}>
-            {/* We can't strictly put a div inside tr -> td easily for the full width bar background 
-                unless we use relative positioning on the td or a pseudo element.
-                Let's use a simple background on the TR or cells. 
-                But user wants a "bar" effect. The image showed a bar filling part of the row or the whole row background.
-                Actually the image showed a "bar" behind the text.
-                Let's use a background style on the tr with a gradient or solid color.
-            */}
             <td className="px-3 py-2 relative">
                 {/* Background Bar Simulation */}
                 <div className={`absolute inset-y-[2px] left-2 right-0 ${barColor} -z-10 rounded-sm w-[95%]`} />
@@ -135,12 +129,16 @@ function IntentRow({
             <td className="px-3 py-2 text-right relative">
                 <div className={`absolute inset-y-[2px] left-[-100%] right-2 ${barColor} -z-10 rounded-sm`} />
                 <span className={`${textColor} font-medium relative z-10`}>{formatCompactNumber(data.keywords)}</span>
-                <span className="text-green-600 text-[10px] ml-1 relative z-10">+{Math.round(data.keywords * 0.1)}</span>
+                <span className={`text-[10px] ml-1 relative z-10 ${data.keywordsTrend && data.keywordsTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {data.keywordsTrend && data.keywordsTrend > 0 ? '+' : ''}{formatCompactNumber(data.keywordsTrend || 0)}
+                </span>
             </td>
             <td className="px-3 py-2 text-right relative">
                 <div className={`absolute inset-y-[2px] left-[-100%] right-2 ${barColor} -z-10 rounded-sm`} />
                 <span className="text-gray-900 font-medium relative z-10">{formatCompactNumber(data.traffic)}</span>
-                <span className="text-green-600 text-[10px] ml-1 relative z-10">+{formatCompactNumber(Math.round(data.traffic * 0.1))}</span>
+                <span className={`text-[10px] ml-1 relative z-10 ${data.trafficTrend && data.trafficTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {data.trafficTrend && data.trafficTrend > 0 ? '+' : ''}{formatCompactNumber(data.trafficTrend || 0)}
+                </span>
             </td>
         </tr>
     );

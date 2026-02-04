@@ -11,6 +11,7 @@ export interface SeoMetricSummary {
     newUsers?: number;
     newUsersTrend?: number;
     avgTimeOnPageTrend?: number;
+    goalCompletionsTrend?: number;
     // New metrics from design
     ur: number | null;
     dr: number | null;

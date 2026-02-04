@@ -21,6 +21,7 @@ interface LocationData {
     country: string;
     city: string;
     traffic: number;
+    keywords?: number;
     countryCode: string;
 }
 
@@ -42,7 +43,7 @@ export function TrafficByLocation({ isLoading }: TrafficByLocationProps) {
     }
 
     const data = locationData || [];
-    
+
     // Calculate total traffic for percentage calculation
     const totalTraffic = data.reduce((sum, location) => sum + location.traffic, 0);
 
@@ -72,13 +73,16 @@ export function TrafficByLocation({ isLoading }: TrafficByLocationProps) {
                             ) : (
                                 data.map((location, index) => {
                                     const share = totalTraffic > 0 ? (location.traffic / totalTraffic) * 100 : 0;
-                                    const estimatedKeywords = Math.floor(location.traffic * 0.8); // Estimate keywords based on traffic
-                                    
+
                                     return (
                                         <tr key={index} className="hover:bg-muted/30">
                                             <td className="px-3 py-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-lg">{getCountryFlag(location.countryCode)}</span>
+                                                    <img
+                                                        src={`https://flagcdn.com/w40/${location.countryCode.toLowerCase()}.png`}
+                                                        alt={location.country}
+                                                        className="w-5 h-auto shadow-sm"
+                                                    />
                                                     <div>
                                                         <div className="font-medium text-gray-700">{location.city}</div>
                                                         <div className="text-[10px] text-muted-foreground">{location.country}</div>
@@ -92,7 +96,7 @@ export function TrafficByLocation({ isLoading }: TrafficByLocationProps) {
                                                 <span className="text-muted-foreground">{share.toFixed(1)}%</span>
                                             </td>
                                             <td className="px-3 py-2 text-right">
-                                                <span className="text-muted-foreground">{formatCompactNumber(estimatedKeywords)}</span>
+                                                <span className="text-muted-foreground">{formatCompactNumber(location.keywords || 0)}</span>
                                             </td>
                                         </tr>
                                     );

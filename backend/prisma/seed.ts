@@ -178,6 +178,76 @@ function generateDailyMetrics(platform: AdPlatform) {
   };
 }
 
+// SQL Helper: Escape single quotes
+function sqlEscape(val: any): string {
+  if (val === null || val === undefined) return 'NULL';
+  if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+  if (val instanceof Date) return `'${val.toISOString()}'`;
+  if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+  return String(val);
+}
+
+// Helper: Insert SeoSearchIntent using Raw SQL
+async function insertSeoSearchIntentRaw(data: any[]) {
+  if (data.length === 0) return;
+
+  // Batch size of 1000 to prevent query too large
+  const batchSize = 1000;
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    const values = batch.map(row => {
+      return `(gen_random_uuid(), ${sqlEscape(row.tenantId)}, ${sqlEscape(row.date)}, ${sqlEscape(row.type)}, ${row.keywords}, ${row.traffic}, NOW(), NOW())`;
+    }).join(',\n');
+
+    await prisma.$executeRawUnsafe(`
+            INSERT INTO "seo_search_intent" ("id", "tenant_id", "date", "type", "keywords", "traffic", "created_at", "updated_at")
+            VALUES ${values}
+            ON CONFLICT DO NOTHING;
+        `);
+  }
+}
+
+// Helper: Insert WebAnalyticsDaily using Raw SQL
+async function insertWebAnalyticsDailyRaw(data: any[]) {
+  if (data.length === 0) return;
+
+  const batchSize = 500;
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    const values = batch.map(row => {
+      return `(
+                gen_random_uuid(), 
+                ${sqlEscape(row.tenantId)}, 
+                ${sqlEscape(row.propertyId)}, 
+                ${sqlEscape(row.gaAccountId)}, 
+                ${sqlEscape(row.date)}, 
+                ${row.activeUsers || 0}, 
+                ${row.newUsers || 0}, 
+                ${row.sessions || 0}, 
+                ${row.screenPageViews || 0}, 
+                ${row.engagementRate}, 
+                ${row.bounceRate}, 
+                ${row.avgSessionDuration}, 
+                ${row.isMockData ? 'true' : 'false'}, 
+                ${sqlEscape(row.metadata)}, 
+                NOW(), 
+                NOW()
+            )`;
+    }).join(',\n');
+
+    await prisma.$executeRawUnsafe(`
+            INSERT INTO "web_analytics_daily" (
+                "id", "tenant_id", "property_id", "ga_account_id", "date", 
+                "active_users", "new_users", "sessions", "screen_page_views", 
+                "engagement_rate", "bounce_rate", "avg_session_duration", 
+                "is_mock_data", "metadata", "created_at", "updated_at"
+            )
+            VALUES ${values}
+            ON CONFLICT DO NOTHING;
+        `);
+  }
+}
+
 async function main() {
   console.log('🌱 Starting Robust Seed (90 Days Data)...');
 
@@ -482,14 +552,13 @@ async function main() {
     seoCurrentDate.setDate(seoCurrentDate.getDate() + 1);
   }
 
-  await prisma.seoSearchIntent.createMany({
-    data: seoIntentMetrics,
-  });
+  // Use Raw SQL Helper
+  await insertSeoSearchIntentRaw(seoIntentMetrics);
   console.log(`✅ Created ${seoIntentMetrics.length} SEO Intent records.`);
 
   // 8. Create SEO Premium Metrics Data (10 sets of data + 30 days history)
   console.log('🚀 Creating SEO Premium Metrics data (10 sets + 30 days history)...');
-  
+
   // Create Google Analytics Account for SEO tracking
   const gaAccount = await prisma.googleAnalyticsAccount.create({
     data: {
@@ -555,24 +624,23 @@ async function main() {
     });
   }
 
-  await prisma.webAnalyticsDaily.createMany({
-    data: seoPremiumData,
-  });
+  // Use Raw SQL Helper
+  await insertWebAnalyticsDailyRaw(seoPremiumData);
   console.log(`✅ Created ${seoPremiumData.length} SEO Premium Metrics records (30 days history).`);
 
   // 9. Create Traffic by Location Data
   console.log('🌍 Creating Traffic by Location data...');
   const locations = [
-    { country: 'Thailand', city: 'Bangkok', traffic: 3500, countryCode: 'TH' },
-    { country: 'Thailand', city: 'Chiang Mai', traffic: 800, countryCode: 'TH' },
-    { country: 'Thailand', city: 'Phuket', traffic: 600, countryCode: 'TH' },
-    { country: 'United States', city: 'New York', traffic: 450, countryCode: 'US' },
-    { country: 'United States', city: 'Los Angeles', traffic: 380, countryCode: 'US' },
-    { country: 'United Kingdom', city: 'London', traffic: 320, countryCode: 'GB' },
-    { country: 'Singapore', city: 'Singapore', traffic: 290, countryCode: 'SG' },
-    { country: 'Japan', city: 'Tokyo', traffic: 260, countryCode: 'JP' },
-    { country: 'Malaysia', city: 'Kuala Lumpur', traffic: 240, countryCode: 'MY' },
-    { country: 'Australia', city: 'Sydney', traffic: 180, countryCode: 'AU' }
+    { country: 'Thailand', city: 'Bangkok', traffic: 3500, keywords: 2800, countryCode: 'TH' },
+    { country: 'Thailand', city: 'Chiang Mai', traffic: 800, keywords: 640, countryCode: 'TH' },
+    { country: 'Thailand', city: 'Phuket', traffic: 600, keywords: 480, countryCode: 'TH' },
+    { country: 'United States', city: 'New York', traffic: 450, keywords: 360, countryCode: 'US' },
+    { country: 'United States', city: 'Los Angeles', traffic: 380, keywords: 304, countryCode: 'US' },
+    { country: 'United Kingdom', city: 'London', traffic: 320, keywords: 256, countryCode: 'GB' },
+    { country: 'Singapore', city: 'Singapore', traffic: 290, keywords: 232, countryCode: 'SG' },
+    { country: 'Japan', city: 'Tokyo', traffic: 260, keywords: 208, countryCode: 'JP' },
+    { country: 'Malaysia', city: 'Kuala Lumpur', traffic: 240, keywords: 192, countryCode: 'MY' },
+    { country: 'Australia', city: 'Sydney', traffic: 180, keywords: 144, countryCode: 'AU' }
   ];
 
   // Store location data in a separate metadata table or as part of WebAnalyticsDaily
@@ -581,7 +649,7 @@ async function main() {
     // Create unique date for each location to avoid constraint violation
     const locationDate = new Date(premiumStartDate);
     locationDate.setDate(premiumStartDate.getDate() + index);
-    
+
     return {
       tenantId: tenant.id,
       propertyId: `GA4-LOCATION-${index}`, // Unique property ID for each location
@@ -599,15 +667,15 @@ async function main() {
           country: location.country,
           city: location.city,
           countryCode: location.countryCode,
-          traffic: location.traffic
+          traffic: location.traffic,
+          keywords: location.keywords
         }
       }
     };
   });
 
-  await prisma.webAnalyticsDaily.createMany({
-    data: locationData,
-  });
+  // Use Raw SQL Helper
+  await insertWebAnalyticsDailyRaw(locationData);
   console.log(`✅ Created ${locationData.length} Traffic by Location records.`);
 
   console.log('🎉 Seed completed successfully!');
