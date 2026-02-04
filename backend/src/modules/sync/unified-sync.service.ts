@@ -45,6 +45,7 @@ export class UnifiedSyncService {
                 accounts = await this.prisma.googleAdsAccount.findMany({ where: { status: 'ENABLED' } });
                 break;
             case AdPlatform.FACEBOOK:
+            case 'INSTAGRAM' as any:
                 accounts = await this.prisma.facebookAdsAccount.findMany({ where: { status: 'ACTIVE' } });
                 break;
             case AdPlatform.GOOGLE_ANALYTICS:
@@ -115,10 +116,11 @@ export class UnifiedSyncService {
 
         } else {
             // Ads Logic: Fetch Campaign Level Metrics
+            const campaignPlatforms = platform === ('INSTAGRAM' as any as AdPlatform) ? [AdPlatform.FACEBOOK] : [platform];
             const dbCampaigns = await this.prisma.campaign.findMany({
                 where: {
                     tenantId,
-                    platform,
+                    platform: { in: campaignPlatforms },
                     OR: [
                         { googleAdsAccountId: accountId },
                         { facebookAdsAccountId: accountId }
@@ -148,6 +150,7 @@ export class UnifiedSyncService {
             case AdPlatform.GOOGLE_ADS:
                 return this.prisma.googleAdsAccount.findUnique({ where: { id: accountId } });
             case AdPlatform.FACEBOOK:
+            case 'INSTAGRAM' as any:
                 return this.prisma.facebookAdsAccount.findUnique({ where: { id: accountId } });
             case AdPlatform.GOOGLE_ANALYTICS:
                 return this.prisma.googleAnalyticsAccount.findUnique({ where: { id: accountId } });
@@ -206,15 +209,16 @@ export class UnifiedSyncService {
      */
     private async saveCampaignMetrics(tenantId: string, platform: AdPlatform, campaignId: string, metrics: any[]) {
         for (const m of metrics) {
+            const metricPlatform: AdPlatform = (m.platform as AdPlatform) || platform;
             // Use findFirst + create/update instead of compound unique key
             const existing = await this.prisma.metric.findFirst({
-                where: { campaignId, date: m.date },
+                where: { campaignId, date: m.date, platform: metricPlatform },
             });
 
             const metricData: Prisma.MetricUncheckedCreateInput = {
                 tenantId,
                 campaignId,
-                platform,
+                platform: metricPlatform,
                 date: m.date,
                 impressions: m.impressions ?? 0,
                 clicks: m.clicks ?? 0,
@@ -286,6 +290,7 @@ export class UnifiedSyncService {
                 await this.prisma.googleAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
                 break;
             case AdPlatform.FACEBOOK:
+            case 'INSTAGRAM' as any:
                 await this.prisma.facebookAdsAccount.update({ where: { id: accountId }, data: { lastSyncAt: now } });
                 break;
             case AdPlatform.GOOGLE_ANALYTICS:

@@ -71,7 +71,7 @@ export class DateRangeUtil {
         const endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
 
         const startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
-        startDate.setUTCDate(startDate.getUTCDate() - days);
+        startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
 
         return { startDate, endDate };
     }
@@ -81,11 +81,12 @@ export class DateRangeUtil {
      */
     static getPreviousPeriodDateRange(currentStartDate: Date, days: number): { startDate: Date; endDate: Date } {
         const endDate = new Date(currentStartDate);
-        endDate.setHours(23, 59, 59, 999);
+        endDate.setUTCDate(endDate.getUTCDate() - 1);
+        endDate.setUTCHours(23, 59, 59, 999);
 
-        const startDate = new Date(currentStartDate);
-        startDate.setDate(startDate.getDate() - days);
-        startDate.setHours(0, 0, 0, 0);
+        const startDate = new Date(endDate);
+        startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
+        startDate.setUTCHours(0, 0, 0, 0);
 
         return { startDate, endDate };
     }

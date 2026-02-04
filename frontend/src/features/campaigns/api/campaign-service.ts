@@ -95,6 +95,7 @@ const PLATFORM_MAP: Record<string, CampaignPlatform> = {
     GOOGLE_ADS: 'google',
     GOOGLE: 'google',
     FACEBOOK: 'facebook',
+    INSTAGRAM: 'instagram',
     TIKTOK: 'tiktok',
     LINE_ADS: 'line',
 };
@@ -103,6 +104,7 @@ const PLATFORM_MAP: Record<string, CampaignPlatform> = {
 const PLATFORM_REVERSE_MAP: Record<CampaignPlatform, string> = {
     google: 'GOOGLE_ADS',
     facebook: 'FACEBOOK',
+    instagram: 'INSTAGRAM',
     tiktok: 'TIKTOK',
     line: 'LINE_ADS',
 };

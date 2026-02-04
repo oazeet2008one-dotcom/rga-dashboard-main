@@ -30,6 +30,8 @@ export class IntegrationFactory {
             case AdPlatform.FACEBOOK:
             case 'FACEBOOK':
                 return this.facebookAdsService;
+            case 'INSTAGRAM':
+                return this.facebookAdsService;
             case AdPlatform.GOOGLE_ANALYTICS:
             case 'GOOGLE_ANALYTICS':
                 return this.googleAnalyticsAdapterService;

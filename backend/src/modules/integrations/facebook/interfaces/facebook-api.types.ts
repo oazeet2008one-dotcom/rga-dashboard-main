@@ -15,6 +15,7 @@ export interface FacebookInsightsResponse {
     impressions: string;
     clicks: string;
     spend: string;
+    publisher_platform?: string;
     conversions?: { action_type: string; value: string }[];
     purchase_roas?: { action_type: string; value: string }[];
     actions?: { action_type: string; value: string }[];

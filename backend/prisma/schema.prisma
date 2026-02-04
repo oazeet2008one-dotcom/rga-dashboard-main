@@ -48,6 +48,7 @@ enum CampaignStatus {
 enum AdPlatform {
   GOOGLE_ADS       @map("google_ads")
   FACEBOOK         @map("facebook")
+  INSTAGRAM        @map("instagram")
   TIKTOK           @map("tiktok")
   LINE_ADS         @map("line_ads")
   GOOGLE_ANALYTICS @map("google_analytics")

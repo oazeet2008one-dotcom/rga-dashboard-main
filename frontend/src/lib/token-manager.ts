@@ -7,6 +7,18 @@
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
+function normalizeToken(token: string | null): string | null {
+    if (!token) return null;
+    const trimmed = token.trim();
+    if (!trimmed) return null;
+    if (trimmed === 'undefined' || trimmed === 'null') return null;
+    return trimmed;
+}
+
+function isProbablyJwt(token: string): boolean {
+    return token.split('.').length === 3;
+}
+
 export interface TokenPair {
     accessToken: string | null;
     refreshToken: string | null;
@@ -17,7 +29,7 @@ export interface TokenPair {
  */
 export function getAccessToken(): string | null {
     try {
-        return localStorage.getItem(ACCESS_TOKEN_KEY);
+        return normalizeToken(localStorage.getItem(ACCESS_TOKEN_KEY));
     } catch {
         return null;
     }
@@ -28,7 +40,7 @@ export function getAccessToken(): string | null {
  */
 export function getRefreshToken(): string | null {
     try {
-        return localStorage.getItem(REFRESH_TOKEN_KEY);
+        return normalizeToken(localStorage.getItem(REFRESH_TOKEN_KEY));
     } catch {
         return null;
     }
@@ -72,5 +84,6 @@ export function clearTokens(): void {
  * Check if user has a valid access token
  */
 export function hasToken(): boolean {
-    return !!getAccessToken();
+    const token = getAccessToken();
+    return !!token && isProbablyJwt(token);
 }

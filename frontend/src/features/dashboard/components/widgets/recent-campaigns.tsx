@@ -37,6 +37,7 @@ const STATUS_STYLES: Record<CampaignStatus, { variant: 'default' | 'secondary' |
 const PLATFORM_NAMES: Record<AdPlatform, string> = {
     GOOGLE_ADS: 'Google Ads',
     FACEBOOK: 'Facebook',
+    INSTAGRAM: 'Instagram',
     TIKTOK: 'TikTok',
     LINE_ADS: 'LINE Ads',
     GOOGLE_ANALYTICS: 'Analytics',

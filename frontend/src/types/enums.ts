@@ -30,6 +30,7 @@ export type CampaignStatus = (typeof CampaignStatus)[keyof typeof CampaignStatus
 export const AdPlatform = {
   GOOGLE_ADS: 'GOOGLE_ADS',
   FACEBOOK: 'FACEBOOK',
+  INSTAGRAM: 'INSTAGRAM',
   TIKTOK: 'TIKTOK',
   LINE_ADS: 'LINE_ADS',
   GOOGLE_ANALYTICS: 'GOOGLE_ANALYTICS',

@@ -241,6 +241,10 @@ export const useAuthStore = create<AuthState>()(
                         // ✅ Sync tokens from token-manager on rehydrate
                         state.accessToken = getAccessToken();
                         state.refreshToken = getRefreshToken();
+
+                        // ✅ Recompute auth truth from tokens + user
+                        // Prevents API calls with persisted isAuthenticated=true but missing/invalid tokens
+                        state.isAuthenticated = !!(state.user && state.accessToken);
                         state.isInitialized = true;
                     }
                 };
