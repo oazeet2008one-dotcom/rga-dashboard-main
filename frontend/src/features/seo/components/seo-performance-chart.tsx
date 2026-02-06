@@ -67,7 +67,7 @@ const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
         isCurrency: true
     },
     avgPosition: {
-        label: 'Avg. Position',
+        label: 'Position',
         color: '#f59e0b', // Amber-500
         gradientId: 'gradientAvgPosition',
         formatValue: (v) => v.toFixed(1)
