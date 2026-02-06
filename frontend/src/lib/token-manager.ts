@@ -12,10 +12,20 @@ function normalizeToken(token: string | null): string | null {
     const trimmed = token.trim();
     if (!trimmed) return null;
     if (trimmed === 'undefined' || trimmed === 'null') return null;
-    return trimmed;
+
+    const withoutBearerPrefix = trimmed.toLowerCase().startsWith('bearer ')
+        ? trimmed.slice('bearer '.length).trim()
+        : trimmed;
+
+    if (!withoutBearerPrefix) return null;
+    if (/\s/.test(withoutBearerPrefix)) return null;
+
+    return withoutBearerPrefix;
 }
 
 function isProbablyJwt(token: string): boolean {
+    if (!token) return false;
+    if (/\s/.test(token)) return false;
     return token.split('.').length === 3;
 }
 
@@ -61,8 +71,20 @@ export function getTokens(): TokenPair {
  */
 export function setTokens(accessToken: string, refreshToken: string): void {
     try {
-        localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        const normalizedAccessToken = normalizeToken(accessToken);
+        const normalizedRefreshToken = normalizeToken(refreshToken);
+
+        if (normalizedAccessToken) {
+            localStorage.setItem(ACCESS_TOKEN_KEY, normalizedAccessToken);
+        } else {
+            localStorage.removeItem(ACCESS_TOKEN_KEY);
+        }
+
+        if (normalizedRefreshToken) {
+            localStorage.setItem(REFRESH_TOKEN_KEY, normalizedRefreshToken);
+        } else {
+            localStorage.removeItem(REFRESH_TOKEN_KEY);
+        }
     } catch (error) {
         console.error('Failed to store tokens:', error);
     }
