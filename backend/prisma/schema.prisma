@@ -196,6 +196,7 @@ model Tenant {
   syncLogs                SyncLog[]
   auditLogs               AuditLog[]
   notifications           Notification[]
+  aiInsights              AiInsight[]
   platformTokens          PlatformToken[]
   googleAdsAccounts       GoogleAdsAccount[]
   googleAnalyticsAccounts GoogleAnalyticsAccount[]
@@ -651,6 +652,7 @@ model WebAnalyticsDaily {
   bounceRate         Decimal  @default(0) @map("bounce_rate") @db.Decimal(8, 4)
   avgSessionDuration Decimal  @default(0) @map("avg_session_duration") @db.Decimal(10, 2)
   isMockData         Boolean  @default(false) @map("is_mock_data")
+  metadata           Json?    @map("metadata") @db.JsonB
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
@@ -689,6 +691,28 @@ model SeoSearchIntent {
   @@index([tenantId], name: "idx_seo_intent_tenant")
   @@index([date], name: "idx_seo_intent_date")
   @@map("seo_search_intent")
+}
+
+/// AI Insight - AI/N8N generated insight payloads (JSONB)
+model AiInsight {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  type       String   @map("type") @db.VarChar(50)
+  source     String   @default("n8n") @map("source") @db.VarChar(50)
+  title      String?  @map("title") @db.VarChar(255)
+  message    String?  @map("message") @db.Text
+  payload    Json?    @map("payload") @db.JsonB
+  status     String   @default("ACTIVE") @map("status") @db.VarChar(20)
+  occurredAt DateTime @default(now()) @map("occurred_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_ai_insights_tenant")
+  @@index([tenantId, type, createdAt(sort: Desc)], name: "idx_ai_insights_tenant_type_created")
+  @@map("ai_insights")
 }
 
 // ============================================================

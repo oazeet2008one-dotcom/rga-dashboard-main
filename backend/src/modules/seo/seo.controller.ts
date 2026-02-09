@@ -28,4 +28,10 @@ export class SeoController {
     async getKeywordIntent(@CurrentUser() user: any) {
         return this.seoService.getSeoKeywordIntent(user.tenantId);
     }
+
+    @Get('traffic-by-location')
+    @ApiOperation({ summary: 'Get SEO traffic by location' })
+    async getTrafficByLocation(@CurrentUser() user: any) {
+        return this.seoService.getSeoTrafficByLocation(user.tenantId);
+    }
 }

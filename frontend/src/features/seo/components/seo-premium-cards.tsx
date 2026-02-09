@@ -63,7 +63,7 @@ export function SeoPremiumCards({ data, isLoading }: SeoPremiumCardsProps) {
                         </div>
                         <div className="flex justify-between">
                             <span>Traffic Cost</span>
-                            <span className="font-medium text-gray-900">$0</span>
+                            <span className="font-medium text-gray-900">${data.trafficCost ? data.trafficCost.toLocaleString() : "0"}</span>
                         </div>
                     </div>
                 </CardContent>
@@ -95,7 +95,7 @@ export function SeoPremiumCards({ data, isLoading }: SeoPremiumCardsProps) {
                         </div>
                         <div className="flex justify-between">
                             <span>Traffic Cost</span>
-                            <span className="font-medium text-gray-900">$0</span>
+                            <span className="font-medium text-gray-900">${data.trafficCost ? data.trafficCost.toLocaleString() : "0"}</span>
                         </div>
                     </div>
                 </CardContent>
@@ -106,11 +106,18 @@ export function SeoPremiumCards({ data, isLoading }: SeoPremiumCardsProps) {
 
 // Helper Component for Gauge Chart
 function GaugeCard({ title, value, maxValue, color, stroke, empty }: { title: string, value: number, maxValue: number, color: string, stroke: string, empty: boolean }) {
-    const radius = 38; // Increased radius by ~30% (from 30)
+    const radius = 38;
     const circumference = 2 * Math.PI * radius;
-    const percentage = Math.min(Math.max(value / maxValue, 0), 1);
+    // 75% circle (270 degrees)
     const activeCircumference = circumference * 0.75;
-    const offset = circumference - (percentage * activeCircumference);
+    const percentage = Math.min(Math.max(value / maxValue, 0), 1);
+
+    // Offset logic:
+    // Full empty = activeCircumference (dash is pushed fully away)
+    // Full full = 0 (dash starts at 0)
+    const dashOffset = activeCircumference - (percentage * activeCircumference);
+
+    // Initial animation state (optional, but CSS transition handles updates)
 
     return (
         <Card className="hover:shadow-md transition-all duration-200">
@@ -118,6 +125,7 @@ function GaugeCard({ title, value, maxValue, color, stroke, empty }: { title: st
                 <div className="font-semibold text-sm text-gray-700 mb-2">{title}</div>
                 <div className="flex-1 flex items-center justify-center relative min-h-[110px]">
                     <svg viewBox="0 0 100 100" className="w-full h-full max-w-[130px] max-h-[130px] transform rotate-135">
+                        {/* Background Track */}
                         <circle
                             cx="50"
                             cy="50"
@@ -129,6 +137,7 @@ function GaugeCard({ title, value, maxValue, color, stroke, empty }: { title: st
                             strokeDasharray={`${activeCircumference} ${circumference}`}
                             strokeLinecap="round"
                         />
+                        {/* Active Progress Bar */}
                         {!empty && (
                             <circle
                                 cx="50"
@@ -138,8 +147,9 @@ function GaugeCard({ title, value, maxValue, color, stroke, empty }: { title: st
                                 className={stroke}
                                 strokeWidth="8"
                                 strokeDasharray={`${activeCircumference} ${circumference}`}
-                                strokeDashoffset={offset}
+                                strokeDashoffset={dashOffset}
                                 strokeLinecap="round"
+                                style={{ transition: 'stroke-dashoffset 1s ease-out' }}
                             />
                         )}
                     </svg>

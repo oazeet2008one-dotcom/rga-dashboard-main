@@ -23,6 +23,7 @@ type MetricKey =
     | 'paidTraffic'
     | 'impressions'
     | 'paidTrafficCost'
+    | 'avgPosition'
     | 'referringDomains'
     | 'dr'
     | 'ur'
@@ -65,19 +66,24 @@ const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
         formatValue: (v) => `฿${formatCompactNumber(v)}`,
         isCurrency: true
     },
-    // Placeholder Metrics (Coming Soon)
+    avgPosition: {
+        label: 'Avg. Position',
+        color: '#f59e0b', // Amber-500
+        gradientId: 'gradientAvgPosition',
+        formatValue: (v) => v.toFixed(1)
+    },
+    // Additional SEO Metrics
     referringDomains: {
         label: 'Referring Domains',
         color: '#3b82f6', // Blue-500
         gradientId: 'gradientRefDomains',
         formatValue: formatCompactNumber,
-        isComingSoon: true
     },
-    dr: { label: 'Domain Rating', color: '#64748b', gradientId: 'gDr', formatValue: (v) => v.toString(), isComingSoon: true },
-    ur: { label: 'URL Rating', color: '#64748b', gradientId: 'gUr', formatValue: (v) => v.toString(), isComingSoon: true },
-    organicTrafficValue: { label: 'Organic Traffic Value', color: '#64748b', gradientId: 'gOtv', formatValue: formatCompactNumber, isComingSoon: true },
-    organicPages: { label: 'Organic Pages', color: '#64748b', gradientId: 'gOp', formatValue: formatCompactNumber, isComingSoon: true },
-    crawledPages: { label: 'Crawled Pages', color: '#64748b', gradientId: 'gCp', formatValue: formatCompactNumber, isComingSoon: true },
+    dr: { label: 'Domain Rating', color: '#64748b', gradientId: 'gDr', formatValue: (v) => v.toString() },
+    ur: { label: 'URL Rating', color: '#64748b', gradientId: 'gUr', formatValue: (v) => v.toString() },
+    organicTrafficValue: { label: 'Organic Traffic Value', color: '#f97316', gradientId: 'gOtv', formatValue: (v) => `฿${formatCompactNumber(v)}` },
+    organicPages: { label: 'Organic Pages', color: '#10b981', gradientId: 'gOp', formatValue: formatCompactNumber, isComingSoon: true },
+    crawledPages: { label: 'Crawled Pages', color: '#8b5cf6', gradientId: 'gCp', formatValue: formatCompactNumber, isComingSoon: true },
 };
 
 interface CustomTooltipProps {
@@ -139,7 +145,7 @@ function EmptyState() {
 export function SeoPerformanceChart() {
     const [period, setPeriod] = useState<PeriodEnum>('7d');
     const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
-    const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['organicTraffic']);
+    const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['organicTraffic', 'avgPosition']);
 
     // Helper to calculate days for API based on period
     const getDaysFromPeriod = (p: PeriodEnum, custom?: { from: Date; to: Date }): number => {

@@ -178,6 +178,76 @@ function generateDailyMetrics(platform: AdPlatform) {
   };
 }
 
+// SQL Helper: Escape single quotes
+function sqlEscape(val: any): string {
+  if (val === null || val === undefined) return 'NULL';
+  if (typeof val === 'string') return `'${val.replace(/'/g, "''")}'`;
+  if (val instanceof Date) return `'${val.toISOString()}'`;
+  if (typeof val === 'object') return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+  return String(val);
+}
+
+// Helper: Insert SeoSearchIntent using Raw SQL
+async function insertSeoSearchIntentRaw(data: any[]) {
+  if (data.length === 0) return;
+
+  // Batch size of 1000 to prevent query too large
+  const batchSize = 1000;
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    const values = batch.map(row => {
+      return `(gen_random_uuid(), ${sqlEscape(row.tenantId)}, ${sqlEscape(row.date)}, ${sqlEscape(row.type)}, ${row.keywords}, ${row.traffic}, NOW(), NOW())`;
+    }).join(',\n');
+
+    await prisma.$executeRawUnsafe(`
+            INSERT INTO "seo_search_intent" ("id", "tenant_id", "date", "type", "keywords", "traffic", "created_at", "updated_at")
+            VALUES ${values}
+            ON CONFLICT DO NOTHING;
+        `);
+  }
+}
+
+// Helper: Insert WebAnalyticsDaily using Raw SQL
+async function insertWebAnalyticsDailyRaw(data: any[]) {
+  if (data.length === 0) return;
+
+  const batchSize = 500;
+  for (let i = 0; i < data.length; i += batchSize) {
+    const batch = data.slice(i, i + batchSize);
+    const values = batch.map(row => {
+      return `(
+                gen_random_uuid(), 
+                ${sqlEscape(row.tenantId)}, 
+                ${sqlEscape(row.propertyId)}, 
+                ${sqlEscape(row.gaAccountId)}, 
+                ${sqlEscape(row.date)}, 
+                ${row.activeUsers || 0}, 
+                ${row.newUsers || 0}, 
+                ${row.sessions || 0}, 
+                ${row.screenPageViews || 0}, 
+                ${row.engagementRate}, 
+                ${row.bounceRate}, 
+                ${row.avgSessionDuration}, 
+                ${row.isMockData ? 'true' : 'false'}, 
+                ${sqlEscape(row.metadata)}, 
+                NOW(), 
+                NOW()
+            )`;
+    }).join(',\n');
+
+    await prisma.$executeRawUnsafe(`
+            INSERT INTO "web_analytics_daily" (
+                "id", "tenant_id", "property_id", "ga_account_id", "date", 
+                "active_users", "new_users", "sessions", "screen_page_views", 
+                "engagement_rate", "bounce_rate", "avg_session_duration", 
+                "is_mock_data", "metadata", "created_at", "updated_at"
+            )
+            VALUES ${values}
+            ON CONFLICT DO NOTHING;
+        `);
+  }
+}
+
 async function main() {
   console.log('🌱 Starting Robust Seed (90 Days Data)...');
 
@@ -450,10 +520,6 @@ async function main() {
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  await prisma.webAnalyticsDaily.createMany({
-    data: gaMetrics,
-  });
-  console.log(`✅ Created ${gaMetrics.length} GA4 records.`);
 
   // 7. Create SEO Search Intent Data (Organic Keywords by Intent) - 90 Days
   console.log('🔍 Creating SEO Search Intent data (90 Days)...');
@@ -486,10 +552,131 @@ async function main() {
     seoCurrentDate.setDate(seoCurrentDate.getDate() + 1);
   }
 
-  await prisma.seoSearchIntent.createMany({
-    data: seoIntentMetrics,
-  });
+  // Use Raw SQL Helper
+  await insertSeoSearchIntentRaw(seoIntentMetrics);
   console.log(`✅ Created ${seoIntentMetrics.length} SEO Intent records.`);
+
+  // 8. Create SEO Premium Metrics Data (10 sets of data + 30 days history)
+  console.log('🚀 Creating SEO Premium Metrics data (10 sets + 30 days history)...');
+
+  // Create Google Analytics Account for SEO tracking
+  const gaAccount = await prisma.googleAnalyticsAccount.create({
+    data: {
+      tenantId: tenant.id,
+      propertyId: 'GA4-987654321',
+      propertyName: 'RGA Main Property',
+      accessToken: 'mock_ga_token',
+      refreshToken: 'mock_ga_refresh',
+    },
+  });
+
+  // Generate 10 sets of SEO premium metrics across different dates
+  const seoPremiumData = [];
+  const premiumStartDate = new Date(today);
+  premiumStartDate.setDate(today.getDate() - 30); // Last 30 days
+
+  // Create 30 days of SEO metrics history for performance trends
+  for (let i = 0; i < 30; i++) {
+    const dataDate = new Date(premiumStartDate);
+    dataDate.setDate(premiumStartDate.getDate() + i);
+
+    // Generate realistic SEO metrics with variation
+    const organicSessions = Math.floor(5000 + Math.random() * 10000);
+    const avgPosition = 5 + Math.random() * 20; // 5-25 position
+    const ur = 20 + Math.random() * 60; // 20-80 UR score
+    const dr = 10 + Math.random() * 70; // 10-80 DR score
+    const backlinks = Math.floor(50 + Math.random() * 500);
+    const referringDomains = Math.floor(20 + Math.random() * 200);
+    const keywords = Math.floor(100 + Math.random() * 1000);
+    const trafficCost = Math.floor(1000 + Math.random() * 10000);
+    const goalCompletions = Math.floor(10 + Math.random() * 100);
+
+    seoPremiumData.push({
+      tenantId: tenant.id,
+      propertyId: 'GA4-987654321',
+      gaAccountId: gaAccount.id,
+      date: dataDate,
+      activeUsers: Math.floor(organicSessions * 0.8),
+      newUsers: Math.floor(organicSessions * 0.3),
+      sessions: organicSessions,
+      screenPageViews: organicSessions * 3,
+      engagementRate: new Prisma.Decimal(0.6 + Math.random() * 0.2),
+      bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
+      avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
+      isMockData: true,
+      metadata: {
+        seoMetrics: {
+          avgPosition: parseFloat(avgPosition.toFixed(1)),
+          avgPositionTrend: parseFloat(((Math.random() - 0.5) * 10).toFixed(1)), // -5% to +5%
+          ur: parseFloat(ur.toFixed(1)),
+          dr: parseFloat(dr.toFixed(1)),
+          backlinks,
+          referringDomains,
+          keywords,
+          trafficCost,
+          goalCompletions,
+          organicSessions,
+          organicSessionsTrend: parseFloat(((Math.random() - 0.5) * 20).toFixed(1)), // -10% to +10%
+          avgTimeOnPage: Math.floor(60 + Math.random() * 180), // 60-240 seconds
+          avgTimeOnPageTrend: parseFloat(((Math.random() - 0.5) * 30).toFixed(1)), // -15% to +15%
+        }
+      }
+    });
+  }
+
+  // Use Raw SQL Helper
+  await insertWebAnalyticsDailyRaw(seoPremiumData);
+  console.log(`✅ Created ${seoPremiumData.length} SEO Premium Metrics records (30 days history).`);
+
+  // 9. Create Traffic by Location Data
+  console.log('🌍 Creating Traffic by Location data...');
+  const locations = [
+    { country: 'Thailand', city: 'Bangkok', traffic: 3500, keywords: 2800, countryCode: 'TH' },
+    { country: 'Thailand', city: 'Chiang Mai', traffic: 800, keywords: 640, countryCode: 'TH' },
+    { country: 'Thailand', city: 'Phuket', traffic: 600, keywords: 480, countryCode: 'TH' },
+    { country: 'United States', city: 'New York', traffic: 450, keywords: 360, countryCode: 'US' },
+    { country: 'United States', city: 'Los Angeles', traffic: 380, keywords: 304, countryCode: 'US' },
+    { country: 'United Kingdom', city: 'London', traffic: 320, keywords: 256, countryCode: 'GB' },
+    { country: 'Singapore', city: 'Singapore', traffic: 290, keywords: 232, countryCode: 'SG' },
+    { country: 'Japan', city: 'Tokyo', traffic: 260, keywords: 208, countryCode: 'JP' },
+    { country: 'Malaysia', city: 'Kuala Lumpur', traffic: 240, keywords: 192, countryCode: 'MY' },
+    { country: 'Australia', city: 'Sydney', traffic: 180, keywords: 144, countryCode: 'AU' }
+  ];
+
+  // Store location data in a separate metadata table or as part of WebAnalyticsDaily
+  // For now, we'll create a simple structure that can be queried
+  const locationData = locations.map((location, index) => {
+    // Create unique date for each location to avoid constraint violation
+    const locationDate = new Date(premiumStartDate);
+    locationDate.setDate(premiumStartDate.getDate() + index);
+
+    return {
+      tenantId: tenant.id,
+      propertyId: `GA4-LOCATION-${index}`, // Unique property ID for each location
+      date: locationDate,
+      activeUsers: Math.floor(location.traffic * 0.8),
+      newUsers: Math.floor(location.traffic * 0.3),
+      sessions: location.traffic,
+      screenPageViews: location.traffic * 3,
+      engagementRate: new Prisma.Decimal(0.6 + Math.random() * 0.2),
+      bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
+      avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
+      isMockData: true,
+      metadata: {
+        location: {
+          country: location.country,
+          city: location.city,
+          countryCode: location.countryCode,
+          traffic: location.traffic,
+          keywords: location.keywords
+        }
+      }
+    };
+  });
+
+  // Use Raw SQL Helper
+  await insertWebAnalyticsDailyRaw(locationData);
+  console.log(`✅ Created ${locationData.length} Traffic by Location records.`);
 
   console.log('🎉 Seed completed successfully!');
 }

@@ -3,7 +3,7 @@
 // Campaign Analytics - Conversion Rate & Platform Insights
 // =============================================================================
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Lightbulb, Target, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -210,6 +210,11 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
 
     const [currentTipIndex, setCurrentTipIndex] = useState(0);
 
+    // Reset tip index when tips change to avoid out-of-bounds (e.g. 2/1)
+    useEffect(() => {
+        setCurrentTipIndex(0);
+    }, [tips]);
+
     const nextTip = () => {
         setCurrentTipIndex((prev) => (prev + 1) % tips.length);
     };
@@ -403,62 +408,64 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
                 <div className="flex-1 flex flex-col gap-6">
                     {/* Platform Leaderboard */}
                     <div className="space-y-6">
-                        {platformMetrics.data.map((platform) => {
-                            const percentage = (platform.spend / platformMetrics.totalSpendAll) * 100 || 0;
-                            return (
-                                <motion.div
-                                    key={platform.name}
-                                    className="space-y-3 cursor-pointer"
-                                    initial="initial"
-                                    animate="visible"
-                                    whileHover="hover"
-                                >
-                                    <div className="flex justify-between items-end">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-gray-700">{platform.name}</span>
-                                            {platform.name === platformMetrics.bestCpaPlatform?.name && (
-                                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0 h-5">Best Value</Badge>
-                                            )}
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-sm font-bold text-gray-900">
-                                                {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 }).format(platform.spend)}
+                        {platformMetrics.data
+                            .filter(platform => platform.spend > 0)
+                            .map((platform) => {
+                                const percentage = (platform.spend / platformMetrics.totalSpendAll) * 100 || 0;
+                                return (
+                                    <motion.div
+                                        key={platform.name}
+                                        className="space-y-3 cursor-pointer"
+                                        initial="initial"
+                                        animate="visible"
+                                        whileHover="hover"
+                                    >
+                                        <div className="flex justify-between items-end">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-gray-700">{platform.name}</span>
+                                                {platform.name === platformMetrics.bestCpaPlatform?.name && (
+                                                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0 h-5">Best Value</Badge>
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-sm font-bold text-gray-900">
+                                                    {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0 }).format(platform.spend)}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className={cn("h-3 rounded-full overflow-hidden",
-                                        platform.name === 'Facebook' ? "bg-blue-100" :
-                                            platform.name === 'Google' ? "bg-red-100" :
-                                                platform.name === 'Line' ? "bg-emerald-100" :
-                                                    "bg-gray-100"
-                                    )}>
-                                        <motion.div
-                                            variants={{
-                                                initial: { width: 0 },
-                                                visible: {
-                                                    width: `${percentage}%`,
-                                                    transition: { duration: 1, ease: "easeOut", delay: 0.2 }
-                                                },
-                                                hover: {
-                                                    scaleX: 1.02,
-                                                    transition: { duration: 0.2, ease: "easeOut" }
-                                                }
-                                            }}
-                                            className={cn("h-full rounded-full origin-left",
-                                                platform.name === 'Facebook' ? "bg-blue-600" :
-                                                    platform.name === 'Google' ? "bg-red-500" :
-                                                        platform.name === 'Line' ? "bg-emerald-500" :
-                                                            "bg-gray-900"
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="flex justify-between text-xs text-gray-500 px-1">
-                                        <span>Share: {percentage.toFixed(1)}%</span>
-                                        <span>CPA: {(platform.cpa).toLocaleString('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 })}</span>
-                                    </div>
-                                </motion.div>
-                            )
-                        })}
+                                        <div className={cn("h-3 rounded-full overflow-hidden",
+                                            platform.name === 'Facebook' ? "bg-blue-100" :
+                                                platform.name === 'Google' ? "bg-red-100" :
+                                                    platform.name === 'Line' ? "bg-emerald-100" :
+                                                        "bg-gray-100"
+                                        )}>
+                                            <motion.div
+                                                variants={{
+                                                    initial: { width: 0 },
+                                                    visible: {
+                                                        width: `${percentage}%`,
+                                                        transition: { duration: 1, ease: "easeOut", delay: 0.2 }
+                                                    },
+                                                    hover: {
+                                                        scaleX: 1.02,
+                                                        transition: { duration: 0.2, ease: "easeOut" }
+                                                    }
+                                                }}
+                                                className={cn("h-full rounded-full origin-left",
+                                                    platform.name === 'Facebook' ? "bg-blue-600" :
+                                                        platform.name === 'Google' ? "bg-red-500" :
+                                                            platform.name === 'Line' ? "bg-emerald-500" :
+                                                                "bg-gray-900"
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-xs text-gray-500 px-1">
+                                            <span>Share: {percentage.toFixed(1)}%</span>
+                                            <span>CPA: {(platform.cpa).toLocaleString('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 })}</span>
+                                        </div>
+                                    </motion.div>
+                                )
+                            })}
                     </div>
 
                     {/* AI Suggestion Box */}

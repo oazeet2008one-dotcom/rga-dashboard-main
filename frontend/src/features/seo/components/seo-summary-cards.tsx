@@ -23,8 +23,8 @@ export function SeoSummaryCards({ data, isLoading }: SeoSummaryCardsProps) {
             title: "Goal Completions",
             value: data.goalCompletions !== null ? data.goalCompletions.toLocaleString() : "-",
             icon: Target,
-            trend: "-",
-            trendUp: true,
+            trend: `${data.goalCompletionsTrend && data.goalCompletionsTrend > 0 ? '+' : ''}${data.goalCompletionsTrend ?? 0}%`,
+            trendUp: (data.goalCompletionsTrend ?? 0) >= 0,
             description: "Completed conversion goals",
             color: "text-green-500",
             bg: "bg-green-50"
@@ -33,8 +33,8 @@ export function SeoSummaryCards({ data, isLoading }: SeoSummaryCardsProps) {
             title: "Avg. Position",
             value: data.avgPosition !== null ? data.avgPosition.toFixed(1) : "-",
             icon: Trophy,
-            trend: "-",
-            trendUp: true, // Lower position is better in SEO, but usually green means good change. Let's assume improvement.
+            trend: `${data.avgPositionTrend && data.avgPositionTrend > 0 ? '+' : ''}${data.avgPositionTrend ?? 0}%`,
+            trendUp: (data.avgPositionTrend ?? 0) <= 0, // Lower position is better, so negative trend is good
             description: "Average search ranking position",
             color: "text-amber-500",
             bg: "bg-amber-50"
