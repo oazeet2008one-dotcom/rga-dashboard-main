@@ -24,7 +24,7 @@ const MOCK_KEYWORD_DATA: KeywordData[] = [
 
 export function TopOrganicKeywords() {
     return (
-        <Card className="h-[325px] flex flex-col shadow-sm">
+        <Card className="h-[400px] flex flex-col shadow-sm">
             <CardHeader className="px-4 py-3 border-b shrink-0 flex flex-row items-center gap-2">
                 <CardTitle className="text-base font-semibold text-gray-800">Top Organic Keywords</CardTitle>
                 <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground font-normal">Beta</span>

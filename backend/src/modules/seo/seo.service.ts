@@ -81,6 +81,7 @@ export class SeoService {
             timeTrend = ((Math.floor(currentTime) % 31) - 15);
         }
 
+<<<<<<< HEAD
         // Fetch SEO premium metrics aggregations using Raw SQL
         // We calculate the average of avgPosition over the period
         const currentSeoAgg: any[] = await this.prisma.$queryRaw`
@@ -104,6 +105,9 @@ export class SeoService {
         `;
 
         // Fetch latest record for other snapshot metrics (Backlinks, DR, UR) which make sense to be "latest"
+=======
+        // Fetch SEO premium metrics from metadata using Raw SQL (bypass Prisma Client)
+>>>>>>> origin/feature/seo-complete-2026-02-06
         const latestSeoData: any[] = await this.prisma.$queryRaw`
             SELECT metadata FROM web_analytics_daily 
             WHERE tenant_id = ${tenantId}::uuid 
@@ -111,6 +115,7 @@ export class SeoService {
             ORDER BY date DESC 
             LIMIT 1
         `;
+<<<<<<< HEAD
 
         const seoMetrics = latestSeoData[0]?.metadata?.seoMetrics || {};
 
@@ -146,6 +151,25 @@ export class SeoService {
             avgPosition: currentAvgPos > 0 ? Number(currentAvgPos.toFixed(1)) : null,
             avgPositionTrend: parseFloat(posTrend.toFixed(1)),
 
+=======
+
+        // Extract SEO metrics from metadata if available
+        const seoMetrics = latestSeoData[0]?.metadata?.seoMetrics || {};
+
+        return {
+            organicSessions: seoMetrics.organicSessions || currentSessions,
+            newUsers: currentNewUsers,
+            avgTimeOnPage: seoMetrics.avgTimeOnPage || Math.round(currentTime),
+            organicSessionsTrend: seoMetrics.organicSessionsTrend || parseFloat(sessionsTrend.toFixed(1)),
+            newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
+            avgTimeOnPageTrend: seoMetrics.avgTimeOnPageTrend || parseFloat(timeTrend.toFixed(1)),
+            // Premium SEO Metrics from database
+            goalCompletions: seoMetrics.goalCompletions || null,
+            goalCompletionsTrend: seoMetrics.goalCompletionsTrend !== undefined ? seoMetrics.goalCompletionsTrend :
+                (seoMetrics.goalCompletions ? parseFloat(((seoMetrics.goalCompletions % 17) - 8).toFixed(1)) : 0),
+            avgPosition: seoMetrics.avgPosition || null,
+            avgPositionTrend: seoMetrics.avgPositionTrend || 0,
+>>>>>>> origin/feature/seo-complete-2026-02-06
             bounceRate: 0,
             ur: seoMetrics.ur || null,
             dr: seoMetrics.dr || null,
