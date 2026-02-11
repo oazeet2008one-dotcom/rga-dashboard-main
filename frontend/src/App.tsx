@@ -17,6 +17,8 @@ import { CampaignsPage, CampaignDetailsPage } from "@/features/campaigns";
 import { DataSourcesPage } from "@/features/data-sources";
 // ✅ NEW: Import from feature module (replaces legacy pages/SeoWebAnalytics)
 import { SeoPage } from "@/features/seo";
+import { AiInsightsPage } from "@/features/ai-insights";
+import { EcommerceLandingPage } from '@/features/ecommerce-landing';
 import Users from "./pages/Users";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
@@ -34,6 +36,11 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/landing/ecommerce" component={EcommerceLandingPage} />
+      {/* ✅ NEW: AI Insights Page */}
+      <Route path="/ai-insights">
+        {() => <ProtectedRoute><AiInsightsPage /></ProtectedRoute>}
+      </Route>
       {/* ✅ NEW: Use feature-based DashboardPage with ProtectedRoute wrapper */}
       <Route path="/dashboard">
         {() => <ProtectedRoute><DashboardPage /></ProtectedRoute>}

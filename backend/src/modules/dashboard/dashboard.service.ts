@@ -156,6 +156,13 @@ export class DashboardService {
     const { startDate: currentStartDate, endDate: today } = DateRangeUtil.getDateRange(days);
     const { startDate: previousStartDate } = DateRangeUtil.getPreviousPeriodDateRange(currentStartDate, days);
 
+    // Normalize platform input to match Enum
+    if (platform !== 'ALL') {
+      platform = platform.toUpperCase().replace('-', '_');
+      if (platform === 'GOOGLE') platform = 'GOOGLE_ADS';
+      if (platform === 'LINE') platform = 'LINE_ADS';
+    }
+
     const platformEnum = platform as AdPlatform;
 
     // Campaign counts:
@@ -596,166 +603,139 @@ export class DashboardService {
     });
 
     // 4. Get recent campaigns with spending
-    const campaignsWithSpend = await this.prisma.campaign.findMany({
-      where: { tenantId },
-      orderBy: [
-        { status: 'asc' }, // ACTIVE comes first alphabetically
-        { updatedAt: 'desc' },
-      ],
-      take: 5,
-      select: {
-        id: true,
-        name: true,
-        status: true,
-        platform: true,
-        budget: true,
-        metrics: {
-          where: {
-            date: { gte: startDate, lte: endDate },
-            // Include all data (real + mock)
-          },
-          select: {
-            spend: true,
-            platform: true,
-            impressions: true,
-            clicks: true,
-            conversions: true,
-          },
-        },
+    // 4. Get recent campaigns with spending (REFACTORED for performance & reliability)
+    // Instead of fetching ALL campaigns and filtering relation, use metric aggregation
+
+    // Step A: Find top 5 campaigns by spend in this period
+    const topCampaignMetrics = await this.prisma.metric.groupBy({
+      by: ['campaignId'],
+      where: {
+        campaign: { tenantId },
+        date: { gte: startDate, lte: endDate },
       },
+      _sum: {
+        spend: true,
+        impressions: true,
+        clicks: true,
+        conversions: true,
+      },
+      orderBy: {
+        _sum: { spend: 'desc' }
+      },
+      take: 5
     });
 
-    // Calculate summary with safe division (handle Decimal types)
-    const totalImpressions = currentMetrics._sum.impressions || 0;
-    const totalClicks = currentMetrics._sum.clicks || 0;
-    const totalCost = Number(currentMetrics._sum.spend) || 0;
-    const totalConversions = toNumber(currentMetrics._sum.conversions);
-    const totalRevenue = Number(currentMetrics._sum.revenue) || 0;
+    // Step B: Fetch campaign details for these IDs
+    const campaignIds = topCampaignMetrics.map(m => m.campaignId);
 
-    const averageCpm = totalImpressions > 0 ? (totalCost / totalImpressions) * 1000 : 0;
-    const averageRoi = totalCost > 0 ? ((totalRevenue - totalCost) / totalCost) * 100 : 0;
+    // If no metrics found, fetch latest created campaigns as fallback
+    let campaignDetails: Array<{ id: string; name: string; status: any; platform: any; budget: any }> = [];
 
-    const summary = {
-      totalImpressions,
-      totalClicks,
-      totalCost,
-      totalConversions,
-      averageCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
-      averageRoas: totalCost > 0 ? totalRevenue / totalCost : 0,
-      averageCpm,
-      averageRoi,
-    };
-
-    // Calculate growth percentages with null handling
-    const calculateGrowth = (current: number, previous: number): number | null => {
-      if (previous === 0) return current > 0 ? null : 0;
-      return ((current - previous) / previous) * 100;
-    };
-
-    const prevImpressions = previousMetrics._sum.impressions || 0;
-    const prevClicks = previousMetrics._sum.clicks || 0;
-    const prevCost = Number(previousMetrics._sum.spend) || 0;
-
-    const prevConversions = toNumber(previousMetrics._sum.conversions);
-    const prevRevenue = Number(previousMetrics._sum.revenue) || 0;
-
-    const prevCtr = prevImpressions > 0 ? (prevClicks / prevImpressions) * 100 : 0;
-    const prevCpm = prevImpressions > 0 ? (prevCost / prevImpressions) * 1000 : 0;
-    const prevRoas = prevCost > 0 ? prevRevenue / prevCost : 0;
-    const prevRoi = prevCost > 0 ? ((prevRevenue - prevCost) / prevCost) * 100 : 0;
-
-    const growth = {
-      impressionsGrowth: calculateGrowth(totalImpressions, prevImpressions),
-      clicksGrowth: calculateGrowth(totalClicks, prevClicks),
-      costGrowth: calculateGrowth(totalCost, prevCost),
-      conversionsGrowth: calculateGrowth(totalConversions, prevConversions),
-      ctrGrowth: calculateGrowth(summary.averageCtr, prevCtr),
-      cpmGrowth: calculateGrowth(summary.averageCpm, prevCpm),
-      roasGrowth: calculateGrowth(summary.averageRoas, prevRoas),
-      roiGrowth: calculateGrowth(summary.averageRoi, prevRoi),
-    };
-
-    const dailyMap = new Map<
-      string,
-      {
-        impressions: number;
-        clicks: number;
-        cost: number;
-        conversions: number;
-      }
-    >();
-
-    for (const m of dailyMetrics) {
-      const key = m.date.toISOString().split('T')[0];
-      dailyMap.set(key, {
-        impressions: m._sum.impressions || 0,
-        clicks: m._sum.clicks || 0,
-        cost: Number(m._sum.spend) || 0,
-        conversions: toNumber(m._sum.conversions),
+    if (campaignIds.length > 0) {
+      campaignDetails = await this.prisma.campaign.findMany({
+        where: { id: { in: campaignIds }, tenantId },
+        select: { id: true, name: true, status: true, platform: true, budget: true }
+      });
+    } else {
+      // Fallback: 5 most recently updated campaigns
+      campaignDetails = await this.prisma.campaign.findMany({
+        where: { tenantId },
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+        select: { id: true, name: true, status: true, platform: true, budget: true }
       });
     }
 
-    const trends: Array<{ date: string; impressions: number; clicks: number; cost: number; conversions: number }> = [];
+    const campaignMap = new Map(campaignDetails.map(c => [c.id, c]));
 
-    // If there is no data at all for this range, return empty trends.
-    // This avoids rendering a misleading flat zero line in charts.
-    if (dailyMetrics.length > 0) {
-      const cursor = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 0, 0, 0, 0));
-      const last = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 0, 0, 0, 0));
+    // Step C: Combine data
+    // If we have metric data, use it. If fallback, metrics are 0.
+    const recentCampaigns = campaignIds.length > 0
+      ? topCampaignMetrics.map(m => {
+        const c = campaignMap.get(m.campaignId);
+        if (!c) return null; // Should not happen if referential integrity holds
 
-      while (cursor.getTime() <= last.getTime()) {
-        const key = cursor.toISOString().split('T')[0];
-        const found = dailyMap.get(key);
+        const spending = toNumber(m._sum.spend);
+        const budget = Number(c.budget) || 0;
 
-        trends.push({
-          date: key,
-          impressions: found?.impressions ?? 0,
-          clicks: found?.clicks ?? 0,
-          cost: found?.cost ?? 0,
-          conversions: found?.conversions ?? 0,
-        });
-
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
-      }
-    }
-
-    // Format recent campaigns with metrics
-    const recentCampaigns = campaignsWithSpend.map((c) => {
-      const metrics = c.metrics as any[]; // Cast to any array to bypass stale type definitions
-      const spendByPlatform = new Map<AdPlatform, number>();
-
-      for (const m of metrics) {
-        const p = (m.platform as AdPlatform) || c.platform;
-        spendByPlatform.set(p, (spendByPlatform.get(p) ?? 0) + Number(m.spend || 0));
-      }
-
-      let dominantPlatform: AdPlatform | undefined;
-      let dominantSpend = -1;
-      for (const [p, s] of spendByPlatform.entries()) {
-        if (s > dominantSpend) {
-          dominantSpend = s;
-          dominantPlatform = p;
-        }
-      }
-
-      const spending = metrics.reduce((sum, m) => sum + Number(m.spend || 0), 0);
-      const impressions = metrics.reduce((sum, m) => sum + (m.impressions || 0), 0);
-      const clicks = metrics.reduce((sum, m) => sum + (m.clicks || 0), 0);
-      const conversions = metrics.reduce((sum, m) => sum + toNumber(m.conversions), 0);
-      const budget = Number(c.budget) || 0;
-
-      return {
+        return {
+          id: c.id,
+          name: c.name,
+          status: c.status,
+          platform: c.platform,
+          spending,
+          impressions: m._sum.impressions || 0,
+          clicks: m._sum.clicks || 0,
+          conversions: toNumber(m._sum.conversions),
+          budgetUtilization: budget > 0 ? (spending / budget) * 100 : 0,
+        };
+      }).filter(Boolean)
+      : campaignDetails.map(c => ({
         id: c.id,
         name: c.name,
         status: c.status,
-        platform: dominantPlatform || c.platform,
-        spending,
-        impressions,
-        clicks,
-        conversions,
-        budgetUtilization: budget > 0 ? (spending / budget) * 100 : undefined,
-      };
-    });
+        platform: c.platform,
+        spending: 0,
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        budgetUtilization: 0
+      }));
+
+    // 5. Calculate Summary Metrics
+    const totalCost = toNumber(currentMetrics._sum.spend);
+    const totalImpressions = currentMetrics._sum.impressions ?? 0;
+    const totalClicks = currentMetrics._sum.clicks ?? 0;
+    const totalConversions = currentMetrics._sum.conversions ?? 0;
+    const totalRevenue = toNumber(currentMetrics._sum.revenue);
+
+    const summary = {
+      totalCost,
+      totalImpressions,
+      totalClicks,
+      totalConversions,
+      averageRoas: totalCost > 0 ? totalRevenue / totalCost : 0,
+      averageCpm: totalImpressions > 0 ? (totalCost / totalImpressions) * 1000 : 0,
+      averageCtr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
+      averageRoi: totalCost > 0 ? ((totalRevenue - totalCost) / totalCost) * 100 : 0,
+    };
+
+    // 6. Calculate Growth (Trends)
+    const calculateTrend = (current: number, previous: number) => {
+      if (previous === 0) return 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const previousCost = toNumber(previousMetrics._sum.spend);
+    const previousImpressions = previousMetrics._sum.impressions ?? 0;
+    const previousClicks = previousMetrics._sum.clicks ?? 0;
+    const previousConversions = previousMetrics._sum.conversions ?? 0;
+    const previousRevenue = toNumber(previousMetrics._sum.revenue);
+
+    const prevRoas = previousCost > 0 ? previousRevenue / previousCost : 0;
+    const prevCpm = previousImpressions > 0 ? (previousCost / previousImpressions) * 1000 : 0;
+    const prevCtr = previousImpressions > 0 ? (previousClicks / previousImpressions) * 100 : 0;
+    const prevRoi = previousCost > 0 ? ((previousRevenue - previousCost) / previousCost) * 100 : 0;
+
+    const growth = {
+      costGrowth: calculateTrend(totalCost, previousCost),
+      impressionsGrowth: calculateTrend(totalImpressions, previousImpressions),
+      clicksGrowth: calculateTrend(totalClicks, previousClicks),
+      conversionsGrowth: calculateTrend(totalConversions, previousConversions),
+      roasGrowth: calculateTrend(summary.averageRoas, prevRoas),
+      cpmGrowth: calculateTrend(summary.averageCpm, prevCpm),
+      ctrGrowth: calculateTrend(summary.averageCtr, prevCtr),
+      roiGrowth: calculateTrend(summary.averageRoi, prevRoi),
+    };
+
+    // 7. Format Trends (Daily)
+    const trends = dailyMetrics.map(m => ({
+      date: m.date.toISOString().split('T')[0],
+      cost: toNumber(m._sum.spend),
+      impressions: m._sum.impressions ?? 0,
+      clicks: m._sum.clicks ?? 0,
+      conversions: m._sum.conversions ?? 0,
+    }));
 
     return {
       success: true,

@@ -438,7 +438,7 @@ export function CampaignsPage() {
     // ==========================================================================
     return (
         <DashboardLayout>
-            <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-8">
+            <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-8 relative z-10">
                 {/* Page Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>

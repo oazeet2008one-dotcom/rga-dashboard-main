@@ -77,11 +77,11 @@ export class CampaignsService {
         revenue: this.safe(s.revenue),
         conversions: this.safe(s.conversions),
         // Global Derived Metrics (Safe Math: defaults to 0 or -100)
-        roas: s.spend ? Number((this.safe(s.revenue) / s.spend).toFixed(2)) : 0,
-        roi: s.spend ? Number(((this.safe(s.revenue) - s.spend) / s.spend * 100).toFixed(2)) : -100,
-        ctr: s.impressions ? Number(((this.safe(s.clicks) / s.impressions) * 100).toFixed(2)) : 0,
-        cpc: s.clicks ? Number((this.safe(s.spend) / s.clicks).toFixed(2)) : 0,
-        cpm: s.impressions ? Number(((this.safe(s.spend) / s.impressions) * 1000).toFixed(2)) : 0,
+        roas: this.safe(s.spend) ? Number((this.safe(s.revenue) / this.safe(s.spend)).toFixed(2)) : 0,
+        roi: this.safe(s.spend) ? Number(((this.safe(s.revenue) - this.safe(s.spend)) / this.safe(s.spend) * 100).toFixed(2)) : -100,
+        ctr: this.safe(s.impressions) ? Number(((this.safe(s.clicks) / this.safe(s.impressions)) * 100).toFixed(2)) : 0,
+        cpc: this.safe(s.clicks) ? Number((this.safe(s.spend) / this.safe(s.clicks)).toFixed(2)) : 0,
+        cpm: this.safe(s.impressions) ? Number(((this.safe(s.spend) / this.safe(s.impressions)) * 1000).toFixed(2)) : 0,
       };
 
       return {
@@ -121,11 +121,11 @@ export class CampaignsService {
         clicks: this.safe(s.clicks),
         revenue: this.safe(s.revenue),
         conversions: this.safe(s.conversions),
-        roas: s.spend ? Number((this.safe(s.revenue) / s.spend).toFixed(2)) : 0,
-        roi: s.spend ? Number(((this.safe(s.revenue) - s.spend) / s.spend * 100).toFixed(2)) : -100,
-        ctr: s.impressions ? Number(((this.safe(s.clicks) / s.impressions) * 100).toFixed(2)) : 0,
-        cpc: s.clicks ? Number((this.safe(s.spend) / s.clicks).toFixed(2)) : 0,
-        cpm: s.impressions ? Number(((this.safe(s.spend) / s.impressions) * 1000).toFixed(2)) : 0,
+        roas: this.safe(s.spend) ? Number((this.safe(s.revenue) / this.safe(s.spend)).toFixed(2)) : 0,
+        roi: this.safe(s.spend) ? Number(((this.safe(s.revenue) - this.safe(s.spend)) / this.safe(s.spend) * 100).toFixed(2)) : -100,
+        ctr: this.safe(s.impressions) ? Number(((this.safe(s.clicks) / this.safe(s.impressions)) * 100).toFixed(2)) : 0,
+        cpc: this.safe(s.clicks) ? Number((this.safe(s.spend) / this.safe(s.clicks)).toFixed(2)) : 0,
+        cpm: this.safe(s.impressions) ? Number(((this.safe(s.spend) / this.safe(s.impressions)) * 1000).toFixed(2)) : 0,
       };
 
       let normalized = items.map((c) => this.normalizeCampaign(c));

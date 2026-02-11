@@ -1,7 +1,7 @@
 // frontend/src/components/layout/AppSidebar.tsx
 // =============================================================================
-// Application Sidebar - Uses Shadcn Sidebar Components
-// Features: Sub-route highlighting, mobile Sheet drawer, keyboard shortcuts
+// Application Sidebar - Premium Design
+// Features: Glassmorphism, Gradient Active States, Smooth Animations
 // =============================================================================
 
 import { useLocation } from 'wouter';
@@ -9,16 +9,6 @@ import { useAuthStore, selectUser } from '@/stores/auth-store';
 import { UserRole } from '@/types/enums';
 import {
     Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupLabel,
-    SidebarGroupContent,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuItem,
-    SidebarMenuButton,
-    SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
     BarChart3,
@@ -30,8 +20,13 @@ import {
     TrendingUp,
     Users,
     Zap,
+    ChevronRight,
+    Sparkles
 } from 'lucide-react';
+import logo from '@/components/layout/LOGO-RGA-B2.png';
 import type { LucideIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 // =============================================================================
 // Types & Menu Configuration
@@ -62,9 +57,10 @@ const NAV_GROUPS: NavGroup[] = [
     {
         title: 'Intelligence',
         items: [
-            { label: 'AI Insights', href: '/ai-insights', icon: Zap, comingSoon: true },
-            { label: 'Trend Analysis', href: '/trend-analysis', icon: TrendingUp, comingSoon: true },
             { label: 'SEO & Web', href: '/seo-web-analytics', icon: Search },
+            { label: 'AI Insights & Tools', href: '/ai-insights', icon: Sparkles },
+            { label: 'E-commerce Insights', href: '/ecommerce-insights', icon: TrendingUp },
+
         ],
     },
     {
@@ -111,93 +107,137 @@ export function AppSidebar() {
     };
 
     return (
-        <Sidebar className="border-r border-slate-100 bg-white shadow-sm animate-in slide-in-from-left duration-500 fade-in">
+        <Sidebar className="border-r border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-lg shadow-slate-200/20 w-[260px] z-50">
             <div className="flex flex-col h-full w-full">
 
                 {/* Header / Logo */}
-                <div className="p-6 pb-2">
-                    <div className="flex items-center gap-2.5 group cursor-pointer">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center text-white font-bold shadow-orange-200 shadow-lg transform transition-all duration-500 group-hover:rotate-12 group-hover:scale-110">
-                            R
+                <div className="px-6 py-6 pb-2">
+                    <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        className="flex items-center gap-3 cursor-pointer group"
+                    >
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-orange-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <img
+                                src={logo}
+                                alt="RGA Data Logo"
+                                className="h-10 w-auto object-contain relative z-10"
+                            />
                         </div>
-                        <div className="flex flex-col">
-                            <span className="font-bold text-xl text-slate-900 tracking-tight leading-none transition-colors group-hover:text-orange-600">
-                                RGA<span className="text-orange-500">.Data</span>
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase mt-0.5 group-hover:text-amber-500 transition-colors">Analytics Platform</span>
-                        </div>
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* Navigation Menu */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+                <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                     {getNavGroups().map((group, groupIndex) => (
-                        <div key={group.title} className="space-y-1 animate-in slide-in-from-left-4 fade-in duration-500" style={{ animationDelay: `${groupIndex * 100}ms` }}>
-                            <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 select-none">
+                        <div
+                            key={group.title}
+                            className="space-y-2"
+                        >
+                            <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 select-none flex items-center gap-2">
                                 {group.title}
-                            </p>
+                                <div className="h-px flex-1 bg-slate-100/50" />
+                            </h3>
 
-                            {group.items.map((item) => {
-                                const Icon = item.icon;
-                                const active = isActive(item.href);
+                            <div className="space-y-1">
+                                {group.items.map((item) => {
+                                    const Icon = item.icon;
+                                    const active = isActive(item.href);
 
-                                return (
-                                    <button
-                                        key={item.href}
-                                        onClick={() => !item.comingSoon && setLocation(item.href)}
-                                        disabled={item.comingSoon}
-                                        className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-300 ease-out text-sm font-medium relative overflow-hidden
-                                            ${active
-                                                ? 'bg-orange-50 text-orange-700 shadow-sm border border-orange-100/50 translate-x-1'
-                                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:translate-x-1 hover:shadow-sm'
-                                            } ${item.comingSoon ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
-                                    >
-                                        <div className="flex items-center gap-3 z-10">
-                                            <Icon
-                                                className={`h-[18px] w-[18px] transition-transform duration-300 ${active ? 'text-orange-600 scale-110' : 'text-slate-400 group-hover:text-slate-600 group-hover:scale-110'
-                                                    }`}
-                                                strokeWidth={2}
-                                            />
-                                            <span>{item.label}</span>
-                                        </div>
+                                    return (
+                                        <button
+                                            key={item.href}
+                                            onClick={() => !item.comingSoon && setLocation(item.href)}
+                                            disabled={item.comingSoon}
+                                            className={cn(
+                                                "w-full group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300",
+                                                active
+                                                    ? "text-white shadow-md shadow-orange-500/20"
+                                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                                                item.comingSoon && "opacity-50 cursor-not-allowed"
+                                            )}
+                                        >
+                                            {/* Active Background Gradient */}
+                                            {active && (
+                                                <motion.div
+                                                    layoutId="sidebar-active-bg"
+                                                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500"
+                                                    initial={false}
+                                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                                />
+                                            )}
 
-                                        {item.comingSoon && (
-                                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-semibold border border-slate-200 z-10">SOON</span>
-                                        )}
-                                        {!item.comingSoon && active && (
-                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm transition-transform duration-300 animate-pulse" />
-                                        )}
+                                            {/* Icon */}
+                                            <Icon className={cn(
+                                                "w-[18px] h-[18px] relative z-10 transition-transform duration-300 group-hover:scale-110",
+                                                active ? "text-white" : "text-orange-500"
+                                            )} />
 
-                                        {/* Subtle hover splash effect (optional, css only) */}
-                                        {!active && !item.comingSoon && (
-                                            <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        )}
-                                    </button>
-                                );
-                            })}
+                                            {/* Label */}
+                                            <span className={cn(
+                                                "text-[13px] font-medium relative z-10 tracking-wide",
+                                                active ? "text-white" : "text-slate-900"
+                                            )}>
+                                                {item.label}
+                                            </span>
+
+                                            {/* Coming Soon Badge */}
+                                            {item.comingSoon && (
+                                                <span className="ml-auto text-[10px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200">
+                                                    Soon
+                                                </span>
+                                            )}
+
+                                            {/* Active External Indicator */}
+                                            {active && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, x: -5 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    className="ml-auto relative z-10"
+                                                >
+                                                    <ChevronRight className="w-4 h-4 text-white/80" />
+                                                </motion.div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     ))}
                 </div>
 
-                {/* Profile Widget & Footer */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50/50 transition-all hover:bg-orange-50/30">
-                    <div className="bg-white rounded-2xl p-1.5 border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1">
-                        <div className="flex items-center gap-3 p-2 rounded-xl cursor-pointer group">
-                            <div className="relative h-9 w-9 bg-slate-100 rounded-full flex items-center justify-center border border-slate-100 overflow-hidden transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3 shadow-sm">
-                                <span className="font-bold text-slate-600 text-sm group-hover:text-orange-600 transition-colors">
-                                    {user?.name?.charAt(0) || 'A'}
-                                </span>
+                {/* Footer / User Profile */}
+                <div className="p-4 border-t border-slate-100/60 bg-slate-50/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-3 px-2">
+                        {/* Avatar */}
+                        <div className="relative">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm shadow-md shadow-indigo-500/20 ring-2 ring-white">
+                                {user?.name?.charAt(0) || 'U'}
                             </div>
-                            <div className="flex-1 overflow-hidden transition-all duration-300 group-hover:pl-1">
-                                <p className="text-sm font-bold text-slate-900 truncate group-hover:text-orange-700 transition-colors">{user?.name || 'Admin'}</p>
-                                <p className="text-xs text-slate-500 truncate font-medium">{user?.email || 'admin@rga.local'}</p>
-                            </div>
-                            <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 hover:rotate-90">
-                                <LogOut className="h-4 w-4" />
-                            </button>
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
                         </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">
+                                {user?.name || 'User'}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate font-medium">
+                                {user?.role || 'Viewer'}
+                            </p>
+                        </div>
+
+                        {/* Logout Button */}
+                        <button
+                            onClick={handleLogout}
+                            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Sign out"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
+
             </div>
         </Sidebar>
     );

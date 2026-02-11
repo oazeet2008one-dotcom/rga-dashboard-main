@@ -3,11 +3,33 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { APP_LOGO, APP_TITLE } from '@/const';
+import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ParticleCanvas } from '@/components/ui/particle-canvas';
+import { Starfield } from '@/components/ui/starfield';
+import logo from '@/components/layout/LOGO-RGA-B2.png';
+
+// Inline field error component with smooth animation
+function FieldError({ message }: { message?: string }) {
+  return (
+    <AnimatePresence mode="wait">
+      {message && (
+        <motion.p
+          initial={{ opacity: 0, y: -4, height: 0 }}
+          animate={{ opacity: 1, y: 0, height: 'auto' }}
+          exit={{ opacity: 0, y: -4, height: 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-[11px] text-red-500 mt-1 pl-0.5 flex items-center gap-1"
+        >
+          <span className="inline-block w-1 h-1 rounded-full bg-red-400 flex-shrink-0" />
+          {message}
+        </motion.p>
+      )}
+    </AnimatePresence>
+  );
+}
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -19,35 +41,57 @@ export default function Register() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [focused, setFocused] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // ✅ Use Zustand store
   const register = useAuthStore((state) => state.register);
   const [, setLocation] = useLocation();
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear field error on typing
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+    }
+  };
+
+  const validateFields = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.name.trim()) errors.name = 'Full Name is required';
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!emailRegex.test(formData.email)) {
+      errors.email = 'Invalid email format';
+    }
+    if (!formData.companyName.trim()) errors.companyName = 'Company Name is required';
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password && formData.confirmPassword !== formData.password) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (!formData.name || !formData.email || !formData.password || !formData.companyName) {
-      setError('All fields are required');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
+    if (!validateFields()) return;
 
     setIsLoading(true);
 
@@ -69,134 +113,204 @@ export default function Register() {
     }
   };
 
+  const inputBase = "h-10 rounded-lg bg-slate-50/80 focus-visible:ring-orange-500/20 focus-visible:border-orange-400 placeholder:text-slate-300 transition-all duration-200";
+  const inputOk = `${inputBase} border-slate-200`;
+  const inputErr = `${inputBase} border-red-300 focus-visible:border-red-400 focus-visible:ring-red-500/20`;
+
+  // Reusable focus indicator dot
+  const FocusDot = ({ field }: { field: string }) => (
+    <motion.div
+      className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500"
+      initial={false}
+      animate={{ scale: focused === field ? 1 : 0, opacity: focused === field ? 1 : 0 }}
+      transition={{ duration: 0.2 }}
+    />
+  );
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        {/* Logo & Title */}
-        <div className="text-center mb-8">
-          {APP_LOGO && <img src={APP_LOGO} alt={APP_TITLE} className="w-16 h-16 mx-auto mb-4" />}
-          <h1 className="text-3xl font-bold">{APP_TITLE}</h1>
-          <p className="text-muted-foreground mt-2">RGA Marketing Dashboard</p>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Full dark background */}
+      <div className="absolute inset-0" style={{ backgroundColor: '#1f1f1f' }} />
+
+      {/* Starfield with twinkling + starburst rays */}
+      <div className="absolute inset-0 pointer-events-none">
+        <Starfield className="absolute inset-0" starCount={120} />
+      </div>
+
+      {/* Particle animation — full page */}
+      <div className="absolute inset-0 pointer-events-auto">
+        <ParticleCanvas
+          className="absolute inset-0"
+          particleCount={70}
+          particleColor="249, 115, 22"
+          lineColor="249, 115, 22"
+          maxDistance={130}
+        />
+      </div>
+
+      {/* Subtle animated glow */}
+      <motion.div
+        className="absolute top-[10%] left-1/2 w-[500px] h-[300px] rounded-full pointer-events-none"
+        style={{ x: '-50%', background: 'radial-gradient(circle, rgba(251,146,60,0.06) 0%, transparent 70%)' }}
+        animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-[520px] px-6 relative z-10"
+      >
+        <div className="bg-white/95 rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100/80 overflow-hidden">
+
+          {/* Top accent bar */}
+          <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500" />
+
+          <div className="px-8 pt-8 pb-7">
+
+            {/* Logo with gentle float */}
+            <motion.div
+              className="flex justify-center mb-6"
+              animate={{ y: [0, -4, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <img src={logo} alt="RGA" className="h-14 w-auto object-contain" />
+            </motion.div>
+
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.5 }}
+              className="text-center mb-6"
+            >
+              <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Create Account</h1>
+              <p className="text-[13px] text-slate-400 mt-1">Sign up to get started with RGA</p>
+            </motion.div>
+
+            {/* Error */}
+            {error && (
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 300 }}>
+                <Alert variant="destructive" className="mb-5 rounded-lg">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">{error}</AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+
+            {/* Form — noValidate disables browser-native tooltips */}
+            <motion.form
+              onSubmit={handleSubmit}
+              noValidate
+              className="space-y-3.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.25, duration: 0.5 }}
+            >
+              {/* Row 1: Name + Email (side by side) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="name" className="block text-[13px] font-medium text-slate-600">Full Name</label>
+                  <div className="relative">
+                    <Input id="name" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} onFocus={() => setFocused('name')} onBlur={() => setFocused(null)} disabled={isLoading} autoComplete="name" className={fieldErrors.name ? inputErr : inputOk} />
+                    <FocusDot field="name" />
+                  </div>
+                  <FieldError message={fieldErrors.name} />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="email" className="block text-[13px] font-medium text-slate-600">Email address</label>
+                  <div className="relative">
+                    <Input id="email" name="email" type="email" placeholder="you@company.com" value={formData.email} onChange={handleChange} onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} disabled={isLoading} autoComplete="email" className={fieldErrors.email ? inputErr : inputOk} />
+                    <FocusDot field="email" />
+                  </div>
+                  <FieldError message={fieldErrors.email} />
+                </div>
+              </div>
+
+              {/* Row 2: Company Name (full width) */}
+              <div className="space-y-1.5">
+                <label htmlFor="companyName" className="block text-[13px] font-medium text-slate-600">Company Name</label>
+                <div className="relative">
+                  <Input id="companyName" name="companyName" placeholder="Your Company" value={formData.companyName} onChange={handleChange} onFocus={() => setFocused('company')} onBlur={() => setFocused(null)} disabled={isLoading} autoComplete="organization" className={fieldErrors.companyName ? inputErr : inputOk} />
+                  <FocusDot field="company" />
+                </div>
+                <FieldError message={fieldErrors.companyName} />
+              </div>
+
+              {/* Row 3: Password + Confirm (side by side) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="password" className="block text-[13px] font-medium text-slate-600">Password</label>
+                  <div className="relative">
+                    <Input id="password" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} onFocus={() => setFocused('password')} onBlur={() => setFocused(null)} disabled={isLoading} autoComplete="new-password" className={fieldErrors.password ? inputErr : inputOk} />
+                    <FocusDot field="password" />
+                  </div>
+                  <FieldError message={fieldErrors.password} />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="confirmPassword" className="block text-[13px] font-medium text-slate-600">Confirm Password</label>
+                  <div className="relative">
+                    <Input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} onFocus={() => setFocused('confirm')} onBlur={() => setFocused(null)} disabled={isLoading} autoComplete="new-password" className={fieldErrors.confirmPassword ? inputErr : inputOk} />
+                    <FocusDot field="confirm" />
+                  </div>
+                  <FieldError message={fieldErrors.confirmPassword} />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 mt-1 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl tracking-wide transition-all group"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating Account…
+                    </>
+                  ) : (
+                    <span className="flex items-center">
+                      Create Account
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  )}
+                </Button>
+              </motion.div>
+            </motion.form>
+
+            {/* Divider */}
+            <div className="relative mt-5 mb-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-100" />
+              </div>
+            </div>
+
+            {/* Login link */}
+            <p className="text-center text-[13px] text-slate-400">
+              Already have an account?{' '}
+              <button
+                onClick={() => setLocation('/login')}
+                className="text-orange-600 font-semibold hover:text-orange-700 transition-colors"
+              >
+                Sign in
+              </button>
+            </p>
+          </div>
         </div>
 
-        {/* Register Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Account</CardTitle>
-            <CardDescription>Sign up to get started with RGA Dashboard</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Full Name
-                </label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  autoComplete="name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="companyName" className="text-sm font-medium">
-                  Company Name
-                </label>
-                <Input
-                  id="companyName"
-                  name="companyName"
-                  placeholder="Your Company"
-                  value={formData.companyName}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  autoComplete="organization"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirm Password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isLoading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-            </form>
-
-            <div className="mt-4 text-center text-sm">
-              <p className="text-muted-foreground">
-                Already have an account?{' '}
-                <button
-                  onClick={() => setLocation('/login')}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Login here
-                </button>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Footer */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8 text-center text-xs text-slate-400/60"
+        >
+          &copy; {new Date().getFullYear()} RGA Marketing Dashboard
+        </motion.p>
+      </motion.div>
     </div>
   );
 }

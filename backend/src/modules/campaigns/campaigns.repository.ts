@@ -50,10 +50,28 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
 
     // Handle multi-select Platform
     let platformFilter: Prisma.EnumAdPlatformFilter | undefined;
+
+    // DEBUG LOG
+    if (query.platform) {
+      console.log('DEBUG: buildWhereClause platform input:', query.platform);
+      console.log('DEBUG: AdPlatform Enum Keys/Values:', JSON.stringify(AdPlatform));
+    }
+
     if (query.platform && query.platform !== 'ALL') {
       const platforms = query.platform.split(',').filter(p => p !== 'ALL').map(p => {
-        if (p === 'GOOGLE') return 'GOOGLE_ADS';
-        return p;
+        const key = p.trim().toUpperCase().replace('-', '_');
+
+        // Explicit mapping for known variations
+        if (key === 'GOOGLE') return AdPlatform.GOOGLE_ADS;
+        if (key === 'LINE') return AdPlatform.LINE_ADS;
+
+        // Check if key exists in Enum, otherwise attempt as-is (though likely invalid)
+        if (key in AdPlatform) {
+          return AdPlatform[key as keyof typeof AdPlatform];
+        }
+
+        // Fallback: return the uppercased key which matches standard Prisma Enum Keys
+        return key as AdPlatform;
       }) as AdPlatform[];
 
       if (platforms.length > 0) {
@@ -103,17 +121,23 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     const orderBy: any = {};
     orderBy[sortBy] = sortOrder;
 
-    const metricsInclude: Prisma.CampaignInclude['metrics'] =
-      (startDate || endDate)
-        ? {
-          where: {
-            date: {
-              ...(startDate && { gte: startDate }),
-              ...(endDate && { lte: endDate }),
-            },
-          },
-        }
-        : true;
+    // Construct metrics include logic explicitly
+    let metricsInclude: any = true;
+
+    if (startDate || endDate) {
+      const dateFilter: any = {};
+      if (startDate) dateFilter.gte = startDate;
+      if (endDate) dateFilter.lte = endDate;
+
+      metricsInclude = {
+        where: { date: dateFilter }
+      };
+    }
+
+    // DEBUG: Log the final query object
+    console.log('DEBUG: findAll execution');
+    console.log('DEBUG: where clause:', JSON.stringify(where, null, 2));
+    console.log('DEBUG: metricsInclude:', JSON.stringify(metricsInclude, null, 2));
 
     return Promise.all([
       this.prisma.campaign.findMany({
