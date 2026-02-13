@@ -1,36 +1,33 @@
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
-    console.log('Checking database content...');
+    try {
+        console.log('Connecting to database...');
+        // Query to list all tables in public schema
+        const tables = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';`
+        console.log('--- Tables ---');
+        console.log(tables);
 
-    const userCount = await prisma.user.count();
-    console.log(`Users: ${userCount}`);
+        // Check Users count
+        try {
+            const userCount = await prisma.user.count();
+            console.log(`--- User Count: ${userCount} ---`);
+            // Check ChatSession count (Critical check)
+            // @ts-ignore
+            const chatCount = await prisma.chatSession.count();
+            console.log(`--- ChatSession Count: ${chatCount} (Table OK!) ---`);
+        } catch (e) {
+            console.log("Could not count users/sessions (table might be missing or client outdated):", e);
+        }
 
-    const campaignCount = await prisma.campaign.count();
-    console.log(`Campaigns: ${campaignCount}`);
-
-    const metricCount = await prisma.metric.count();
-    console.log(`Metrics: ${metricCount}`);
-
-    if (campaignCount > 0) {
-        const firstCampaign = await prisma.campaign.findFirst();
-        console.log('First Campaign:', firstCampaign);
-    }
-
-    if (metricCount > 0) {
-        const firstMetric = await prisma.metric.findFirst();
-        console.log('First Metric:', firstMetric);
+    } catch (e) {
+        console.error('Error connecting to database:', e);
+    } finally {
+        await prisma.$disconnect();
     }
 }
 
-main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+main();

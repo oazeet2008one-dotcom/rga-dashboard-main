@@ -1,0 +1,32 @@
+# รายงานการตรวจสอบแบบละเอียด: ฟีเจอร์ SEO (Frontend Verification)
+
+## 1. โครงสร้างและการทำงาน (Architecture & Flow)
+*   **โครงสร้าง:** มีการแยก Component ชัดเจน ทำให้ง่ายต่อการดูแลรักษา (Maintainable)
+*   **Data Fetching:** ใช้ `React Query` จัดการ Data ทั้งหมด ซึ่งดีมากสำหรับการทำ Caching และ Loading State
+
+## 2. สถานะข้อมูล (Data Integration Status) ⚠️ สำคัญ
+จากการตรวจสอบลึกลงไปในแต่ละ Component พบว่า **หน้านี้ยังมีการผสมกันระหว่างข้อมูลจริงและข้อมูลจำลอง (Mock Data)** ดังนี้:
+
+### ✅ ส่วนที่เชื่อมต่อ API จริงแล้ว (Real Data)
+1.  **Summary Cards:** ข้อมูลภาพรวมด้านบน (Organic Sessions, Bounce Rate, etc.) ดึงจาก `SeoService.getSummary`
+2.  **Performance Chart:** กราฟเส้นแสดง Trend ดึงจาก `SeoService.getHistory`
+3.  **Traffic by Location:** ตารางแยกตามประเทศ/เมือง ดึงจาก `SeoService.getTrafficByLocation`
+4.  **Keywords by Intent:** กราฟแท่งแยกตามจุดประสงค์ (Branded, Commercial, etc.) ดึงจาก `SeoService.getKeywordIntent`
+
+### 🚧 ส่วนที่ยังเป็น Mock Data (ต้องทำ Backend เพิ่ม)
+1.  **Top Organic Keywords:** ตารางคีย์เวิร์ดยอดนิยม **ยังใช้ข้อมูล Hardcoded ในไฟล์** (`MOCK_KEYWORD_DATA`)
+2.  **Anchors:** ตาราง Anchor Text **ยังใช้ข้อมูล Hardcoded ในไฟล์** (`MOCK_ANCHOR_DATA`)
+3.  **Off-page Metrics:** การ์ดข้อมูล Backlinks/Referral Domains ด้านล่างสุด **เป็น Hardcoded ทั้งหมด** (`SeoOffPageMetrics.tsx`)
+
+## 3. การแสดงผล (UI & Responsiveness)
+*   **Mobile:**
+    *   ✅ **Tables:** ส่วนของ [TopOrganicKeywords](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/seo/components/top-organic-keywords.tsx#25-71), [TrafficByLocation](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/seo/components/traffic-by-location.tsx#32-112), [SeoAnchorText](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/seo/components/seo-anchor-text.tsx#26-81) มีการใช้ `overflow-auto` ทำให้เลื่อนซ้ายขวาได้ ไม่พังในจอเล็ก
+    *   ✅ **Charts:** กราฟย่อขยายตามขนาดหน้าจอได้ดี
+    *   ✅ **Layout:** การจัดวาง Grid (col-span) ปรับเปลี่ยนตามขนาดหน้าจอ (Desktop 7 cols -> Mobile 1 col) ได้ถูกต้อง
+
+## 4. ข้อแนะนำ (Recommendations)
+1.  **เชื่อมต่อ API ที่เหลือ:** ควรสร้าง Endpoint และ Service สำหรับ `Top Keywords`, `Anchors`, และ `Off-page Metrics` เพื่อให้หน้า Dashboard สมบูรณ์ 100%
+2.  **Loading States:** Component ส่วนใหญ่มี Loading State ที่ดี (Skeleton/Spinner)
+3.  **Types:** ควรย้าย Interface ที่ซ่อนอยู่ใน Component (เช่น [KeywordData](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/seo/components/top-organic-keywords.tsx#4-11), [AnchorData](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/seo/components/seo-anchor-text.tsx#4-9)) ออกมาไว้ที่ไฟล์กลาง [types/index.ts](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/seo/types/index.ts) เพื่อความเป็นระเบียบ
+
+**สรุป:** ในแง่ Frontend Code เขียนได้มาตรฐานและสวยงาม แต่ในแง่ฟังก์ชันการทำงาน **ยังขาดข้อมูลจริงประมาณ 40% ของหน้า** ครับ

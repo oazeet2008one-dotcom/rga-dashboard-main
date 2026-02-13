@@ -114,7 +114,7 @@ export function ParticleCanvas({
                 const mdy = p.y - mouse.y;
                 const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
                 if (mDist < repelRadius && mDist > 0) {
-                    const force = (1 - mDist / repelRadius) * 0.08;
+                    const force = (1 - mDist / repelRadius) * 0.1;
                     p.vx += (mdx / mDist) * force;
                     p.vy += (mdy / mDist) * force;
                 }

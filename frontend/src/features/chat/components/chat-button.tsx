@@ -1,4 +1,5 @@
 import { MessageCircle, X } from 'lucide-react';
+import chatbotImage from '../chatbot.webp';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,8 +15,8 @@ export function ChatButton({ isOpen, onClick }: ChatButtonProps) {
             onClick={onClick}
             size="icon"
             className={cn(
-                "h-14 w-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-50",
-                isOpen ? "bg-destructive hover:bg-destructive/90 rotate-90" : "bg-primary hover:bg-primary/90"
+                "h-14 w-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 z-50 overflow-hidden",
+                isOpen ? "bg-destructive hover:bg-destructive/90 rotate-90 text-white" : "bg-white hover:bg-white/90 drop-shadow p-2"
             )}
         >
             <AnimatePresence mode="wait">
@@ -27,7 +28,7 @@ export function ChatButton({ isOpen, onClick }: ChatButtonProps) {
                         exit={{ scale: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <X className="h-6 w-6 text-white" />
+                        <X className="h-20 w-20 text-white" />
                     </motion.div>
                 ) : (
                     <motion.div
@@ -36,8 +37,13 @@ export function ChatButton({ isOpen, onClick }: ChatButtonProps) {
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
+                        className="h-full w-full flex items-center justify-center"
                     >
-                        <MessageCircle className="h-7 w-7 text-white" />
+                        <img
+                            src={chatbotImage}
+                            alt="Chat"
+                            className="h-full w-full object-contain"
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>

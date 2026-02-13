@@ -48,6 +48,7 @@ export default function Campaigns() {
     api: campaignService,
     entityName: 'Campaign',
     defaultFormData: DEFAULT_FORM_DATA,
+    queryKey: ['campaigns'], // Added queryKey
     validateForm: (data) => {
       const errors: Record<string, string> = {};
       if (!data.name.trim()) errors.name = 'Campaign name is required';

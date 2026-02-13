@@ -16,7 +16,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    await this.$connect();
+    try {
+      const url = process.env.DATABASE_URL;
+      const maskedUrl = url ? url.replace(/:[^:@]+@/, ':****@') : 'UNDEFINED';
+      console.log('----------------------------------------');
+      console.log(`[PrismaService] Connecting to DB: ${maskedUrl}`);
+      console.log('----------------------------------------');
+      await this.$connect();
+      console.log('[PrismaService] Connected successfully!');
+    } catch (error) {
+      console.error('[PrismaService] Connection error:', error);
+    }
   }
 
   async onModuleDestroy() {

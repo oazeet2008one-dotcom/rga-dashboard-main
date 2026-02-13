@@ -1,0 +1,47 @@
+# รายงานการตรวจสอบแบบละเอียด: ฟีเจอร์แคมเปญ (Campaigns Feature)
+
+## 1. โครงสร้างและการทำงาน (Architecture & Flow)
+จากการตรวจสอบโค้ดทั้ง Frontend และ Backend พบว่าการทำงานเป็นไปตามมาตรฐานที่ดี:
+
+*   **Frontend:**
+    *   ไฟล์หลัก: [CampaignsPage](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/campaigns/pages/campaigns-page.tsx#111-621) จัดการ State การค้นหา, Filter, และ Pagination
+    *   Data Fetching: ใช้ [useCampaigns](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/campaigns/hooks/use-campaigns.ts#27-69) hook ซึ่งเรียก API `GET /campaigns` ผ่าน `CampaignService`
+    *   **จุดเด่น:** มีการแยก [use-campaigns.ts](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/campaigns/hooks/use-campaigns.ts) ออกมาชัดเจน ทำให้โค้ด Clean และมี Caching (staleTime 5 นาที) ลดการโหลดซ้ำ
+    *   **การแสดงผล:** ใช้ [CampaignsTable](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/campaigns/components/campaigns-table.tsx#156-522) ซึ่งรองรับการเรียงลำดับ (Sorting) และเลือกคอลัมน์ที่จะแสดงได้ (Column Visibility)
+
+*   **Backend:**
+    *   Controller: [CampaignsController](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/backend/src/modules/campaigns/campaigns.controller.ts#7-89) รับ Request และส่งต่อให้ [CampaignsService](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/backend/src/modules/campaigns/campaigns.service.ts#7-314)
+    *   Repository: [PrismaCampaignsRepository](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/backend/src/modules/campaigns/campaigns.repository.ts#16-265) จัดการการดึงข้อมูลจาก Database จริง
+
+## 2. ความถูกต้องของข้อมูล (Data Integrity)
+
+### ✅ วันที่และช่วงเวลา (Time Window Metrics)
+*   **ตรวจสอบ:** วิธีการกรองข้อมูลเมื่อผู้ใช้เลือกช่วงเวลา (เช่น Last 7 Days)
+*   **ผลลัพธ์:** **ทำงานถูกต้อง** ระบบ Backend ([campaigns.repository.ts](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/backend/src/modules/campaigns/campaigns.repository.ts)) มีการกรองข้อมูลในตาราง [Metric](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/backend/src/modules/campaigns/campaigns.controller.ts#76-88) ตาม `startDate` และ `endDate` ที่ส่งไป ทำให้ตัวเลข Spend, Impressions, Clicks ที่แสดงผล สะท้อนช่วงเวลาที่เลือกจริงๆ ไม่ใช่ตัวเลขรวมทั้งหมดตั้งแต่อดีต
+
+### ✅ การคำนวณ (Calculations)
+*   **ตรวจสอบ:** สูตรคำนวณ ROAS, ROI, CTR
+*   **ผลลัพธ์:** **ทำงานถูกต้อง** มีการใช้ `this.safe()` เพื่อป้องกันค่า `null` หรือ `undefined` และมีการหารด้วยศูนย์ (Divide by Zero check) เช่น `spend > 0 ? revenue / spend : 0` ทำให้ระบบไม่พังเมื่อข้อมูลไม่ครบ
+
+### ⚠️ จุดสังเกตเรื่องงบประมาณ (Budget Ambiguity)
+*   **สิ่งที่พบ:** ในส่วนสรุป (Summary) ระบบทำการรวมค่า `budget` ของทุกแคมเปญเข้าด้วยกัน (`_sum: { budget: true }`)
+*   **ความเสี่ยง:** ใน Database มีฟิลด์ `budgetType` (Daily vs Lifetime) แต่ตอนรวมยอด **ไม่ได้แยกประเภท**
+    *   ถ้าคุณมีแคมเปญ A (Daily Budget 1,000) และแคมเปญ B (Lifetime Budget 10,000)
+    *   ระบบจะโชว์ Total Budget = 11,000 ซึ่งอาจทำให้สับสนได้ เพราะ 1,000 คือจ่ายต่อวัน แต่ 10,000 คือจ่ายตลอดชีพ
+*   **แนะนำ:** ในอนาคตควรแยกแสดงผล หรือระบุให้ชัดเจน
+
+## 3. การแสดงผลและความรวดเร็ว (UI & Performance)
+
+### ✅ ความรองรับมือถือ (Mobile Responsiveness)
+*   **ตรวจสอบ:** ตารางแคมเปญ ([CampaignsTable](file:///C:/Users/ounzx/Desktop/rga-dashboard-main/frontend/src/features/campaigns/components/campaigns-table.tsx#156-522))
+*   **ผลลัพธ์:** **ดีมาก** มีการใช้ `<div className="overflow-x-auto">` และ `min-w-[800px]` ครอบตาราง ทำให้เมื่อดูในมือถือ ตารางจะไม่บีบจนเละ แต่จะให้เลื่อนซ้าย-ขวาได้ (Horizontal Scroll) ซึ่งเป็นวิธีที่ถูกต้องสำหรับตารางข้อมูลเยอะๆ
+
+### ✅ ประสิทธิภาพ (Performance)
+*   **Pagination:** มีการทำ Pagination ที่ Backend (ส่ง `page`, `limit` ไปตัดข้อมูลที่ Server) ทำให้โหลดเร็วแม้มีแคมเปญหลักพัน/หมื่นรายการ
+*   **โหลดกราฟ:** มีการแยก Query สำหรับกราฟ (`limit: 1000`) ทำให้กราฟแสดงผลได้ครอบคลุม แต่ถ้าในอนาคตมีแคมเปญเกิน 1,000 อาจต้องปรับจูนเพิ่ม
+
+## 4. สรุปภาพรวม
+ฟีเจอร์ Campaigns มีความเสถียรสูง โค้ดเขียนเป็นระเบียบ และ Logic การดึงข้อมูลถูกต้องตามช่วงเวลา
+
+**คะแนน:** 9/10
+**สิ่งที่ต้องปรับปรุง:** (ไม่ใช่บั๊ก แต่เป็นข้อควรระวัง) เรื่องการรวมยอด Budget ที่ผสมกันระหว่าง Daily/Lifetime ได้

@@ -1,3 +1,4 @@
+import React from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { userService } from '@/services/user-service';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users as UsersIcon, ShieldCheck, UserCog, User as UserIcon } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -14,6 +15,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FormDialog } from '@/components/ui/FormDialog';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MetricGrid } from '@/features/dashboard/components/MetricGrid';
 
 import { User } from '@/types/api';
 
@@ -27,9 +30,14 @@ const DEFAULT_FORM_DATA = {
 export default function Users() {
   const {
     items: users,
+    meta,
     isLoading,
+    isFetching,
     searchTerm,
     setSearchTerm,
+    page,
+    setPage,
+    limit,
     isCreateDialogOpen,
     setIsCreateDialogOpen,
     isEditDialogOpen,
@@ -47,6 +55,7 @@ export default function Users() {
     api: userService,
     entityName: 'User',
     defaultFormData: DEFAULT_FORM_DATA,
+    queryKey: ['users'],
     validateForm: (data, editingItem) => {
       const errors: Record<string, string> = {};
       const isEdit = !!editingItem;
@@ -76,6 +85,55 @@ export default function Users() {
       return errors;
     },
   });
+
+  const [roleFilter, setRoleFilter] = React.useState<string>('all');
+
+  const filteredUsers = React.useMemo(() => {
+    let result = users || [];
+    // Client-side filtering for Role only (Search is now server-side via hook)
+    if (roleFilter !== 'all') {
+      result = result.filter(u => u.role === roleFilter);
+    }
+    return result;
+  }, [users, roleFilter]);
+
+  const stats = React.useMemo(() => {
+    // Note: These stats are now only for the CURRENT PAGE. 
+    // Ideally, backend should return global stats, but for now this is consistent with previous behavior
+    const safeUsers = users || [];
+    return [
+      {
+        title: 'Total Users ',
+        value: safeUsers.length,
+        icon: <UsersIcon className="h-4 w-4" />,
+        iconClassName: 'bg-blue-100 text-blue-600',
+        description: `Total: ${meta?.total || 0}`
+      },
+      {
+        title: 'Admins',
+        value: safeUsers.filter(u => u.role === 'ADMIN').length,
+        icon: <ShieldCheck className="h-4 w-4" />,
+        iconClassName: 'bg-red-100 text-red-600',
+      },
+      {
+        title: 'Managers',
+        value: safeUsers.filter(u => u.role === 'MANAGER').length,
+        icon: <UserCog className="h-4 w-4" />,
+        iconClassName: 'bg-amber-100 text-amber-600',
+      },
+      {
+        title: 'Clients',
+        value: safeUsers.filter(u => u.role === 'CLIENT').length,
+        icon: <UserIcon className="h-4 w-4" />,
+        iconClassName: 'bg-green-100 text-green-600',
+      },
+    ];
+  }, [users, meta]);
+
+  const getInitials = (name: string | undefined | null) => {
+    if (!name) return '??';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
 
   const renderUserForm = (isEdit: boolean = false) => (
     <div className="space-y-4">
@@ -148,14 +206,14 @@ export default function Users() {
         <div className="space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Users</h1>
-              <p className="text-sm text-slate-500 mt-1">Manage user accounts and permissions</p>
+              <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+              <p className="text-muted-foreground">
+                Manage user accounts and permissions across your workspace.
+              </p>
             </div>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
           </div>
+
+          <MetricGrid metrics={stats} isLoading={isLoading} columns={4} />
 
           <FormDialog
             open={isCreateDialogOpen}
@@ -182,77 +240,138 @@ export default function Users() {
           </FormDialog>
 
           <Card className="border-slate-200 shadow-sm">
-            <CardHeader>
-              <CardTitle>All Users</CardTitle>
-              <CardDescription>View and manage all user accounts</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2">
+                  All Users
+                  {isFetching && !isLoading && <LoadingSpinner text="" className="h-4 w-4" />}
+                </CardTitle>
+                <CardDescription>View and manage all user accounts</CardDescription>
+              </div>
+              <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
-                <SearchInput
-                  value={searchTerm}
-                  onChange={setSearchTerm}
-                  placeholder="Search users..."
-                />
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <div className="flex-1">
+                  <SearchInput
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    placeholder="Search by name or email..."
+                  />
+                </div>
+                <div className="w-full sm:w-44">
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="MANAGER">Manager</SelectItem>
+                      <SelectItem value="CLIENT">Client</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {isLoading ? (
                 <LoadingSpinner text="" />
-              ) : users.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <EmptyState
-                  hasSearch={!!searchTerm}
-                  searchMessage="No users found"
+                  hasSearch={!!searchTerm || roleFilter !== 'all'}
+                  searchMessage="No users found matching your filters"
                   emptyMessage="No users yet. Add your first user!"
                 />
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Created At</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <StatusBadge status={user.role} />
-                          </TableCell>
-                          <TableCell>
-                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="icon-sm"
-                                variant="ghost"
-                                onClick={() => openEditDialog(user, (u) => ({
-                                  email: u.email,
-                                  name: u.name,
-                                  password: '',
-                                  role: u.role,
-                                }))}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon-sm"
-                                variant="ghost"
-                                onClick={() => handleDelete(user.id, user.name)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                <div className="space-y-4">
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Created At</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((user) => (
+                          <TableRow key={user.id} className="hover:bg-muted/50">
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={user.avatarUrl || undefined} alt={user.name} />
+                                  <AvatarFallback className="text-xs bg-muted">
+                                    {getInitials(user.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{user.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <StatusBadge status={user.role} />
+                            </TableCell>
+                            <TableCell>
+                              {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  onClick={() => openEditDialog(user, (u) => ({
+                                    email: u.email,
+                                    name: u.name,
+                                    password: '',
+                                    role: u.role,
+                                  }))}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon-sm"
+                                  variant="ghost"
+                                  onClick={() => handleDelete(user.id, user.name)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, meta?.total || 0)} of {meta?.total || 0} entries
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => p + 1)}
+                        disabled={page * limit >= (meta?.total || 0)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>

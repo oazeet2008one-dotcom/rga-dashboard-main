@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandLogo } from '@/components/ui/brand-logo';
 import { cn } from '@/lib/utils';
+import { formatCompactNumber, formatNumber } from '@/lib/formatters';
 import { downloadCsv } from '@/lib/download-utils';
 import { ExportDropdown } from '@/components/ui/export-dropdown';
 
@@ -110,7 +111,8 @@ export function ConversionFunnel({
                                         <div className="flex flex-col items-end min-w-[100px] text-right">
                                             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stage.label}</span>
                                             <span className="text-2xl font-bold tracking-tight text-foreground">
-                                                {stage.value.toLocaleString()}
+                                                <span className="md:hidden">{formatCompactNumber(stage.value)}</span>
+                                                <span className="hidden md:inline">{formatNumber(stage.value)}</span>
                                             </span>
                                         </div>
                                     </div>
@@ -148,15 +150,24 @@ export function ConversionFunnel({
                                         <div className="flex flex-1 items-center justify-end gap-x-6 gap-y-2 flex-wrap text-sm">
                                             <div className="flex flex-col items-end">
                                                 <span className="text-[10px] text-muted-foreground uppercase">Impr.</span>
-                                                <span className="font-medium tabular-nums">{platform.impressions.toLocaleString()}</span>
+                                                <span className="font-medium tabular-nums">
+                                                    <span className="md:hidden">{formatCompactNumber(platform.impressions)}</span>
+                                                    <span className="hidden md:inline">{formatNumber(platform.impressions)}</span>
+                                                </span>
                                             </div>
                                             <div className="flex flex-col items-end">
                                                 <span className="text-[10px] text-muted-foreground uppercase">Clicks</span>
-                                                <span className="font-medium tabular-nums">{platform.clicks.toLocaleString()}</span>
+                                                <span className="font-medium tabular-nums">
+                                                    <span className="md:hidden">{formatCompactNumber(platform.clicks)}</span>
+                                                    <span className="hidden md:inline">{formatNumber(platform.clicks)}</span>
+                                                </span>
                                             </div>
                                             <div className="flex flex-col items-end min-w-[60px]">
                                                 <span className="text-[10px] text-muted-foreground uppercase">Conv.</span>
-                                                <span className="font-bold tabular-nums text-foreground">{platform.conversions.toLocaleString()}</span>
+                                                <span className="font-bold tabular-nums text-foreground">
+                                                    <span className="md:hidden">{formatCompactNumber(platform.conversions)}</span>
+                                                    <span className="hidden md:inline">{formatNumber(platform.conversions)}</span>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

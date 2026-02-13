@@ -117,7 +117,7 @@ export function FinancialOverview({
         <Card
             ref={cardRef}
             className={cn(
-                'relative h-[400px] overflow-hidden rounded-3xl border border-border shadow-lg flex flex-col transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl',
+                'relative h-auto min-h-[400px] md:h-[400px] overflow-hidden rounded-3xl border border-border shadow-lg flex flex-col transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl',
                 className
             )}
         >
@@ -129,7 +129,7 @@ export function FinancialOverview({
                 aria-hidden="true"
                 className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-gradient-to-tr from-emerald-500/10 via-amber-500/10 to-transparent blur-3xl"
             />
-            <CardHeader className="space-y-1 pb-3">
+            <CardHeader className="space-y-1 pb-3 px-4 pt-4 md:px-6 md:pt-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1">
                         <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -151,9 +151,9 @@ export function FinancialOverview({
                 </div>
             </CardHeader>
 
-            <CardContent className="flex-1 min-h-0 flex flex-col">
-                <div className="flex items-center justify-center w-full flex-1 min-h-0">
-                    <div className="flex flex-col md:flex-row items-center md:items-center gap-5 w-full">
+            <CardContent className="flex-1 min-h-0 flex flex-col px-4 pb-4 md:px-6 md:pb-6">
+                <div className="flex items-center justify-center w-full flex-1">
+                    <div className="flex flex-col md:flex-row items-center gap-6 md:gap-5 w-full">
                         <div className="relative w-full max-w-[320px]">
                             <div style={{ width: '100%', height: 280, minWidth: 0 }}>
                                 <ResponsiveContainer width="100%" height="100%">
@@ -248,7 +248,8 @@ export function FinancialOverview({
                                         className="font-semibold theme-text whitespace-nowrap text-xs"
                                         style={{ color: 'var(--theme-text, var(--foreground))' }}
                                     >
-                                        {formatCurrencyFull(item.value, currency)}
+                                        <span className="md:hidden">{formatCompactCurrency(item.value, currency)}</span>
+                                        <span className="hidden md:inline">{formatCurrencyFull(item.value, currency)}</span>
                                     </span>
                                 </div>
                             ))}
@@ -263,7 +264,8 @@ export function FinancialOverview({
                                 {item.label}
                             </p>
                             <p className="text-base font-bold text-foreground tracking-tight">
-                                {formatCurrencyFull(item.value, currency)}
+                                <span className="md:hidden">{formatCompactCurrency(item.value, currency)}</span>
+                                <span className="hidden md:inline">{formatCurrencyFull(item.value, currency)}</span>
                             </p>
                             {item.deltaLabel ? (
                                 <p className={cn('text-xs font-medium', item.deltaClassName)}>{item.deltaLabel}</p>
