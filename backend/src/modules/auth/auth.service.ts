@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthRepository } from './auth.repository';
@@ -9,10 +9,15 @@ import { RegisterDto, LoginDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 import { User, Tenant } from '@prisma/client';
 import { Request } from 'express';
+import * as crypto from 'crypto';
+import { MailService } from '../../common/services/mail.service';
 import {
   InvalidCredentialsException,
   AccountLockedException,
   EmailExistsException,
+  EmailNotVerifiedException,
+  InvalidEmailVerificationTokenException,
+  EmailVerificationTokenExpiredException,
   TokenRevokedException,
   TokenExpiredException,
   UserNotFoundException,
@@ -22,6 +27,8 @@ type UserWithTenant = User & { tenant: Tenant };
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly usersRepository: UsersRepository,
@@ -29,6 +36,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly auditLogsService: AuditLogsService,
     private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
   ) { }
 
   async register(dto: RegisterDto) {
@@ -46,6 +54,26 @@ export class AuthService {
 
     const user = await this.authRepository.createTenantAndUser(dto, hashedPassword) as UserWithTenant;
 
+    // Generate email verification token and store hash + expiry
+    const { token, tokenHash, expiresAt } = this.generateEmailVerificationToken();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: expiresAt,
+      },
+    });
+
+    // Send verification email
+    try {
+      await this.sendVerificationEmail(user.email, token);
+    } catch (e: any) {
+      this.logger.error(
+        `Failed to send verification email to ${user.email}: ${e?.message || e}`,
+        e?.stack,
+      );
+    }
+
     const tokens = await this.generateTokens(user.id, user.email);
     await this.authRepository.saveRefreshToken(user.id, tokens.refreshToken);
 
@@ -61,6 +89,77 @@ export class AuthService {
       user: this.sanitizeUser(user),
       ...tokens,
     };
+  }
+
+  async verifyEmail(token: string) {
+    if (!token) {
+      throw new InvalidEmailVerificationTokenException();
+    }
+
+    const tokenHash = this.hashToken(token);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        emailVerificationTokenHash: tokenHash,
+      },
+    });
+
+    if (!user) {
+      throw new InvalidEmailVerificationTokenException();
+    }
+
+    if (user.emailVerificationTokenExpiresAt && user.emailVerificationTokenExpiresAt < new Date()) {
+      throw new EmailVerificationTokenExpiredException();
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerificationTokenHash: null,
+        emailVerificationTokenExpiresAt: null,
+      },
+    });
+
+    return { message: 'Email verified successfully' };
+  }
+
+  async resendVerificationEmail(email: string) {
+    if (!email) {
+      throw new InvalidCredentialsException();
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { email },
+    });
+
+    if (!user) {
+      // Do not leak account existence
+      return { message: 'If an account exists for this email, a verification email has been sent.' };
+    }
+
+    if (user.emailVerified) {
+      return { message: 'Email is already verified.' };
+    }
+
+    const { token, tokenHash, expiresAt } = this.generateEmailVerificationToken();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: expiresAt,
+      },
+    });
+
+    try {
+      await this.sendVerificationEmail(email, token);
+      return { message: 'Verification email sent' };
+    } catch (e: any) {
+      this.logger.error(
+        `Failed to resend verification email to ${email}: ${e?.message || e}`,
+        e?.stack,
+      );
+      return { message: "We couldn't send the email right now. Please try again later." };
+    }
   }
 
   /**
@@ -84,6 +183,11 @@ export class AuthService {
 
     if (!user || !user.isActive) {
       throw new InvalidCredentialsException();
+    }
+
+    // Enforce email verification before allowing login
+    if (!user.emailVerified) {
+      throw new EmailNotVerifiedException();
     }
 
     const valid = await bcrypt.compare(dto.password, user.password);
@@ -273,5 +377,35 @@ export class AuthService {
         name: user.tenant.name,
       },
     };
+  }
+
+  private generateEmailVerificationToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    return { token, tokenHash, expiresAt };
+  }
+
+  private hashToken(token: string) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  private async sendVerificationEmail(email: string, token: string) {
+    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:5173');
+    const verifyUrl = `${appUrl.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(token)}`;
+
+    const subject = 'Verify your email';
+    const html = `
+      <p>Welcome to RGA Dashboard.</p>
+      <p>Please verify your email by clicking the link below:</p>
+      <p><a href="${verifyUrl}">Verify Email</a></p>
+      <p>If you did not create this account, you can ignore this email.</p>
+    `;
+
+    await this.mailService.sendMail({
+      to: email,
+      subject,
+      html,
+    });
   }
 }

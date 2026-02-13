@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleCanvas } from '@/components/ui/particle-canvas';
 import { Starfield } from '@/components/ui/starfield';
 import logo from '@/components/layout/LOGO-RGA-B2.png';
+import { apiClient } from '@/services/api-client';
 
 // Inline field error component with smooth animation
 function FieldError({ message }: { message?: string }) {
@@ -40,7 +41,9 @@ export default function Register() {
     companyName: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState('');
+  const [canResendVerification, setCanResendVerification] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -90,6 +93,7 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setCanResendVerification(false);
 
     if (!validateFields()) return;
 
@@ -105,11 +109,29 @@ export default function Register() {
       toast.success('Registration successful!');
       setLocation('/dashboard');
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Registration failed. Please try again.';
+      const errorData = err.response?.data;
+      const message = errorData?.message || 'Registration failed. Please try again.';
+      if (errorData?.error === 'EMAIL_EXISTS') {
+        setCanResendVerification(true);
+      }
       setError(message);
       toast.error(message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!formData.email) return;
+    setIsResending(true);
+    try {
+      await apiClient.post('/auth/resend-verification', { email: formData.email });
+      toast.success('Verification email sent. Please check your inbox.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to resend verification email.';
+      toast.error(msg);
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -197,6 +219,27 @@ export default function Register() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-sm">{error}</AlertDescription>
                 </Alert>
+
+                {canResendVerification && (
+                  <div className="mb-5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-lg"
+                      onClick={handleResendVerification}
+                      disabled={isResending}
+                    >
+                      {isResending ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending…
+                        </span>
+                      ) : (
+                        'Resend verification email'
+                      )}
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             )}
 

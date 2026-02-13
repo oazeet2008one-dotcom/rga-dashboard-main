@@ -143,7 +143,7 @@ function EmptyState() {
 }
 
 export function SeoPerformanceChart() {
-    const [period, setPeriod] = useState<PeriodEnum>('7d');
+    const [period, setPeriod] = useState<PeriodEnum>('30d');
     const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
     const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['organicTraffic', 'avgPosition']);
 

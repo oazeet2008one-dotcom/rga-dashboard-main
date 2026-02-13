@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleCanvas } from '@/components/ui/particle-canvas';
 import { Starfield } from '@/components/ui/starfield';
 import logo from '@/components/layout/LOGO-RGA-B2.png';
+import { apiClient } from '@/services/api-client';
 
 // Inline field error component with smooth animation
 function FieldError({ message }: { message?: string }) {
@@ -35,6 +36,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
+  const [canResendVerification, setCanResendVerification] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -73,6 +76,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError('');
+    setCanResendVerification(false);
     setSessionExpired(false);
     clearError();
 
@@ -93,11 +97,30 @@ export default function Login() {
         const message = `Invalid credentials. ${errorData.remainingAttempts} attempts remaining.`;
         setLocalError(message);
         toast.warning(message);
+      } else if (errorData?.error === 'EMAIL_NOT_VERIFIED') {
+        const message = errorData?.message || 'Please verify your email before logging in.';
+        setLocalError(message);
+        setCanResendVerification(true);
+        toast.error(message);
       } else {
         const message = errorData?.message || 'Login failed. Please try again.';
         setLocalError(message);
         toast.error(message);
       }
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+    setIsResending(true);
+    try {
+      await apiClient.post('/auth/resend-verification', { email });
+      toast.success('Verification email sent. Please check your inbox.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to resend verification email.';
+      toast.error(msg);
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -183,6 +206,27 @@ export default function Login() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-sm">{displayError}</AlertDescription>
                 </Alert>
+
+                {canResendVerification && (
+                  <div className="mb-5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-lg"
+                      onClick={handleResendVerification}
+                      disabled={isResending}
+                    >
+                      {isResending ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending…
+                        </span>
+                      ) : (
+                        'Send verification email again'
+                      )}
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             )}
 

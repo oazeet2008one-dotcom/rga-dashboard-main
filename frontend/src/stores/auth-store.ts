@@ -109,6 +109,9 @@ export const useAuthStore = create<AuthState>()(
                         case 'ACCOUNT_LOCKED':
                             message = `Account is locked. Please try again in ${meta?.lockoutMinutes || 30} minutes.`;
                             break;
+                        case 'EMAIL_NOT_VERIFIED':
+                            message = 'Please verify your email before logging in.';
+                            break;
                         case 'INVALID_CREDENTIALS':
                             if (meta?.remainingAttempts !== undefined) {
                                 message = `Invalid credentials. ${meta.remainingAttempts} attempts remaining.`;

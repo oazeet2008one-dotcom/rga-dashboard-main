@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 // ✅ NEW: Import from feature module (replaces legacy pages/Dashboard)
 import { DashboardPage } from "@/features/dashboard";
 // ✅ NEW: Import from feature module (replaces legacy pages/Campaigns)
@@ -35,6 +36,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/landing/ecommerce" component={EcommerceLandingPage} />
       {/* ✅ NEW: AI Insights Page */}

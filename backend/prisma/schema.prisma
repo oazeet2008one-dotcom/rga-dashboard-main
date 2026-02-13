@@ -234,6 +234,8 @@ model User {
 
   // Security
   emailVerified     Boolean   @default(false) @map("email_verified")
+  emailVerificationTokenHash      String?   @map("email_verification_token_hash") @db.VarChar(255)
+  emailVerificationTokenExpiresAt DateTime? @map("email_verification_token_expires_at")
   twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
   lastLoginAt       DateTime? @map("last_login_at")
   lastLoginIp       String?   @map("last_login_ip") @db.VarChar(45)
