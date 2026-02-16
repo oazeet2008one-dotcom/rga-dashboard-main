@@ -219,6 +219,7 @@ model User {
   id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId String @map("tenant_id") @db.Uuid
   email    String @map("email") @db.VarChar(255)
+  username String? @unique @map("username") @db.VarChar(30)
   password String @map("password_hash") @db.VarChar(255)
 
   // Profile
@@ -236,6 +237,7 @@ model User {
   emailVerified     Boolean   @default(false) @map("email_verified")
   emailVerificationTokenHash      String?   @map("email_verification_token_hash") @db.VarChar(255)
   emailVerificationTokenExpiresAt DateTime? @map("email_verification_token_expires_at")
+  termsAcceptedAt   DateTime? @map("terms_accepted_at")
   twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
   lastLoginAt       DateTime? @map("last_login_at")
   lastLoginIp       String?   @map("last_login_ip") @db.VarChar(45)
@@ -263,6 +265,7 @@ model User {
   @@unique([tenantId, email], name: "users_tenant_email_unique")
   @@index([tenantId], name: "idx_users_tenant")
   @@index([email], name: "idx_users_email")
+  @@index([username], name: "idx_users_username")
   @@index([role], name: "idx_users_role")
   @@index([isActive], name: "idx_users_is_active")
   @@index([tenantId, isActive], name: "idx_users_tenant_active")

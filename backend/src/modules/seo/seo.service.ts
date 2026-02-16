@@ -7,150 +7,148 @@ export class SeoService {
 
     async getSeoSummary(tenantId: string) {
         try {
-            // Get latest 30 days of data from all related tables
+            // Current Period (Last 30 days)
             const endDate = new Date();
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - 30);
 
-            // 1. Get web analytics data
+            // Previous Period (30-60 days ago)
+            const previousStartDate = new Date(startDate);
+            previousStartDate.setDate(previousStartDate.getDate() - 30);
+            const previousEndDate = new Date(startDate);
+
+            // 1. Get web analytics data (Current & Previous)
             const webAnalyticsData = await this.prisma.webAnalyticsDaily.findMany({
                 where: {
                     tenantId,
-                    date: {
-                        gte: startDate,
-                        lte: endDate
-                    }
+                    date: { gte: startDate, lte: endDate }
                 },
                 orderBy: { date: 'asc' }
             });
 
-            // 2. Get SEO offpage metrics
-            const offpageData = await this.prisma.seoOffpageMetricSnapshots.findMany({
+            const previousWebAnalyticsData = await this.prisma.webAnalyticsDaily.findMany({
                 where: {
                     tenantId,
-                    date: {
-                        gte: startDate,
-                        lte: endDate
-                    }
+                    date: { gte: previousStartDate, lte: previousEndDate }
                 },
-                orderBy: { date: 'asc' }
+                select: { sessions: true, newUsers: true, avgSessionDuration: true }
             });
 
-            // 3. Get SEO top keywords
+            // 2. Get SEO offpage metrics (Latest snapshot only)
+            const latestOffpage = await this.prisma.seoOffpageMetricSnapshots.findFirst({
+                where: { tenantId },
+                orderBy: { date: 'desc' }
+            });
+
+            // 3. Get SEO Top Keywords (Current & Previous for Avg Position)
             const keywordsData = await this.prisma.seoTopKeywords.findMany({
                 where: {
                     tenantId,
-                    date: {
-                        gte: startDate,
-                        lte: endDate
-                    }
+                    date: { gte: startDate, lte: endDate }
                 },
-                orderBy: { position: 'asc' },
-                take: 10
+                select: { position: true, date: true }
             });
 
-            // 4. Get SEO traffic by location
-            const locationData = await this.prisma.seoTrafficByLocation.findMany({
+            const previousKeywordsData = await this.prisma.seoTopKeywords.findMany({
                 where: {
                     tenantId,
-                    date: {
-                        gte: startDate,
-                        lte: endDate
-                    }
+                    date: { gte: previousStartDate, lte: previousEndDate }
                 },
-                orderBy: { traffic: 'desc' },
-                take: 10
+                select: { position: true }
             });
 
-            // 5. Get SEO search intent
-            const intentData = await this.prisma.seoSearchIntent.findMany({
+            // 4. Get Metrics / Paid Data (Current & Previous)
+            const metricsData = await this.prisma.metric.groupBy({
+                by: ['tenantId'],
                 where: {
                     tenantId,
-                    date: {
-                        gte: startDate,
-                        lte: endDate
-                    }
+                    date: { gte: startDate, lte: endDate }
                 },
-                orderBy: { traffic: 'desc' }
+                _sum: { clicks: true, impressions: true, spend: true }
             });
 
-            // 6. Get SEO anchor text
-            const anchorData = await this.prisma.seoAnchorText.findMany({
+            const previousMetricsData = await this.prisma.metric.groupBy({
+                by: ['tenantId'],
                 where: {
                     tenantId,
-                    date: {
-                        gte: startDate,
-                        lte: endDate
-                    }
+                    date: { gte: previousStartDate, lte: previousEndDate }
                 },
-                orderBy: { referringDomains: 'desc' },
-                take: 10
+                _sum: { clicks: true, impressions: true, spend: true }
             });
 
-            // 7. Get metrics data (paid traffic)
-            const metricsData = await this.prisma.metric.findMany({
-                where: {
-                    tenantId,
-                    date: {
-                        gte: startDate,
-                        lte: endDate
-                    }
-                },
-                orderBy: { date: 'asc' }
-            });
+            // --- CALCULATIONS ---
 
-            // Calculate totals from web analytics (sum of 30 days)
+            // Organic Sessions
             const totalOrganicSessions = webAnalyticsData.reduce((sum, day) => sum + day.sessions, 0);
-            const totalNewUsers = webAnalyticsData.reduce((sum, day) => sum + day.newUsers, 0);
-            const avgSessionDuration = webAnalyticsData.length > 0 ? 
-                Number(webAnalyticsData.reduce((sum, day) => sum + Number(day.avgSessionDuration), 0)) / webAnalyticsData.length : 65;
+            const prevOrganicSessions = previousWebAnalyticsData.reduce((sum, day) => sum + day.sessions, 0);
+            const organicSessionsTrend = prevOrganicSessions > 0 ? ((totalOrganicSessions - prevOrganicSessions) / prevOrganicSessions) * 100 : 0;
 
-            // Use the latest offpage snapshot for summary cards (these are point-in-time metrics)
-            const latestOffpage = offpageData[offpageData.length - 1];
-            const avgUR = parseFloat((latestOffpage?.ur || 21.3).toFixed(2));
-            const avgDR = parseFloat((latestOffpage?.dr || 34.3).toFixed(2));
-            
+            // New Users
+            const totalNewUsers = webAnalyticsData.reduce((sum, day) => sum + day.newUsers, 0);
+            const prevNewUsers = previousWebAnalyticsData.reduce((sum, day) => sum + (day.newUsers || 0), 0);
+            const newUsersTrend = prevNewUsers > 0 ? ((totalNewUsers - prevNewUsers) / prevNewUsers) * 100 : 0;
+
+
+            // Avg Session Duration
+            const avgSessionDuration = webAnalyticsData.length > 0 ?
+                Number(webAnalyticsData.reduce((sum, day) => sum + Number(day.avgSessionDuration), 0)) / webAnalyticsData.length : 65;
+            const prevAvgSessionDuration = previousWebAnalyticsData.length > 0 ?
+                Number(previousWebAnalyticsData.reduce((sum, day) => sum + Number(day.avgSessionDuration), 0)) / previousWebAnalyticsData.length : 65;
+            const avgSessionDurationTrend = prevAvgSessionDuration > 0 ? ((avgSessionDuration - prevAvgSessionDuration) / prevAvgSessionDuration) * 100 : 0;
+
+            // Goal Completions (Estimated 4.5% of sessions)
+            const goalCompletions = Math.round(totalOrganicSessions * 0.045);
+            const prevGoalCompletions = Math.round(prevOrganicSessions * 0.045);
+            const goalCompletionsTrend = prevGoalCompletions > 0 ? ((goalCompletions - prevGoalCompletions) / prevGoalCompletions) * 100 : 0;
+
+            // Avg Position
+            const avgPosition = keywordsData.length > 0 ?
+                keywordsData.reduce((sum, kw) => sum + kw.position, 0) / keywordsData.length : 0;
+            const prevAvgPosition = previousKeywordsData.length > 0 ?
+                previousKeywordsData.reduce((sum, kw) => sum + kw.position, 0) / previousKeywordsData.length : 0;
+
+            // For position, calculate raw percentage change. UI handles "negative is good/bad".
+            const avgPositionTrend = prevAvgPosition > 0 ? ((avgPosition - prevAvgPosition) / prevAvgPosition) * 100 : 0;
+
+
+            // Offpage Metrics
+            const avgUR = latestOffpage?.ur ?? 0;
+            const avgDR = latestOffpage?.dr ?? 0;
             const backlinks = latestOffpage?.backlinks ?? 0;
             const referringDomains = latestOffpage?.referringDomains ?? 0;
             const keywords = latestOffpage?.keywords ?? 0;
             const trafficCost = latestOffpage?.trafficCost ?? 0;
-
-            // Use latest organicTraffic as a proxy for pages (until dedicated fields exist)
-            const organicPages = latestOffpage?.organicTraffic ?? 0;
+            const organicPages = latestOffpage?.organicTraffic ?? 0; // Using organicTraffic as proxy
             const crawledPages = latestOffpage?.organicTraffic ?? 0;
 
-            // Calculate totals from metrics (sum of 30 days)
-            const totalPaidTraffic = metricsData.reduce((sum, day) => sum + day.clicks, 0);
-            const totalImpressions = metricsData.reduce((sum, day) => sum + day.impressions, 0);
-            const totalSpend = Number(metricsData.reduce((sum, day) => sum + Number(day.spend), 0));
 
-            // Calculate goal completions (4.5% of organic sessions)
-            const goalCompletions = Math.round(totalOrganicSessions * 0.045);
+            // Paid Metrics
+            const currentPaid = metricsData[0]?._sum || { clicks: 0, impressions: 0, spend: 0 };
+            const prevPaid = previousMetricsData[0]?._sum || { clicks: 0, impressions: 0, spend: 0 };
 
-            // Calculate average position from keywords (average of all keywords in 30 days)
-            const avgPosition = keywordsData.length > 0 ? 
-                keywordsData.reduce((sum, kw) => sum + kw.position, 0) / keywordsData.length : 10.8;
+            const totalPaidTraffic = currentPaid.clicks ?? 0;
+            const prevPaidTraffic = prevPaid.clicks ?? 0;
+            const paidTrafficTrend = prevPaidTraffic > 0 ? ((totalPaidTraffic - prevPaidTraffic) / prevPaidTraffic) * 100 : 0;
 
-            // Calculate trends (using latest vs previous data)
+            const totalImpressions = currentPaid.impressions ?? 0;
+            const prevImpressions = prevPaid.impressions ?? 0;
+            const impressionsTrend = prevImpressions > 0 ? ((totalImpressions - prevImpressions) / prevImpressions) * 100 : 0;
+
+
             const latestWebAnalytics = webAnalyticsData[webAnalyticsData.length - 1];
-            const previousWebAnalytics = webAnalyticsData.length > 1 ? webAnalyticsData[webAnalyticsData.length - 2] : null;
-            
-            const organicSessionsTrend = previousWebAnalytics && previousWebAnalytics.sessions > 0 ? 
-                ((latestWebAnalytics.sessions - previousWebAnalytics.sessions) / previousWebAnalytics.sessions) * 100 : 20.2;
-
-            const avgPositionTrend = -46.3; // Mock trend for now
 
             return {
                 organicSessions: totalOrganicSessions,
                 newUsers: totalNewUsers,
-                avgTimeOnPage: Math.round(avgSessionDuration) || 65,
+                avgTimeOnPage: Math.round(avgSessionDuration) || 0,
                 organicSessionsTrend: parseFloat(organicSessionsTrend.toFixed(1)),
-                newUsersTrend: parseFloat(organicSessionsTrend.toFixed(1)),
+                newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
+                avgTimeOnPageTrend: parseFloat(avgSessionDurationTrend.toFixed(1)),
                 goalCompletions: goalCompletions,
-                goalCompletionsTrend: 0,
+                goalCompletionsTrend: parseFloat(goalCompletionsTrend.toFixed(1)),
                 avgPosition: parseFloat(avgPosition.toFixed(1)),
-                avgPositionTrend: avgPositionTrend,
-                bounceRate: latestWebAnalytics?.bounceRate || 0,
+                avgPositionTrend: parseFloat(avgPositionTrend.toFixed(1)),
+                bounceRate: Number(latestWebAnalytics?.bounceRate || 0),
                 ur: avgUR,
                 dr: avgDR,
                 backlinks: backlinks,
@@ -158,15 +156,15 @@ export class SeoService {
                 keywords: keywords,
                 trafficCost: trafficCost,
                 paidTraffic: totalPaidTraffic,
-                paidTrafficTrend: 0,
+                paidTrafficTrend: parseFloat(paidTrafficTrend.toFixed(1)),
                 impressions: totalImpressions,
-                impressionsTrend: 0,
+                impressionsTrend: parseFloat(impressionsTrend.toFixed(1)),
                 organicPages: organicPages,
                 crawledPages: crawledPages
             };
         } catch (error) {
             console.error('Error fetching SEO summary:', error);
-            // Return default values on error
+            // Return zero values on error
             return {
                 organicSessions: 0,
                 newUsers: 0,
@@ -277,7 +275,7 @@ export class SeoService {
         // Create a map for average position by date
         const avgPositionMap = new Map<string, number>();
         const keywordsByDate = new Map<string, any[]>();
-        
+
         keywordsDataForHistory.forEach(item => {
             const dateStr = item.date.toISOString().split('T')[0];
             if (!keywordsByDate.has(dateStr)) {
@@ -423,52 +421,52 @@ export class SeoService {
         startDate.setDate(startDate.getDate() - 30);
 
         try {
-            // Fetch location data using Raw SQL
-            const locationDataResult: any[] = await this.prisma.$queryRaw`
-                SELECT metadata, sessions FROM web_analytics_daily 
-                WHERE tenant_id = ${tenantId}::uuid 
-                AND date >= ${startDate} 
-                AND date <= ${endDate} 
-                AND metadata IS NOT NULL
-            `;
-
-            if (!locationDataResult || locationDataResult.length === 0) {
-                return [];
-            }
-
-            // Aggregate traffic by location
-            const locationMap = new Map<string, { country: string, city: string, traffic: number, keywords: number, countryCode: string }>();
-
-            locationDataResult.forEach(record => {
-                const location = record.metadata?.location;
-                if (location) {
-                    const key = `${location.country}-${location.city}`;
-                    const existing = locationMap.get(key);
-
-                    // Use stored traffic if available, otherwise fallback to sessions (which should be same in this context)
-                    const traffic = Number(location.traffic || record.sessions || 0);
-                    // Use stored keywords from metadata if available
-                    const keywords = Number(location.keywords || 0);
-
-                    if (existing) {
-                        existing.traffic += traffic;
-                        existing.keywords += keywords;
-                    } else {
-                        locationMap.set(key, {
-                            country: location.country,
-                            city: location.city,
-                            traffic: traffic,
-                            keywords: keywords,
-                            countryCode: location.countryCode || this.getCountryCode(location.country)
-                        });
+            // Fetch traffic by location from dedicated table
+            const locationData = await this.prisma.seoTrafficByLocation.findMany({
+                where: {
+                    tenantId,
+                    date: {
+                        gte: startDate,
+                        lte: endDate
                     }
+                },
+                orderBy: { traffic: 'desc' },
+                // Limit to prevent huge loads, but we need to aggregate first
+            });
+
+            // Aggregate by Location (City + Country)
+            const aggregatedMap = new Map<string, { country: string, city: string, traffic: number, keywords: number, countryCode: string }>();
+
+            locationData.forEach(item => {
+                const parts = item.location.split(',');
+                let city = parts[0].trim();
+                let country = parts.length > 1 ? parts[1].trim() : city;
+                if (parts.length === 1) {
+                    city = item.location;
+                    country = item.location;
+                }
+
+                const key = item.location; // Use raw location as key
+
+                if (aggregatedMap.has(key)) {
+                    const existing = aggregatedMap.get(key)!;
+                    existing.traffic += item.traffic;
+                    // For keywords, taking max is safer than sum if these are daily snapshots of the same ranking keywords
+                    existing.keywords = Math.max(existing.keywords, item.keywords);
+                } else {
+                    aggregatedMap.set(key, {
+                        country: country,
+                        city: city,
+                        traffic: item.traffic,
+                        keywords: item.keywords,
+                        countryCode: this.getCountryCode(country)
+                    });
                 }
             });
 
-            // Convert to array and sort by traffic (descending)
-            return Array.from(locationMap.values())
+            return Array.from(aggregatedMap.values())
                 .sort((a, b) => b.traffic - a.traffic)
-                .slice(0, 10); // Top 10 locations
+                .slice(0, 10);
 
         } catch (error) {
             console.error('Error fetching SEO traffic by location:', error);
@@ -486,6 +484,8 @@ export class SeoService {
             'Malaysia': 'MY',
             'Australia': 'AU'
         };
+        // Basic heuristic for unknown countries (take first 2 letters if uppercase)
+        // Or default to 'XX'
         return countryMap[countryName] || 'XX';
     }
 
@@ -510,7 +510,7 @@ export class SeoService {
 
             // Calculate traffic percentage for each keyword
             const totalTraffic = keywords.reduce((sum, kw) => sum + kw.traffic, 0);
-            
+
             return keywords.map(kw => ({
                 keyword: kw.keyword,
                 position: kw.position,

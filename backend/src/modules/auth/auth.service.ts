@@ -15,6 +15,8 @@ import {
   InvalidCredentialsException,
   AccountLockedException,
   EmailExistsException,
+  UsernameExistsException,
+  TermsNotAcceptedException,
   EmailNotVerifiedException,
   InvalidEmailVerificationTokenException,
   EmailVerificationTokenExpiredException,
@@ -40,19 +42,42 @@ export class AuthService {
   ) { }
 
   async register(dto: RegisterDto) {
+    if (!dto.termsAccepted) {
+      throw new TermsNotAcceptedException();
+    }
+
+    const normalizedEmail = (dto.email || '').trim().toLowerCase();
+    const normalizedUsername = (dto.username || '').trim().toLowerCase();
+
     // Note: For registration, we don't have tenantId yet, so we use a global email check
     // This is acceptable as emails should be globally unique for login purposes
     const existing = await this.prisma.user.findFirst({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (existing) {
       throw new EmailExistsException();
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const existingUsername = await this.prisma.user.findFirst({
+      where: { username: normalizedUsername },
+    });
 
-    const user = await this.authRepository.createTenantAndUser(dto, hashedPassword) as UserWithTenant;
+    if (existingUsername) {
+      throw new UsernameExistsException();
+    }
+
+    const normalizedDto: RegisterDto = {
+      ...dto,
+      email: normalizedEmail,
+      username: normalizedUsername,
+      firstName: (dto.firstName || '').trim(),
+      lastName: (dto.lastName || '').trim(),
+    };
+
+    const hashedPassword = await bcrypt.hash(normalizedDto.password, 10);
+
+    const user = await this.authRepository.createTenantAndUser(normalizedDto, hashedPassword) as UserWithTenant;
 
     // Generate email verification token and store hash + expiry
     const { token, tokenHash, expiresAt } = this.generateEmailVerificationToken();
@@ -394,12 +419,18 @@ export class AuthService {
     const appUrl = this.config.get<string>('APP_URL', 'http://localhost:5173');
     const verifyUrl = `${appUrl.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(token)}`;
 
-    const subject = 'Verify your email';
+    const subject = 'Email Verification - RGA Dashboard';
     const html = `
-      <p>Welcome to RGA Dashboard.</p>
-      <p>Please verify your email by clicking the link below:</p>
-      <p><a href="${verifyUrl}">Verify Email</a></p>
-      <p>If you did not create this account, you can ignore this email.</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333; margin-bottom: 20px;">Welcome to RGA Dashboard</h2>
+        <p style="color: #666; line-height: 1.6;">Thank you for registering with RGA Dashboard. To complete your registration and access your account, please verify your email address.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verifyUrl}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email Address</a>
+        </div>
+        <p style="color: #999; font-size: 14px;">If you did not create this account, please disregard this email. Your account will not be activated without verification.</p>
+        <hr style="border: 1px solid #eee; margin: 30px 0;">
+        <p style="color: #999; font-size: 12px;">This is an automated message from RGA Dashboard. Please do not reply to this email.</p>
+      </div>
     `;
 
     await this.mailService.sendMail({

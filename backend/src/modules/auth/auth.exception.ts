@@ -145,3 +145,27 @@ export class EmailExistsException extends ConflictException {
         });
     }
 }
+
+/**
+ * Thrown when attempting to register with an already-used username
+ */
+export class UsernameExistsException extends ConflictException {
+    constructor() {
+        super({
+            error: 'USERNAME_EXISTS',
+            message: 'This username is already taken. Please choose another one.',
+        });
+    }
+}
+
+/**
+ * Thrown when user does not accept terms during registration
+ */
+export class TermsNotAcceptedException extends ForbiddenException {
+    constructor() {
+        super({
+            error: 'TERMS_NOT_ACCEPTED',
+            message: 'You must accept the Terms & Conditions to create an account.',
+        });
+    }
+}

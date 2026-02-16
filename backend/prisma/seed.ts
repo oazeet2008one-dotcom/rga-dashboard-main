@@ -552,8 +552,10 @@ async function main() {
     seoCurrentDate.setDate(seoCurrentDate.getDate() + 1);
   }
 
-  // Use Raw SQL Helper
-  await insertSeoSearchIntentRaw(seoIntentMetrics);
+  // Use Prisma Client instead of Raw SQL
+  await prisma.seoSearchIntent.createMany({
+    data: seoIntentMetrics
+  });
   console.log(`✅ Created ${seoIntentMetrics.length} SEO Intent records.`);
 
   // 8. Create SEO Premium Metrics Data (10 sets of data + 30 days history)
@@ -624,8 +626,13 @@ async function main() {
     });
   }
 
-  // Use Raw SQL Helper
-  await insertWebAnalyticsDailyRaw(seoPremiumData);
+  // Use Prisma Client instead of Raw SQL
+  await prisma.webAnalyticsDaily.createMany({
+    data: seoPremiumData.map(item => ({
+      ...item,
+      metadata: undefined // Remove metadata field
+    }))
+  });
   console.log(`✅ Created ${seoPremiumData.length} SEO Premium Metrics records (30 days history).`);
 
   // 9. Create Traffic by Location Data
@@ -662,21 +669,129 @@ async function main() {
       bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
       avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
       isMockData: true,
-      metadata: {
-        location: {
-          country: location.country,
-          city: location.city,
-          countryCode: location.countryCode,
-          traffic: location.traffic,
-          keywords: location.keywords
-        }
-      }
     };
   });
 
-  // Use Raw SQL Helper
-  await insertWebAnalyticsDailyRaw(locationData);
+  // Use Prisma Client instead of Raw SQL
+  await prisma.webAnalyticsDaily.createMany({
+    data: locationData
+  });
   console.log(`✅ Created ${locationData.length} Traffic by Location records.`);
+
+  // 10. Create SEO Top Keywords Data (from user's sample data)
+  console.log('🔤 Creating SEO Top Keywords data...');
+  const topKeywords = [
+    { keyword: 'rga dashboard', position: 1, volume: 1000, traffic: 800 },
+    { keyword: 'marketing analytics', position: 3, volume: 2400, traffic: 1200 },
+    { keyword: 'campaign tracking', position: 5, volume: 1800, traffic: 900 },
+    { keyword: 'seo tools', position: 8, volume: 3200, traffic: 1600 },
+    { keyword: 'ad performance', position: 12, volume: 1500, traffic: 750 }
+  ];
+
+  const seoTopKeywordsData = topKeywords.map((kw, index) => {
+    const keywordDate = new Date(premiumStartDate);
+    keywordDate.setDate(premiumStartDate.getDate() + index);
+    
+    return {
+      tenantId: tenant.id,
+      date: keywordDate,
+      keyword: kw.keyword,
+      position: kw.position,
+      volume: kw.volume,
+      traffic: kw.traffic,
+      trafficPercentage: parseFloat((kw.traffic / 3520 * 100).toFixed(1)),
+      url: `https://rga-dashboard.com/keywords/${kw.keyword.replace(/\s+/g, '-')}`,
+      change: 0
+    };
+  });
+
+  await prisma.seoTopKeywords.createMany({
+    data: seoTopKeywordsData
+  });
+  console.log(`✅ Created ${seoTopKeywordsData.length} SEO Top Keywords records.`);
+
+  // 11. Create SEO Traffic by Location Data (dedicated table)
+  console.log('🌍 Creating SEO Traffic by Location data (dedicated table)...');
+  const seoTrafficByLocationData = locations.map((location, index) => {
+    const locationDate = new Date(premiumStartDate);
+    locationDate.setDate(premiumStartDate.getDate() + index);
+    
+    return {
+      tenantId: tenant.id,
+      date: locationDate,
+      location: `${location.city}, ${location.country}`,
+      traffic: location.traffic,
+      trafficPercentage: parseFloat((location.traffic / 3520 * 100).toFixed(1)),
+      keywords: location.keywords
+    };
+  });
+
+  await prisma.seoTrafficByLocation.createMany({
+    data: seoTrafficByLocationData
+  });
+  console.log(`✅ Created ${seoTrafficByLocationData.length} SEO Traffic by Location records.`);
+
+  // 12. Create SEO Anchor Text Data
+  console.log('⚓ Creating SEO Anchor Text data...');
+  const anchorTexts = [
+    { text: 'rga dashboard', domains: 45, backlinks: 120, referringDomains: 35, rating: 85 },
+    { text: 'marketing analytics', domains: 32, backlinks: 89, referringDomains: 28, rating: 72 },
+  ];
+
+  const seoAnchorTextData = anchorTexts.map((anchor, index) => {
+    const anchorDate = new Date(premiumStartDate);
+    anchorDate.setDate(premiumStartDate.getDate() + index);
+    
+    return {
+      tenantId: tenant.id,
+      date: anchorDate,
+      anchorText: anchor.text,
+      domains: anchor.domains,
+      totalBacklinks: anchor.backlinks,
+      dofollowBacklinks: Math.floor(anchor.backlinks * 0.8),
+      referringDomains: anchor.referringDomains,
+      traffic: Math.floor(anchor.backlinks * 2.5),
+      trafficPercentage: parseFloat((anchor.backlinks / 365 * 100).toFixed(1))
+    };
+  });
+
+  await prisma.seoAnchorText.createMany({
+    data: seoAnchorTextData
+  });
+  console.log(`✅ Created ${seoAnchorTextData.length} SEO Anchor Text records.`);
+
+  // 13. Create SEO Offpage Metrics (Referring Domains & Backlinks)
+  console.log('🔗 Creating SEO Offpage Metrics data...');
+  const offpageMetrics = [
+    { referringDomains: 125, dofollow: 89, nofollow: 36, ugc: 5, sponsored: 8, text: 156, redirect: 23, image: 45, form: 12, governmental: 8, educational: 15, gov: 3, edu: 12, com: 67, net: 28, org: 30, crawledPages: 528, referringPages: 440, referringIps: 57, referringSubnets: 53, ur81to100: 1, ur61to80: 2, ur41to60: 0, ur21to40: 1, ur1to20: 0 }
+  ];
+
+  const seoOffpageData = offpageMetrics.map((metric, index) => {
+    const metricDate = new Date(premiumStartDate);
+    metricDate.setDate(premiumStartDate.getDate() + index);
+    
+    return {
+      tenantId: tenant.id,
+      date: metricDate,
+      ur: 25.5,
+      dr: 35.2,
+      backlinks: metric.text + metric.redirect + metric.image + metric.form,
+      referringDomains: metric.referringDomains,
+      keywords: 1250,
+      trafficCost: 8500,
+      organicTraffic: 298140,
+      organicTrafficValue: 12450,
+      newReferringDomains: 12,
+      newBacklinks: 45,
+      lostReferringDomains: 3,
+      lostBacklinks: 8
+    };
+  });
+
+  await prisma.seoOffpageMetricSnapshots.createMany({
+    data: seoOffpageData
+  });
+  console.log(`✅ Created ${seoOffpageData.length} SEO Offpage Metrics records.`);
 
   console.log('🎉 Seed completed successfully!');
 }
