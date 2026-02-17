@@ -5,7 +5,7 @@ import { AuthRepository } from './auth.repository';
 import { UsersRepository } from '../users/users.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from './dto';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 import { User, Tenant } from '@prisma/client';
 import { Request } from 'express';
@@ -428,6 +428,113 @@ export class AuthService {
           <a href="${verifyUrl}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email Address</a>
         </div>
         <p style="color: #999; font-size: 14px;">If you did not create this account, please disregard this email. Your account will not be activated without verification.</p>
+        <hr style="border: 1px solid #eee; margin: 30px 0;">
+        <p style="color: #999; font-size: 12px;">This is an automated message from RGA Dashboard. Please do not reply to this email.</p>
+      </div>
+    `;
+
+    await this.mailService.sendMail({
+      to: email,
+      subject,
+      html,
+    });
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      // Don't reveal if email exists for security
+      return { message: 'If an account exists with this email, a password reset link has been sent.' };
+    }
+
+    // Generate password reset token
+    const { token, tokenHash, expiresAt } = this.generatePasswordResetToken();
+    
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetTokenHash: tokenHash,
+        passwordResetTokenExpiresAt: expiresAt,
+      },
+    });
+
+    try {
+      await this.sendPasswordResetEmail(user.email, token);
+    } catch (e: any) {
+      this.logger.error(
+        `Failed to send password reset email to ${user.email}: ${e?.message || e}`,
+        e?.stack,
+      );
+    }
+
+    return { message: 'If an account exists with this email, a password reset link has been sent.' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const tokenHash = this.hashToken(dto.token);
+    
+    const user = await this.prisma.user.findFirst({
+      where: {
+        passwordResetTokenHash: tokenHash,
+        passwordResetTokenExpiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new InvalidCredentialsException();
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    // Update password and clear reset token
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetTokenHash: null,
+        passwordResetTokenExpiresAt: null,
+      },
+    });
+
+    // Log the password reset
+    await this.auditLogsService.createLog({
+      userId: user.id,
+      action: 'PASSWORD_RESET',
+      resource: 'user',
+      details: { email: user.email },
+    });
+
+    return { message: 'Password reset successfully' };
+  }
+
+  private generatePasswordResetToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
+
+    return { token, tokenHash, expiresAt };
+  }
+
+  private async sendPasswordResetEmail(email: string, token: string) {
+    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:5173');
+    const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+
+    const subject = 'Password Reset - RGA Dashboard';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
+        <p style="color: #666; line-height: 1.6;">We received a request to reset your password for your RGA Dashboard account. Click the link below to reset your password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+        </div>
+        <p style="color: #999; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
+        <p style="color: #999; font-size: 14px;">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
         <hr style="border: 1px solid #eee; margin: 30px 0;">
         <p style="color: #999; font-size: 12px;">This is an automated message from RGA Dashboard. Please do not reply to this email.</p>
       </div>

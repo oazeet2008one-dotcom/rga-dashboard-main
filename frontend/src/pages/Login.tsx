@@ -4,7 +4,7 @@ import { useLocation, useSearch } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, AlertTriangle, ArrowRight, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleCanvas } from '@/components/ui/particle-canvas';
@@ -41,6 +41,9 @@ export default function Login() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const [, setLocation] = useLocation();
   const searchString = useSearch();
 
@@ -71,6 +74,40 @@ export default function Login() {
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  const validateForgotPassword = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!forgotEmail.trim()) {
+      errors.forgotEmail = 'Email is required';
+    } else if (!emailRegex.test(forgotEmail)) {
+      errors.forgotEmail = 'Invalid email format';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError('');
+    clearError();
+
+    if (!validateForgotPassword()) return;
+
+    setIsSendingReset(true);
+    try {
+      await apiClient.post('/auth/forgot-password', { email: forgotEmail });
+      toast.success('Password reset link sent to your email!');
+      setIsForgotPassword(false);
+      setForgotEmail('');
+    } catch (err: any) {
+      // Always show success message for security (don't reveal if email exists)
+      toast.success('Password reset link sent to your email!');
+      setIsForgotPassword(false);
+      setForgotEmail('');
+    } finally {
+      setIsSendingReset(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -276,8 +313,11 @@ export default function Login() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setLocation('/forgot-password')}
-                    className="text-xs text-orange-600/80 hover:text-orange-700 font-medium transition-colors"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setForgotEmail(email);
+                    }}
+                    className="text-xs text-blue-600/80 hover:text-blue-700 font-medium transition-colors"
                   >
                     Forgot?
                   </button>
@@ -334,16 +374,29 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Register link */}
-            <p className="text-center text-[13px] text-slate-400">
-              Don't have an account?{' '}
-              <button
-                onClick={() => setLocation('/register')}
-                className="text-orange-600 font-semibold hover:text-orange-700 transition-colors"
-              >
-                Get started
-              </button>
-            </p>
+            {/* Forgot Password & Register links */}
+            <div className="space-y-3">
+              <p className="text-center text-[13px] text-slate-400">
+                <button
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setForgotEmail(email);
+                  }}
+                  className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                >
+                  Forgot your password?
+                </button>
+              </p>
+              <p className="text-center text-[13px] text-slate-400">
+                Don't have an account?{' '}
+                <button
+                  onClick={() => setLocation('/register')}
+                  className="text-orange-600 font-semibold hover:text-orange-700 transition-colors"
+                >
+                  Get started
+                </button>
+              </p>
+            </div>
           </div>
         </div>
 
@@ -354,9 +407,84 @@ export default function Login() {
           transition={{ delay: 0.6 }}
           className="mt-8 text-center text-xs text-slate-400/60"
         >
-          &copy; {new Date().getFullYear()} RGA Marketing Dashboard
+          &copy; 2026 RGA Dashboard. All rights reserved.
         </motion.p>
       </motion.div>
+
+      {/* Forgot Password Modal */}
+      <AnimatePresence>
+        {isForgotPassword && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={() => setIsForgotPassword(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 20 }}
+              className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Reset Password</h3>
+                <p className="text-slate-600 text-sm">
+                  Enter your email address and we'll send you a link to reset your password.
+                </p>
+              </div>
+
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Email Address
+                  </label>
+                  <Input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="h-11 rounded-lg border-slate-200 focus:border-blue-400 focus:ring-blue-500/20"
+                    disabled={isSendingReset}
+                  />
+                  <FieldError message={fieldErrors.forgotEmail} />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsForgotPassword(false)}
+                    className="flex-1 h-11 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50"
+                    disabled={isSendingReset}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    disabled={isSendingReset}
+                  >
+                    {isSendingReset ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send Reset Link'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
