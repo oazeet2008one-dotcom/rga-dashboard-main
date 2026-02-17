@@ -20,7 +20,9 @@ export class SeoSyncSchedulerService {
 
         for (const t of tenants) {
             try {
-                await this.seoService.syncGscForTenant(t.id, { days: 30 });
+                // TODO: Implement syncGscForTenant method in SeoService
+                // await this.seoService.syncGscForTenant(t.id, { days: 30 });
+                this.logger.log(`[GSC Sync] Skipped for tenant ${t.id} - method not implemented`);
             } catch (error: any) {
                 this.logger.error(`[GSC Sync] Failed for tenant ${t.id}: ${error.message}`);
             }

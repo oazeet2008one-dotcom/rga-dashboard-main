@@ -202,6 +202,8 @@ model Tenant {
   googleAnalyticsAccounts GoogleAnalyticsAccount[]
   facebookAdsAccounts     FacebookAdsAccount[]
   tiktokAdsAccounts       TikTokAdsAccount[]
+  chatSessions            ChatSession[]
+  chatMessages           ChatMessage[]
   lineAdsAccounts         LineAdsAccount[]
   webAnalyticsDaily       WebAnalyticsDaily[]
   adGroups                AdGroup[]
@@ -263,6 +265,7 @@ model User {
   reports       Report[]
   auditLogs     AuditLog[]
   notifications Notification[]
+  chatSessions  ChatSession[]
 
   @@unique([tenantId, email], name: "users_tenant_email_unique")
   @@index([tenantId], name: "idx_users_tenant")
@@ -1084,4 +1087,50 @@ model AuditLog {
   @@index([action], name: "idx_audit_logs_action")
   @@index([createdAt(sort: Desc)], name: "idx_audit_logs_created")
   @@map("audit_logs")
+}
+
+/// ChatSession - Chat sessions for users
+model ChatSession {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String   @map("title") @db.VarChar(200)
+  isActive  Boolean  @default(true) @map("is_active") @db.Boolean
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([tenantId], name: "idx_chat_sessions_tenant")
+  @@index([userId], name: "idx_chat_sessions_user")
+  @@index([isActive], name: "idx_chat_sessions_active")
+  @@map("chat_sessions")
+}
+
+/// ChatMessage - Messages in chat sessions
+model ChatMessage {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  sessionId  String   @map("session_id") @db.Uuid
+  content    String   @map("content") @db.Text
+  role       String   @map("role") @db.VarChar(20) // "user" or "assistant"
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant  Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_chat_messages_tenant")
+  @@index([sessionId], name: "idx_chat_messages_session")
+  @@index([role], name: "idx_chat_messages_role")
+  @@index([createdAt(sort: Desc)], name: "idx_chat_messages_created")
+  @@map("chat_messages")
 }
