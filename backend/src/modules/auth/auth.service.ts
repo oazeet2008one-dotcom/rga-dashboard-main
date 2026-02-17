@@ -1,18 +1,25 @@
-﻿import { Injectable } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthRepository } from './auth.repository';
 import { UsersRepository } from '../users/users.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from './dto';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import * as bcrypt from 'bcryptjs';
 import { User, Tenant } from '@prisma/client';
 import { Request } from 'express';
+import * as crypto from 'crypto';
+import { MailService } from '../../common/services/mail.service';
 import {
   InvalidCredentialsException,
   AccountLockedException,
   EmailExistsException,
+  UsernameExistsException,
+  TermsNotAcceptedException,
+  EmailNotVerifiedException,
+  InvalidEmailVerificationTokenException,
+  EmailVerificationTokenExpiredException,
   TokenRevokedException,
   TokenExpiredException,
   UserNotFoundException,
@@ -22,6 +29,8 @@ type UserWithTenant = User & { tenant: Tenant };
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly usersRepository: UsersRepository,
@@ -29,22 +38,66 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly auditLogsService: AuditLogsService,
     private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
   ) { }
 
   async register(dto: RegisterDto) {
+    if (!dto.termsAccepted) {
+      throw new TermsNotAcceptedException();
+    }
+
+    const normalizedEmail = (dto.email || '').trim().toLowerCase();
+    const normalizedUsername = (dto.username || '').trim().toLowerCase();
+
     // Note: For registration, we don't have tenantId yet, so we use a global email check
     // This is acceptable as emails should be globally unique for login purposes
     const existing = await this.prisma.user.findFirst({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
 
     if (existing) {
       throw new EmailExistsException();
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const existingUsername = await this.prisma.user.findFirst({
+      where: { username: normalizedUsername },
+    });
 
-    const user = await this.authRepository.createTenantAndUser(dto, hashedPassword) as UserWithTenant;
+    if (existingUsername) {
+      throw new UsernameExistsException();
+    }
+
+    const normalizedDto: RegisterDto = {
+      ...dto,
+      email: normalizedEmail,
+      username: normalizedUsername,
+      firstName: (dto.firstName || '').trim(),
+      lastName: (dto.lastName || '').trim(),
+    };
+
+    const hashedPassword = await bcrypt.hash(normalizedDto.password, 10);
+
+    const user = await this.authRepository.createTenantAndUser(normalizedDto, hashedPassword) as UserWithTenant;
+
+    // Generate email verification token and store hash + expiry
+    const { token, tokenHash, expiresAt } = this.generateEmailVerificationToken();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: expiresAt,
+      },
+    });
+
+    // Send verification email
+    try {
+      await this.sendVerificationEmail(user.email, token);
+    } catch (e: any) {
+      this.logger.error(
+        `Failed to send verification email to ${user.email}: ${e?.message || e}`,
+        e?.stack,
+      );
+    }
 
     const tokens = await this.generateTokens(user.id, user.email);
     await this.authRepository.saveRefreshToken(user.id, tokens.refreshToken);
@@ -61,6 +114,77 @@ export class AuthService {
       user: this.sanitizeUser(user),
       ...tokens,
     };
+  }
+
+  async verifyEmail(token: string) {
+    if (!token) {
+      throw new InvalidEmailVerificationTokenException();
+    }
+
+    const tokenHash = this.hashToken(token);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        emailVerificationTokenHash: tokenHash,
+      },
+    });
+
+    if (!user) {
+      throw new InvalidEmailVerificationTokenException();
+    }
+
+    if (user.emailVerificationTokenExpiresAt && user.emailVerificationTokenExpiresAt < new Date()) {
+      throw new EmailVerificationTokenExpiredException();
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerificationTokenHash: null,
+        emailVerificationTokenExpiresAt: null,
+      },
+    });
+
+    return { message: 'Email verified successfully' };
+  }
+
+  async resendVerificationEmail(email: string) {
+    if (!email) {
+      throw new InvalidCredentialsException();
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { email },
+    });
+
+    if (!user) {
+      // Do not leak account existence
+      return { message: 'If an account exists for this email, a verification email has been sent.' };
+    }
+
+    if (user.emailVerified) {
+      return { message: 'Email is already verified.' };
+    }
+
+    const { token, tokenHash, expiresAt } = this.generateEmailVerificationToken();
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationTokenExpiresAt: expiresAt,
+      },
+    });
+
+    try {
+      await this.sendVerificationEmail(email, token);
+      return { message: 'Verification email sent' };
+    } catch (e: any) {
+      this.logger.error(
+        `Failed to resend verification email to ${email}: ${e?.message || e}`,
+        e?.stack,
+      );
+      return { message: "We couldn't send the email right now. Please try again later." };
+    }
   }
 
   /**
@@ -84,6 +208,11 @@ export class AuthService {
 
     if (!user || !user.isActive) {
       throw new InvalidCredentialsException();
+    }
+
+    // Enforce email verification before allowing login
+    if (!user.emailVerified) {
+      throw new EmailNotVerifiedException();
     }
 
     const valid = await bcrypt.compare(dto.password, user.password);
@@ -279,5 +408,148 @@ export class AuthService {
         name: user.tenant.name,
       },
     };
+  }
+
+  private generateEmailVerificationToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    return { token, tokenHash, expiresAt };
+  }
+
+  private hashToken(token: string) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  private async sendVerificationEmail(email: string, token: string) {
+    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:5173');
+    const verifyUrl = `${appUrl.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(token)}`;
+
+    const subject = 'Email Verification - RGA Dashboard';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333; margin-bottom: 20px;">Welcome to RGA Dashboard</h2>
+        <p style="color: #666; line-height: 1.6;">Thank you for registering with RGA Dashboard. To complete your registration and access your account, please verify your email address.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verifyUrl}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email Address</a>
+        </div>
+        <p style="color: #999; font-size: 14px;">If you did not create this account, please disregard this email. Your account will not be activated without verification.</p>
+        <hr style="border: 1px solid #eee; margin: 30px 0;">
+        <p style="color: #999; font-size: 12px;">This is an automated message from RGA Dashboard. Please do not reply to this email.</p>
+      </div>
+    `;
+
+    await this.mailService.sendMail({
+      to: email,
+      subject,
+      html,
+    });
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      // Don't reveal if email exists for security
+      return { message: 'If an account exists with this email, a password reset link has been sent.' };
+    }
+
+    // Generate password reset token
+    const { token, tokenHash, expiresAt } = this.generatePasswordResetToken();
+    
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetTokenHash: tokenHash,
+        passwordResetTokenExpiresAt: expiresAt,
+      },
+    });
+
+    try {
+      await this.sendPasswordResetEmail(user.email, token);
+    } catch (e: any) {
+      this.logger.error(
+        `Failed to send password reset email to ${user.email}: ${e?.message || e}`,
+        e?.stack,
+      );
+    }
+
+    return { message: 'If an account exists with this email, a password reset link has been sent.' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const tokenHash = this.hashToken(dto.token);
+    
+    const user = await this.prisma.user.findFirst({
+      where: {
+        passwordResetTokenHash: tokenHash,
+        passwordResetTokenExpiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new InvalidCredentialsException();
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    // Update password and clear reset token
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetTokenHash: null,
+        passwordResetTokenExpiresAt: null,
+      },
+    });
+
+    // Log the password reset
+    await this.auditLogsService.createLog({
+      userId: user.id,
+      action: 'PASSWORD_RESET',
+      resource: 'user',
+      details: { email: user.email },
+    });
+
+    return { message: 'Password reset successfully' };
+  }
+
+  private generatePasswordResetToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
+
+    return { token, tokenHash, expiresAt };
+  }
+
+  private async sendPasswordResetEmail(email: string, token: string) {
+    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:5173');
+    const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+
+    const subject = 'Password Reset - RGA Dashboard';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
+        <p style="color: #666; line-height: 1.6;">We received a request to reset your password for your RGA Dashboard account. Click the link below to reset your password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+        </div>
+        <p style="color: #999; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
+        <p style="color: #999; font-size: 14px;">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+        <hr style="border: 1px solid #eee; margin: 30px 0;">
+        <p style="color: #999; font-size: 12px;">This is an automated message from RGA Dashboard. Please do not reply to this email.</p>
+      </div>
+    `;
+
+    await this.mailService.sendMail({
+      to: email,
+      subject,
+      html,
+    });
   }
 }

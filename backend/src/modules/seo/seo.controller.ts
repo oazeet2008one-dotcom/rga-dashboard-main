@@ -72,4 +72,27 @@ export class SeoController {
         const daysNum = days ? Math.max(1, parseInt(days, 10) || 30) : 30;
         return this.seoService.syncGscForTenant(tenantId, { days: daysNum });
     }
+    @Get('top-keywords')
+    @ApiOperation({ summary: 'Get top organic keywords' })
+    async getTopKeywords(@CurrentUser() user: any) {
+        return this.seoService.getTopKeywords(user.tenantId);
+    }
+
+    @Get('offpage-snapshots')
+    @ApiOperation({ summary: 'Get SEO offpage snapshots' })
+    async getOffpageSnapshots(@CurrentUser() user: any) {
+        return this.seoService.getOffpageSnapshots(user.tenantId);
+    }
+
+    @Get('anchor-texts')
+    @ApiOperation({ summary: 'Get SEO anchor texts' })
+    async getAnchorTexts(@CurrentUser() user: any) {
+        return this.seoService.getAnchorTexts(user.tenantId);
+    }
+
+    @Get('ai-insights')
+    @ApiOperation({ summary: 'Get AI insights for Google Assistant' })
+    async getAiInsights(@CurrentUser() user: any) {
+        return this.seoService.getAiInsights(user.tenantId);
+    }
 }

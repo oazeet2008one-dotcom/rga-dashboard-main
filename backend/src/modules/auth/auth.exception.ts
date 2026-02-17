@@ -94,6 +94,42 @@ export class AccountInactiveException extends ForbiddenException {
     }
 }
 
+/**
+ * Thrown when user tries to login before verifying email
+ */
+export class EmailNotVerifiedException extends ForbiddenException {
+    constructor() {
+        super({
+            error: 'EMAIL_NOT_VERIFIED',
+            message: 'Please verify your email before logging in.',
+        });
+    }
+}
+
+/**
+ * Thrown when email verification token is invalid
+ */
+export class InvalidEmailVerificationTokenException extends UnauthorizedException {
+    constructor() {
+        super({
+            error: 'INVALID_EMAIL_VERIFICATION_TOKEN',
+            message: 'Invalid verification token.',
+        });
+    }
+}
+
+/**
+ * Thrown when email verification token is expired
+ */
+export class EmailVerificationTokenExpiredException extends UnauthorizedException {
+    constructor() {
+        super({
+            error: 'EMAIL_VERIFICATION_TOKEN_EXPIRED',
+            message: 'Verification token has expired. Please request a new one.',
+        });
+    }
+}
+
 // =============================================================================
 // Registration Errors (409 Conflict)
 // =============================================================================
@@ -106,6 +142,30 @@ export class EmailExistsException extends ConflictException {
         super({
             error: 'EMAIL_EXISTS',
             message: 'This email is already registered. Please login instead.',
+        });
+    }
+}
+
+/**
+ * Thrown when attempting to register with an already-used username
+ */
+export class UsernameExistsException extends ConflictException {
+    constructor() {
+        super({
+            error: 'USERNAME_EXISTS',
+            message: 'This username is already taken. Please choose another one.',
+        });
+    }
+}
+
+/**
+ * Thrown when user does not accept terms during registration
+ */
+export class TermsNotAcceptedException extends ForbiddenException {
+    constructor() {
+        super({
+            error: 'TERMS_NOT_ACCEPTED',
+            message: 'You must accept the Terms & Conditions to create an account.',
         });
     }
 }

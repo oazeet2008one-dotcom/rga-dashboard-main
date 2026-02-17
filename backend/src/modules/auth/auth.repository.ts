@@ -26,18 +26,14 @@ export class PrismaAuthRepository implements AuthRepository {
                 data: { name: dto.companyName },
             });
 
-            // Schema V2: User model uses firstName/lastName, not name
-            // Split dto.name into firstName and lastName if provided
-            const nameParts = (dto.name || '').trim().split(' ');
-            const firstName = nameParts[0] || '';
-            const lastName = nameParts.slice(1).join(' ') || '';
-
             return tx.user.create({
                 data: {
                     email: dto.email,
+                    username: dto.username,
                     password: hashedPassword,
-                    firstName,
-                    lastName,
+                    firstName: dto.firstName,
+                    lastName: dto.lastName,
+                    termsAcceptedAt: new Date(),
                     role: UserRole.ADMIN,
                     tenantId: tenant.id,
                 },

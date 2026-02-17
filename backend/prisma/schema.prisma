@@ -44,11 +44,11 @@ model Tenant {
   platformTokens               PlatformToken[]
   reports                      Report[]
   roles                        Role[]
-  seo_anchor_text              seo_anchor_text[]
-  seo_offpage_metric_snapshots seo_offpage_metric_snapshots[]
+  seoAnchorText                SeoAnchorText[]
+  seoOffpageMetricSnapshots    SeoOffpageMetricSnapshots[]
   SeoSearchIntent              SeoSearchIntent[]
-  seo_top_keywords             seo_top_keywords[]
-  seo_traffic_by_location      seo_traffic_by_location[]
+  seoTopKeywords               SeoTopKeywords[]
+  seoTrafficByLocation         SeoTrafficByLocation[]
   suppabet                     suppabet[]
   syncLogs                     SyncLog[]
   tiktokAdsAccounts            TikTokAdsAccount[]
@@ -72,6 +72,14 @@ model User {
   role                    UserRole       @default(CLIENT) @map("role")
   adminType               String?        @map("admin_type") @db.VarChar(50)
   isActive                Boolean        @default(true) @map("is_active")
+  
+  // Auth & Security
+  username                        String?        @unique @map("username") @db.VarChar(30)
+  emailVerificationTokenHash      String?        @map("email_verification_token_hash") @db.VarChar(255)
+  emailVerificationTokenExpiresAt DateTime?      @map("email_verification_token_expires_at")
+  passwordResetTokenHash          String?        @map("password_reset_token_hash") @db.VarChar(255)
+  passwordResetTokenExpiresAt     DateTime?      @map("password_reset_token_expires_at")
+  termsAcceptedAt                 DateTime?      @map("terms_accepted_at")
   emailVerified           Boolean        @default(false) @map("email_verified")
   twoFactorEnabled        Boolean        @default(false) @map("two_factor_enabled")
   lastLoginAt             DateTime?      @map("last_login_at")
@@ -652,7 +660,7 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-model seo_anchor_text {
+model SeoAnchorText {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_id          String   @db.Uuid
   date               DateTime @db.Date
@@ -671,7 +679,7 @@ model seo_anchor_text {
   @@index([tenant_id], map: "idx_seo_anchor_tenant")
 }
 
-model seo_offpage_metric_snapshots {
+model SeoOffpageMetricSnapshots {
   id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_id              String   @db.Uuid
   date                   DateTime @db.Date
@@ -696,7 +704,7 @@ model seo_offpage_metric_snapshots {
   @@index([tenant_id], map: "idx_seo_offpage_tenant")
 }
 
-model seo_top_keywords {
+model SeoTopKeywords {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_id          String   @db.Uuid
   date               DateTime @db.Date
@@ -716,7 +724,7 @@ model seo_top_keywords {
   @@index([tenant_id], map: "idx_seo_keywords_tenant")
 }
 
-model seo_traffic_by_location {
+model SeoTrafficByLocation {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_id          String   @db.Uuid
   date               DateTime @db.Date
@@ -797,6 +805,30 @@ enum AdPlatform {
   LAZADA           @map("lazada")
 
   @@map("ad_platform")
+}
+
+model SearchConsolePerformance {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  siteUrl         String   @map("site_url") @db.VarChar(255)
+  date            DateTime @map("date") @db.Date
+  page            String?  @map("page") @db.Text
+  query           String?  @map("query") @db.Text
+  device          String?  @map("device") @db.VarChar(50)
+  country         String?  @map("country") @db.VarChar(10)
+  clicks          Int      @default(0) @map("clicks")
+  impressions     Int      @default(0) @map("impressions")
+  ctr             Decimal  @default(0) @map("ctr") @db.Decimal(10, 6)
+  position        Decimal  @default(0) @map("position") @db.Decimal(10, 4)
+  externalKey     String?  @map("external_key") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date], map: "idx_gsc_tenant_date")
+  @@index([siteUrl], map: "idx_gsc_site_url")
+  @@index([externalKey], map: "idx_gsc_external_key")
+  @@map("search_console_performance")
 }
 
 /// Notification Channel - ช่องทางการแจ้งเตือน
@@ -916,31 +948,4 @@ model ChatMessage {
   @@map("chat_messages")
 }
 
-model SearchConsolePerformance {
-  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String   @map("tenant_id") @db.Uuid
-  siteUrl  String   @map("site_url") @db.Text
-  date     DateTime @map("date") @db.Date
-
-  page    String? @map("page") @db.Text
-  query   String? @map("query") @db.Text
-  device  String? @map("device") @db.VarChar(50)
-  country String? @map("country") @db.VarChar(10)
-
-  clicks      Int     @default(0) @map("clicks")
-  impressions Int     @default(0) @map("impressions")
-  ctr         Decimal @default(0) @map("ctr") @db.Decimal(10, 6)
-  position    Decimal @default(0) @map("position") @db.Decimal(10, 4)
-
-  externalKey String @map("external_key") @db.Text
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, externalKey], name: "search_console_perf_tenant_key_unique")
-  @@index([tenantId, date(sort: Desc)], name: "idx_search_console_perf_tenant_date")
-  @@index([siteUrl], name: "idx_search_console_perf_site_url")
-  @@map("search_console_performance")
-}
 

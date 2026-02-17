@@ -82,8 +82,8 @@ const METRIC_CONFIG: Record<MetricKey, MetricConfig> = {
     dr: { label: 'Domain Rating', color: '#64748b', gradientId: 'gDr', formatValue: (v) => v.toString() },
     ur: { label: 'URL Rating', color: '#64748b', gradientId: 'gUr', formatValue: (v) => v.toString() },
     organicTrafficValue: { label: 'Organic Traffic Value', color: '#f97316', gradientId: 'gOtv', formatValue: (v) => `฿${formatCompactNumber(v)}` },
-    organicPages: { label: 'Organic Pages', color: '#10b981', gradientId: 'gOp', formatValue: formatCompactNumber, isComingSoon: true },
-    crawledPages: { label: 'Crawled Pages', color: '#8b5cf6', gradientId: 'gCp', formatValue: formatCompactNumber, isComingSoon: true },
+    organicPages: { label: 'Organic Pages', color: '#10b981', gradientId: 'gOp', formatValue: formatCompactNumber },
+    crawledPages: { label: 'Crawled Pages', color: '#8b5cf6', gradientId: 'gCp', formatValue: formatCompactNumber },
 };
 
 interface CustomTooltipProps {
@@ -107,8 +107,8 @@ function CustomTooltip({ active, payload, activeMetrics }: CustomTooltipProps) {
             <div className="flex flex-col gap-1.5">
                 {activeMetrics.map(metricKey => {
                     const config = METRIC_CONFIG[metricKey];
-                    // Skip if metric is placeholder/coming soon and not in payload
-                    if (config.isComingSoon || data.payload[metricKey] === undefined) return null;
+                    // Skip if metric is not in payload
+                    if (data.payload[metricKey] === undefined) return null;
 
                     const item = payload.find((p: any) => p.dataKey === metricKey);
                     const value = item ? item.value : 0;
@@ -143,7 +143,7 @@ function EmptyState() {
 }
 
 export function SeoPerformanceChart() {
-    const [period, setPeriod] = useState<PeriodEnum>('7d');
+    const [period, setPeriod] = useState<PeriodEnum>('30d');
     const [customRange, setCustomRange] = useState<{ from: Date; to: Date } | undefined>();
     const [activeMetrics, setActiveMetrics] = useState<MetricKey[]>(['organicTraffic', 'avgPosition']);
 
@@ -171,8 +171,7 @@ export function SeoPerformanceChart() {
     });
 
     const toggleMetric = (metric: MetricKey) => {
-        const config = METRIC_CONFIG[metric];
-        if (config.isComingSoon) return;
+        // All metrics are now available - no coming soon check needed
 
         setActiveMetrics((prev) => {
             if (prev.includes(metric)) {
@@ -301,20 +300,17 @@ export function SeoPerformanceChart() {
                     {(Object.keys(METRIC_CONFIG) as MetricKey[]).map((key) => {
                         const config = METRIC_CONFIG[key];
                         const isActive = activeMetrics.includes(key);
-                        const isComingSoon = config.isComingSoon;
 
                         return (
                             <button
                                 key={key}
                                 onClick={() => toggleMetric(key)}
-                                disabled={isComingSoon}
                                 className={`
                                     flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 border whitespace-nowrap
                                     ${isActive
                                         ? 'bg-primary/10 border-primary/20 text-foreground shadow-sm'
                                         : 'bg-transparent border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                                     }
-                                    ${isComingSoon ? 'opacity-40 cursor-not-allowed bg-muted/20' : ''}
                                 `}
                                 style={isActive ? {
                                     borderColor: config.color,
@@ -326,7 +322,7 @@ export function SeoPerformanceChart() {
                                     className={`h-2 w-2 rounded-full transition-all ${isActive ? 'opacity-100' : 'opacity-40 grayscale'}`}
                                     style={{ backgroundColor: config.color }}
                                 />
-                                {config.label} {isComingSoon && '(Soon)'}
+                                {config.label}
                             </button>
                         );
                     })}

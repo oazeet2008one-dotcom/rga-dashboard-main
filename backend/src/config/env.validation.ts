@@ -103,6 +103,20 @@ export const envValidationSchema = Joi.object({
             }),
             otherwise: Joi.optional().default('http://localhost:5173'),
         }),
+
+    // ============================================
+    // Email Verification (SMTP)
+    // ============================================
+    APP_URL: Joi.string()
+        .uri()
+        .optional()
+        .default('http://localhost:5173'),
+    SMTP_HOST: Joi.string().optional(),
+    SMTP_PORT: Joi.number().optional(),
+    SMTP_SECURE: Joi.boolean().optional(),
+    SMTP_USER: Joi.string().optional(),
+    SMTP_PASS: Joi.string().optional(),
+    SMTP_FROM: Joi.string().optional(),
     // ============================================
     // Rate Limiting
     // ============================================

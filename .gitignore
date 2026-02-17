@@ -55,3 +55,24 @@ coverage/
 # Prisma
 prisma/migrations/
 !prisma/migrations/.gitkeep
+
+# Local backend debug/seed scripts
+backend/check_env.js
+backend/check_seo_metrics.js
+backend/check_user.js
+backend/complete_seo_data.js
+backend/complete_seo_data_fixed.js
+backend/create_tenant_and_data.js
+backend/debug_login_issue.js
+backend/fix_env.js
+backend/fix_organic_crawled_pages.js
+backend/fix_password.js
+backend/fix_password_bcrypt.js
+backend/fix_password_simple.js
+backend/populate_all_seo_tables.js
+backend/quick_test_seo.js
+backend/set_password_admin_rga.js
+backend/test_api_real.js
+backend/test_login_api.js
+backend/test_seo_api.js
+backend/update_seo_metrics_quick.js

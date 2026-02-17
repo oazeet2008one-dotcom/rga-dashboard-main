@@ -20,10 +20,13 @@ import {
 // Types
 // =============================================================================
 interface RegisterData {
+    username: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
-    name: string;
     companyName: string;
+    termsAccepted: boolean;
 }
 
 interface AuthState {
@@ -109,6 +112,9 @@ export const useAuthStore = create<AuthState>()(
                         case 'ACCOUNT_LOCKED':
                             message = `Account is locked. Please try again in ${meta?.lockoutMinutes || 30} minutes.`;
                             break;
+                        case 'EMAIL_NOT_VERIFIED':
+                            message = 'Please verify your email before logging in.';
+                            break;
                         case 'INVALID_CREDENTIALS':
                             if (meta?.remainingAttempts !== undefined) {
                                 message = `Invalid credentials. ${meta.remainingAttempts} attempts remaining.`;
@@ -131,29 +137,18 @@ export const useAuthStore = create<AuthState>()(
             register: async (data) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await apiClient.post('/auth/register', data);
+                    // Registration may return tokens, but we require email verification
+                    // before allowing login. So we do NOT store tokens or authenticate here.
+                    await apiClient.post('/auth/register', data);
 
-                    // ✅ Contract: api-client interceptor auto-unwraps { success, data }
-                    // So response.data already contains { user, accessToken, refreshToken }
-                    const { accessToken, refreshToken, user: rawUser } = response.data;
-
-                    const user: User = {
-                        ...(rawUser as User),
-                        name:
-                            (rawUser as any).name ??
-                            `${(rawUser as any).firstName ?? ''} ${(rawUser as any).lastName ?? ''}`.trim() ??
-                            (rawUser as any).email,
-                        tenantId: (rawUser as any).tenantId ?? (rawUser as any).tenant?.id,
-                    };
-
-                    // ✅ Use token-manager (single source of truth)
-                    setTokens(accessToken, refreshToken);
+                    // Ensure no stale tokens remain
+                    clearTokens();
 
                     set({
-                        user,
-                        accessToken,
-                        refreshToken,
-                        isAuthenticated: true,
+                        user: null,
+                        accessToken: null,
+                        refreshToken: null,
+                        isAuthenticated: false,
                         isLoading: false,
                         error: null,
                     });

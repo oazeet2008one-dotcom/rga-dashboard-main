@@ -7,10 +7,12 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthRepository, PrismaAuthRepository } from './auth.repository';
 import { UsersModule } from '../users/users.module';
+import { CommonModule } from '../../common/common.module';
 
 @Module({
   imports: [
     PassportModule,
+    CommonModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
