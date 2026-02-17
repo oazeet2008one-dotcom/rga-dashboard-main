@@ -49,7 +49,7 @@ model Tenant {
   SeoSearchIntent              SeoSearchIntent[]
   seoTopKeywords               SeoTopKeywords[]
   seoTrafficByLocation         SeoTrafficByLocation[]
-  suppabet                     suppabet[]
+  suppabet                     Suppabet[]
   syncLogs                     SyncLog[]
   tiktokAdsAccounts            TikTokAdsAccount[]
   users                        User[]
@@ -661,112 +661,117 @@ model AuditLog {
 }
 
 model SeoAnchorText {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id          String   @db.Uuid
-  date               DateTime @db.Date
-  anchor_text        String   @db.VarChar(255)
-  domains            Int
-  total_backlinks    Int
-  dofollow_backlinks Int
-  referring_domains  Int
-  traffic            Int
-  traffic_percentage Float
-  created_at         DateTime @default(now())
-  updated_at         DateTime
-  tenants            Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  date              DateTime @map("date") @db.Date
+  anchorText        String   @map("anchor_text") @db.VarChar(255)
+  domains           Int      @map("domains")
+  totalBacklinks    Int      @map("total_backlinks")
+  dofollowBacklinks Int      @map("dofollow_backlinks")
+  referringDomains  Int      @map("referring_domains")
+  traffic           Int      @map("traffic")
+  trafficPercentage Float    @map("traffic_percentage")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([date], map: "idx_seo_anchor_date")
-  @@index([tenant_id], map: "idx_seo_anchor_tenant")
+  @@index([tenantId], map: "idx_seo_anchor_tenant")
+  @@map("seo_anchor_text")
 }
 
 model SeoOffpageMetricSnapshots {
-  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id              String   @db.Uuid
-  date                   DateTime @db.Date
-  ur                     Float
-  dr                     Float
-  backlinks              Int
-  referring_domains      Int
-  keywords               Int
-  traffic_cost           Int
-  organic_traffic        Int
-  organic_traffic_value  Int
-  new_referring_domains  Int      @default(0)
-  new_backlinks          Int      @default(0)
-  lost_referring_domains Int      @default(0)
-  lost_backlinks         Int      @default(0)
-  created_at             DateTime @default(now())
-  updated_at             DateTime
-  tenants                Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String   @map("tenant_id") @db.Uuid
+  date                 DateTime @map("date") @db.Date
+  ur                   Float    @map("ur")
+  dr                   Float    @map("dr")
+  backlinks            Int      @map("backlinks")
+  referringDomains     Int      @map("referring_domains")
+  keywords             Int      @map("keywords")
+  trafficCost          Int      @map("traffic_cost")
+  organicTraffic       Int      @map("organic_traffic")
+  organicTrafficValue  Int      @map("organic_traffic_value")
+  newReferringDomains  Int      @default(0) @map("new_referring_domains")
+  newBacklinks         Int      @default(0) @map("new_backlinks")
+  lostReferringDomains Int      @default(0) @map("lost_referring_domains")
+  lostBacklinks        Int      @default(0) @map("lost_backlinks")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenant_id, date])
+  @@unique([tenantId, date])
   @@index([date], map: "idx_seo_offpage_date")
-  @@index([tenant_id], map: "idx_seo_offpage_tenant")
+  @@index([tenantId], map: "idx_seo_offpage_tenant")
+  @@map("seo_offpage_metric_snapshots")
 }
 
 model SeoTopKeywords {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id          String   @db.Uuid
-  date               DateTime @db.Date
-  keyword            String   @db.VarChar(255)
-  position           Float
-  volume             Int
-  traffic            Int
-  traffic_percentage Float
-  url                String
-  change             Int
-  cpc                Float
-  created_at         DateTime @default(now())
-  updated_at         DateTime
-  tenants            Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  date              DateTime @map("date") @db.Date
+  keyword           String   @map("keyword") @db.VarChar(255)
+  position          Float    @map("position")
+  volume            Int      @map("volume")
+  traffic           Int      @map("traffic")
+  trafficPercentage Float    @map("traffic_percentage")
+  url               String   @map("url")
+  change            Int      @map("change")
+  cpc               Float    @map("cpc")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([date], map: "idx_seo_keywords_date")
-  @@index([tenant_id], map: "idx_seo_keywords_tenant")
+  @@index([tenantId], map: "idx_seo_keywords_tenant")
+  @@map("seo_top_keywords")
 }
 
 model SeoTrafficByLocation {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id          String   @db.Uuid
-  date               DateTime @db.Date
-  location           String   @db.VarChar(100)
-  traffic            Int
-  traffic_percentage Float
-  keywords           Int
-  created_at         DateTime @default(now())
-  updated_at         DateTime
-  tenants            Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  date              DateTime @map("date") @db.Date
+  location          String   @map("location") @db.VarChar(100)
+  traffic           Int      @map("traffic")
+  trafficPercentage Float    @map("traffic_percentage")
+  keywords          Int      @map("keywords")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenant_id, date, location])
+  @@unique([tenantId, date, location])
   @@index([date], map: "idx_seo_location_date")
-  @@index([tenant_id], map: "idx_seo_location_tenant")
+  @@index([tenantId], map: "idx_seo_location_tenant")
+  @@map("seo_traffic_by_location")
 }
 
-model suppabet {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_id    String   @db.Uuid
-  date         DateTime @db.Date
-  match_name   String   @db.VarChar(255)
-  league       String   @db.VarChar(100)
-  sport_type   String   @db.VarChar(50)
-  home_odds    Float
-  away_odds    Float
-  draw_odds    Float
-  home_score   Int
-  away_score   Int
-  result       String   @db.VarChar(20)
-  total_bets   Int
-  total_amount Float
-  payout       Float
-  profit       Float
-  status       String   @default("pending") @db.VarChar(20)
-  created_at   DateTime @default(now())
-  updated_at   DateTime
-  tenants      Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+model Suppabet {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  date        DateTime @map("date") @db.Date
+  matchName   String   @map("match_name") @db.VarChar(255)
+  league      String   @map("league") @db.VarChar(100)
+  sportType   String   @map("sport_type") @db.VarChar(50)
+  homeOdds    Float    @map("home_odds")
+  awayOdds    Float    @map("away_odds")
+  drawOdds    Float    @map("draw_odds")
+  homeScore   Int      @map("home_score")
+  awayScore   Int      @map("away_score")
+  result      String   @map("result") @db.VarChar(20)
+  totalBets   Int      @map("total_bets")
+  totalAmount Float    @map("total_amount")
+  payout      Float    @map("payout")
+  profit      Float    @map("profit")
+  status      String   @default("pending") @map("status") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([date], map: "idx_suppabet_date")
-  @@index([sport_type], map: "idx_suppabet_sport")
+  @@index([sportType], map: "idx_suppabet_sport")
   @@index([status], map: "idx_suppabet_status")
-  @@index([tenant_id], map: "idx_suppabet_tenant")
+  @@index([tenantId], map: "idx_suppabet_tenant")
+  @@map("suppabet")
 }
 
 /// User Roles - กำหนดระดับสิทธิ์การใช้งาน
