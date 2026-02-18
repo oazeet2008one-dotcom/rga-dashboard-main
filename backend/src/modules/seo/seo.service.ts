@@ -172,6 +172,19 @@ export class SeoService {
 
 
             const latestWebAnalytics = webAnalyticsData[webAnalyticsData.length - 1];
+            // Metadata fallback from db-metrics branch (used only when primary values are zero).
+            const latestSeoData: any[] = await this.prisma.$queryRaw`
+                SELECT metadata FROM web_analytics_daily
+                WHERE tenant_id = ${tenantId}::uuid
+                AND metadata IS NOT NULL
+                ORDER BY date DESC
+                LIMIT 1
+            `;
+            const seoMetrics = latestSeoData[0]?.metadata?.seoMetrics || {};
+            const pickFallback = (primary: number, fallback: unknown): number => {
+                const fallbackValue = toNumber(fallback as Prisma.Decimal | number | string | null | undefined);
+                return primary === 0 && fallbackValue !== 0 ? fallbackValue : primary;
+            };
 
             return {
                 organicSessions: totalOrganicSessions,
@@ -180,23 +193,23 @@ export class SeoService {
                 organicSessionsTrend: parseFloat(organicSessionsTrend.toFixed(1)),
                 newUsersTrend: parseFloat(newUsersTrend.toFixed(1)),
                 avgTimeOnPageTrend: parseFloat(avgSessionDurationTrend.toFixed(1)),
-                goalCompletions: goalCompletions,
-                goalCompletionsTrend: parseFloat(goalCompletionsTrend.toFixed(1)),
-                avgPosition: parseFloat(avgPosition.toFixed(1)),
-                avgPositionTrend: parseFloat(avgPositionTrend.toFixed(1)),
-                bounceRate: Number(latestWebAnalytics?.bounceRate || 0),
-                ur: avgUR,
-                dr: avgDR,
-                backlinks: backlinks,
-                referringDomains: referringDomains,
-                keywords: keywords,
-                trafficCost: trafficCost,
+                goalCompletions: pickFallback(goalCompletions, seoMetrics.goalCompletions),
+                goalCompletionsTrend: pickFallback(parseFloat(goalCompletionsTrend.toFixed(1)), seoMetrics.goalCompletionsTrend),
+                avgPosition: pickFallback(parseFloat(avgPosition.toFixed(1)), seoMetrics.avgPosition),
+                avgPositionTrend: pickFallback(parseFloat(avgPositionTrend.toFixed(1)), seoMetrics.avgPositionTrend),
+                bounceRate: pickFallback(Number(latestWebAnalytics?.bounceRate || 0), seoMetrics.bounceRate),
+                ur: pickFallback(avgUR, seoMetrics.ur),
+                dr: pickFallback(avgDR, seoMetrics.dr),
+                backlinks: pickFallback(backlinks, seoMetrics.backlinks),
+                referringDomains: pickFallback(referringDomains, seoMetrics.referringDomains),
+                keywords: pickFallback(keywords, seoMetrics.keywords),
+                trafficCost: pickFallback(trafficCost, seoMetrics.trafficCost),
                 paidTraffic: totalPaidTraffic,
                 paidTrafficTrend: parseFloat(paidTrafficTrend.toFixed(1)),
                 impressions: totalImpressions,
                 impressionsTrend: parseFloat(impressionsTrend.toFixed(1)),
-                organicPages: organicPages,
-                crawledPages: crawledPages
+                organicPages: pickFallback(organicPages, seoMetrics.organicPages),
+                crawledPages: pickFallback(crawledPages, seoMetrics.crawledPages)
             };
         } catch (error) {
             console.error('Error fetching SEO summary:', error);
@@ -226,7 +239,6 @@ export class SeoService {
                 crawledPages: 0
             };
         }
-
     }
 
     async getSeoHistory(tenantId: string, days: number = 30) {
