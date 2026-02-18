@@ -1,107 +1,140 @@
 import { Button } from '@/components/ui/button';
-import { BarChart3, ShoppingBag, Store } from 'lucide-react';
+import { BarChart3, Cpu, Layers3 } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+import { ProductStack } from './product-stack-section';
 
 export function HeroSection() {
     return (
-        <section className="w-full bg-white text-slate-900">
-            <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
-                <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-                    <div className="space-y-6">
-                        <div className="space-y-3">
-                            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-                                What is RGA.Data?
+        <section className="relative w-full overflow-hidden bg-slate-50 text-slate-900">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-200 via-slate-50 to-slate-50 opacity-40" />
+            <div className="pointer-events-none absolute -left-24 top-10 h-96 w-96 rounded-full bg-sky-200 blur-3xl opacity-30 animate-blob" />
+            <div className="pointer-events-none absolute -right-24 top-20 h-96 w-96 rounded-full bg-fuchsia-200 blur-3xl opacity-30 animate-blob animation-delay-2000" />
+
+            <div className="relative mx-auto max-w-7xl px-4 py-20 sm:py-24 lg:py-28">
+                <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+                    <div className="space-y-10">
+                        <div className="space-y-6">
+                            <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-4 duration-1000 text-slate-900">
+                                <span className="bg-gradient-to-r from-indigo-600 via-sky-500 to-fuchsia-500 bg-clip-text text-transparent">
+                                    NovaPulse
+                                </span>{' '}
+                                Analytics
                             </h1>
-                            <p className="text-base/7 text-slate-600 sm:text-lg">
-                                Comprehensive solutions for your e-commerce business.
+                            <p className="max-w-2xl text-lg text-slate-600 sm:text-xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+                                Real-time sales and campaign analytics dashboard. Empower your marketing team to make faster decisions with clear, single-page insights.
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-3 sm:flex-row">
-                            <Button
-                                size="lg"
-                                className="bg-indigo-600 text-white hover:bg-indigo-600/90"
-                                asChild
-                            >
-                                <a href="mailto:sales@yourcompany.com">Contact Us</a>
+                        <div className="flex flex-col gap-4 sm:flex-row animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+                            <Button size="lg" className="h-12 px-8 text-base bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all duration-300">
+                                Get Started
                             </Button>
                             <Button
                                 size="lg"
                                 variant="outline"
-                                className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
-                                asChild
+                                className="h-12 px-8 text-base border-slate-200 bg-white/80 backdrop-blur-sm text-slate-900 hover:bg-white hover:text-indigo-600 transition-all duration-300"
                             >
-                                <a href="mailto:sales@yourcompany.com?subject=Free Consultation Request">Free Consultation</a>
+                                View Plans
                             </Button>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4 pt-2 text-slate-700">
-                            <div className="flex items-center gap-2 text-sm">
-                                <Store className="h-4 w-4" />
-                                <span>Store Management</span>
+                        <div className="grid gap-4 pt-4 sm:grid-cols-3 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
+                            <HeroPill icon={<BarChart3 className="h-5 w-5" />} label="Comprehensive Overview" />
+                            <HeroPill icon={<Cpu className="h-5 w-5" />} label="Automated Insights" />
+                            <HeroPill icon={<Layers3 className="h-5 w-5" />} label="Multi-User Support" />
+                        </div>
+
+                        <div className="rounded-3xl border border-white/60 bg-white/40 backdrop-blur-md p-6 shadow-xl shadow-slate-100/50 animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-700">
+                            <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-4">Metrics Tracked</div>
+
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                <MetricTile label="Impressions" value="Total Impressions" tone="sky" />
+                                <MetricTile label="Clicks" value="Total Clicks" tone="indigo" />
+                                <MetricTile label="Cost" value="Ad Spend" tone="fuchsia" />
+                                <MetricTile label="Conversions" value="Total Conversions" tone="sky" />
+                                <MetricTile label="CTR" value="Click-Through Rate" tone="indigo" />
+                                <MetricTile label="ROAS" value="Return on Ad Spend" tone="fuchsia" />
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <ShoppingBag className="h-4 w-4" />
-                                <span>Boost Sales</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <BarChart3 className="h-4 w-4" />
-                                <span>Trackable Growth</span>
+
+                            <div className="mt-6 pt-6 border-t border-slate-100/50">
+                                <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3">Integrations</div>
+                                <div className="flex flex-wrap gap-2.5">
+                                    <SourceChip>Google Ads</SourceChip>
+                                    <SourceChip>Facebook Ads</SourceChip>
+                                    <SourceChip>TikTok Ads</SourceChip>
+                                    <SourceChip>LINE Ads</SourceChip>
+                                    <SourceChip>GA4</SourceChip>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="relative">
-                        <div className="absolute -inset-6 rounded-3xl bg-slate-100 blur-2xl" />
-                        <div className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="text-xs text-slate-500">Orders</div>
-                                    <div className="mt-1 text-2xl font-semibold">+24%</div>
-                                    <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
-                                        <div className="h-2 w-2/3 rounded-full bg-indigo-500" />
-                                    </div>
-                                </div>
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="text-xs text-slate-500">Revenue</div>
-                                    <div className="mt-1 text-2xl font-semibold">฿ 128k</div>
-                                    <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
-                                        <div className="h-2 w-1/2 rounded-full bg-emerald-500" />
-                                    </div>
-                                </div>
-                                <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="text-xs text-slate-500">E-commerce Illustration</div>
-                                    <div className="mt-4 flex items-center justify-center">
-                                        <svg
-                                            width="340"
-                                            height="160"
-                                            viewBox="0 0 340 160"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="w-full max-w-md"
-                                        >
-                                            <rect x="14" y="16" width="312" height="128" rx="18" fill="rgba(15,23,42,0.06)" />
-                                            <rect x="34" y="38" width="116" height="18" rx="9" fill="rgba(15,23,42,0.14)" />
-                                            <rect x="34" y="66" width="200" height="10" rx="5" fill="rgba(15,23,42,0.10)" />
-                                            <rect x="34" y="84" width="176" height="10" rx="5" fill="rgba(15,23,42,0.10)" />
-                                            <rect x="34" y="104" width="72" height="28" rx="10" fill="rgba(15,23,42,0.08)" />
-                                            <path
-                                                d="M238 114c0-16 13-29 29-29h16v58h-16c-16 0-29-13-29-29Z"
-                                                fill="rgba(15,23,42,0.08)"
-                                            />
-                                            <path
-                                                d="M266 78h39v64h-39c-17 0-31-14-31-31V109c0-17 14-31 31-31Z"
-                                                fill="rgba(58, 198, 16, 0.12)"
-                                            />
-                                            <circle cx="279" cy="106" r="8" fill="rgba(15,23,42,0.14)" />
-                                            <circle cx="306" cy="106" r="8" fill="rgba(15,23,42,0.14)" />
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="relative flex justify-center lg:justify-end animate-in fade-in slide-in-from-right-8 duration-1000 delay-500">
+                        <ProductStack />
                     </div>
                 </div>
             </div>
         </section>
+    );
+}
+
+function HeroPill({
+    icon,
+    label,
+}: {
+    icon: ReactNode;
+    label: string;
+}) {
+    return (
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm text-slate-700 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">{icon}</span>
+            <span className="leading-tight font-semibold">{label}</span>
+        </div>
+    );
+}
+
+function MetricTile({
+    label,
+    value,
+    tone,
+}: {
+    label: string;
+    value: string;
+    tone: 'sky' | 'indigo' | 'fuchsia';
+}) {
+    const toneStyles: Record<typeof tone, { dot: string; label: string }> = {
+        sky: {
+            dot: 'bg-sky-500 shadow-sky-200',
+            label: 'text-sky-700',
+        },
+        indigo: {
+            dot: 'bg-indigo-500 shadow-indigo-200',
+            label: 'text-indigo-700',
+        },
+        fuchsia: {
+            dot: 'bg-fuchsia-500 shadow-fuchsia-200',
+            label: 'text-fuchsia-700',
+        },
+    };
+
+    return (
+        <div className="group rounded-2xl border border-slate-100 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm transition-all hover:bg-white hover:shadow-md">
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                    <span className={`h-2.5 w-2.5 rounded-full shadow-sm ${toneStyles[tone].dot}`} />
+                    <div className={`text-xs font-bold ${toneStyles[tone].label}`}>{label}</div>
+                </div>
+            </div>
+            <div className="mt-1.5 text-xs font-medium text-slate-500/80 group-hover:text-slate-600 transition-colors">{value}</div>
+        </div>
+    );
+}
+
+function SourceChip({ children }: { children: ReactNode }) {
+    return (
+        <div className="cursor-default rounded-full border border-slate-200 bg-white/50 px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:border-indigo-100 hover:bg-indigo-50/50 hover:text-indigo-700">
+            {children}
+        </div>
     );
 }
