@@ -16,7 +16,6 @@ export class ChatService {
         }
         return this.prisma.chatSession.create({
             data: {
-                tenantId,
                 userId,
                 title: createSessionDto.title || 'New Chat',
             },
@@ -73,7 +72,6 @@ export class ChatService {
         // 2. Create message
         const message = await this.prisma.chatMessage.create({
             data: {
-                tenantId,
                 sessionId,
                 role: createMessageDto.role,
                 content: createMessageDto.content,
