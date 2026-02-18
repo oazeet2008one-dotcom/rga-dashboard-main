@@ -1,0 +1,85 @@
+// ============================================================
+// AI ANALYTICS MODELS
+// ============================================================
+
+/// UserBehavior - User interaction tracking
+model UserBehavior {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  action    String   @map("action") @db.VarChar(100)
+  data      Json?    @map("data") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_user_behavior_tenant")
+  @@index([userId], name: "idx_user_behavior_user")
+  @@index([action], name: "idx_user_behavior_action")
+  @@index([timestamp(sort: Desc)], name: "idx_user_behavior_timestamp")
+  @@map("user_behavior")
+}
+
+/// BusinessMetric - Business performance tracking
+model BusinessMetric {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  metrics   Json     @map("metrics") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_business_metrics_tenant")
+  @@index([timestamp(sort: Desc)], name: "idx_business_metrics_timestamp")
+  @@map("business_metrics")
+}
+
+/// AiRecommendation - AI generated recommendations
+model AiRecommendation {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  type         String   @map("type") @db.VarChar(50)
+  title        String   @map("title") @db.VarChar(255)
+  description  String   @map("description") @db.Text
+  priority     String   @default("MEDIUM") @map("priority") @db.VarChar(20)
+  confidence   Float    @default(0.0) @map("confidence") @db.Decimal(3, 2)
+  status       String   @default("PENDING") @map("status") @db.VarChar(20)
+  payload      Json?    @map("payload") @db.JsonB
+  executedAt   DateTime? @map("executed_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_ai_recommendations_tenant")
+  @@index([tenantId, status, priority], name: "idx_ai_recommendations_status_priority")
+  @@index([createdAt(sort: Desc)], name: "idx_ai_recommendations_created")
+  @@map("ai_recommendations")
+}
+
+/// SecurityEvent - Security and compliance tracking
+model SecurityEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  eventType String   @map("event_type") @db.VarChar(50)
+  severity  String   @default("LOW") @map("severity") @db.VarChar(20)
+  message   String   @map("message") @db.Text
+  metadata  Json?    @map("metadata") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], name: "idx_security_events_tenant")
+  @@index([userId], name: "idx_security_events_user")
+  @@index([eventType], name: "idx_security_events_type")
+  @@index([severity], name: "idx_security_events_severity")
+  @@index([timestamp(sort: Desc)], name: "idx_security_events_timestamp")
+  @@map("security_events")
+}
