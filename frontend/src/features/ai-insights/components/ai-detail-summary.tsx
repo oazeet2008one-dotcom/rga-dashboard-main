@@ -68,6 +68,35 @@ export function AiDetailSummary({ onBack }: AiDetailSummaryProps) {
                         </div>
                     </motion.div>
 
+                    {/* AI Summaries Cards */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[
+                            { label: 'CPM', value: '฿352.92', delta: '-6.7%', trend: 'down', color: 'text-blue-500', bg: 'group-hover:text-blue-500' },
+                            { label: 'CTR', value: '3.0%', delta: '-2.0%', trend: 'down', color: 'text-emerald-500', bg: 'group-hover:text-emerald-500' },
+                            { label: 'ROAS', value: '4.4x', delta: '+2.0%', trend: 'up', color: 'text-purple-500', bg: 'group-hover:text-purple-500' },
+                            { label: 'ROI', value: '340%', delta: '+2.6%', trend: 'up', color: 'text-orange-500', bg: 'group-hover:text-orange-500' },
+                        ].map((item, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.1 + i * 0.1 }}
+                                className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-300 group cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className={`text-xs font-bold uppercase tracking-wider text-slate-500 transition-colors ${item.bg}`}>
+                                        {item.label}
+                                    </p>
+                                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${item.trend === 'up' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                                        {item.delta}
+                                    </span>
+                                </div>
+                                <p className="text-2xl font-bold tracking-tight text-slate-800 mb-1">{item.value}</p>
+                                <p className="text-[11px] text-slate-400">From last period</p>
+                            </motion.div>
+                        ))}
+                    </div>
+
 
 
                     {/* Key Insight Card */}

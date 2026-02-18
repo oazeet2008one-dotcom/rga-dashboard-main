@@ -127,9 +127,9 @@ export class SeoService {
 
             // Avg Session Duration
             const avgSessionDuration = webAnalyticsData.length > 0 ?
-                Number(webAnalyticsData.reduce((sum, day) => sum + Number(day.avgSessionDuration), 0)) / webAnalyticsData.length : 65;
+                webAnalyticsData.reduce((sum, day) => sum + toNumber(day.avgSessionDuration), 0) / webAnalyticsData.length : 65;
             const prevAvgSessionDuration = previousWebAnalyticsData.length > 0 ?
-                Number(previousWebAnalyticsData.reduce((sum, day) => sum + Number(day.avgSessionDuration), 0)) / previousWebAnalyticsData.length : 65;
+                previousWebAnalyticsData.reduce((sum, day) => sum + toNumber(day.avgSessionDuration), 0) / previousWebAnalyticsData.length : 65;
             const avgSessionDurationTrend = prevAvgSessionDuration > 0 ? ((avgSessionDuration - prevAvgSessionDuration) / prevAvgSessionDuration) * 100 : 0;
 
             // Goal Completions (Estimated 4.5% of sessions)
@@ -336,7 +336,7 @@ export class SeoService {
             const dateStr = item.date.toISOString().split('T')[0];
             adsMap.set(dateStr, {
                 clicks: item._sum.clicks ?? 0,
-                spend: Number(item._sum.spend ?? 0),
+                spend: toNumber(item._sum.spend),
                 impressions: item._sum.impressions ?? 0
             });
         });
@@ -421,8 +421,8 @@ export class SeoService {
                 return currentData.map((item: any) => {
                     const prev = prevMap.get(item.type) || { keywords: 0, traffic: 0 };
 
-                    const currentKeywords = Number(item.keywords || 0);
-                    const currentTraffic = Number(item.traffic || 0);
+                    const currentKeywords = toNumber(item.keywords);
+                    const currentTraffic = toNumber(item.traffic);
 
                     // Calculate Trends (Delta)
                     const keywordsTrend = currentKeywords - prev.keywords;
@@ -875,8 +875,8 @@ export class SeoService {
                     country,
                     clicks: Math.trunc(Number(row.clicks || 0)),
                     impressions: Math.trunc(Number(row.impressions || 0)),
-                    ctr: new Prisma.Decimal(Number(row.ctr || 0)),
-                    position: new Prisma.Decimal(Number(row.position || 0)),
+                    ctr: Number(row.ctr || 0),
+                    position: Number(row.position || 0),
                     externalKey,
                 };
             })

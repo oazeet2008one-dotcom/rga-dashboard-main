@@ -78,6 +78,13 @@ function getDateRangeFromPeriod(period: PeriodEnum): { startDate: string; endDat
     }
 }
 
+function formatDateDisplay(dateStr: string): string {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 // =============================================================================
 // Helper Components
 // =============================================================================
@@ -487,8 +494,8 @@ export function CampaignsPage() {
                 {/* Time Window Indicator */}
                 <div className="flex flex-col gap-1">
                     <div className="text-sm text-muted-foreground flex items-center gap-2">
-                        Metrics from <span className="font-medium">{dateRange.startDate}</span> to{' '}
-                        <span className="font-medium">{dateRange.endDate}</span>
+                        Metrics from <span className="font-medium">{formatDateDisplay(dateRange.startDate)}</span> to{' '}
+                        <span className="font-medium">{formatDateDisplay(dateRange.endDate)}</span>
                     </div>
                     {/* Loading Bar for Refetching - Explicit Indeterminate Animation */}
                     {isFetching && !isLoading && (

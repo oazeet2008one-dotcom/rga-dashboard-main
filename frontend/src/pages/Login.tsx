@@ -307,21 +307,9 @@ export default function Login() {
 
               {/* Password Field */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="block text-[13px] font-medium text-slate-600">
-                    Password
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsForgotPassword(true);
-                      setForgotEmail(email);
-                    }}
-                    className="text-xs text-blue-600/80 hover:text-blue-700 font-medium transition-colors"
-                  >
-                    Forgot?
-                  </button>
-                </div>
+                <label htmlFor="password" className="block text-[13px] font-medium text-slate-600">
+                  Password
+                </label>
                 <div className="relative">
                   <Input
                     id="password"
