@@ -13,8 +13,12 @@ export class ChatController {
     @Post('sessions')
     // @UseGuards(JwtAuthGuard) // Enable if strict auth required
     async createSession(@Body() createSessionDto: CreateChatSessionDto, @Request() req: any) {
+        const tenantId = req.user?.tenantId;
         const userId = req.user?.id || null; // Handle both auth and guest
-        return this.chatService.createSession(userId, createSessionDto);
+        if (!tenantId || !userId) {
+            return { message: 'Unauthorized' };
+        }
+        return this.chatService.createSession(tenantId, userId, createSessionDto);
     }
 
     @Get('sessions')
@@ -40,7 +44,11 @@ export class ChatController {
     }
 
     @Post('messages')
-    async addMessage(@Body() createMessageDto: CreateChatMessageDto) {
-        return this.chatService.addMessage(createMessageDto.sessionId, createMessageDto);
+    async addMessage(@Body() createMessageDto: CreateChatMessageDto, @Request() req: any) {
+        const tenantId = req.user?.tenantId;
+        if (!tenantId) {
+            return { message: 'Unauthorized' };
+        }
+        return this.chatService.addMessage(tenantId, createMessageDto.sessionId, createMessageDto);
     }
 }

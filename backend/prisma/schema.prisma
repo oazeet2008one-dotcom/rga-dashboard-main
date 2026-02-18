@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // RGA Dashboard - Prisma Schema (Phase 1: Sprint 1-4)
 // ============================================================
 // Version: 2.0.0
@@ -184,45 +184,49 @@ model Tenant {
   deletedAt DateTime? @map("deleted_at")
 
   // Relations
-  users                   User[]
-  roles                   Role[]
-  integrations            Integration[]
-  campaigns               Campaign[]
-  metrics                 Metric[]
-  alerts                  Alert[]
-  alertRules              AlertRule[]
-  alertHistories          AlertHistory[]
-  reports                 Report[]
-  syncLogs                SyncLog[]
-  auditLogs               AuditLog[]
-  notifications           Notification[]
-  aiInsights              AiInsight[]
-  platformTokens          PlatformToken[]
-  googleAdsAccounts       GoogleAdsAccount[]
-  googleAnalyticsAccounts GoogleAnalyticsAccount[]
-  facebookAdsAccounts     FacebookAdsAccount[]
-  tiktokAdsAccounts       TikTokAdsAccount[]
-  chatSessions            ChatSession[]
-  chatMessages           ChatMessage[]
-  lineAdsAccounts         LineAdsAccount[]
-  webAnalyticsDaily       WebAnalyticsDaily[]
-  adGroups                AdGroup[]
-  SeoSearchIntent         SeoSearchIntent[]
-  SeoTopKeywords          SeoTopKeywords[]
-  SeoAnchorText           SeoAnchorText[]
+  users                     User[]
+  roles                     Role[]
+  integrations              Integration[]
+  campaigns                 Campaign[]
+  metrics                   Metric[]
+  alerts                    Alert[]
+  alertRules                AlertRule[]
+  alertHistories            AlertHistory[]
+  reports                   Report[]
+  syncLogs                  SyncLog[]
+  auditLogs                 AuditLog[]
+  notifications             Notification[]
+  aiInsights                AiInsight[]
+  userBehaviorEvents        UserBehavior[]
+  businessMetrics           BusinessMetric[]
+  aiRecommendations         AiRecommendation[]
+  securityEvents            SecurityEvent[]
+  platformTokens            PlatformToken[]
+  googleAdsAccounts         GoogleAdsAccount[]
+  googleAnalyticsAccounts   GoogleAnalyticsAccount[]
+  facebookAdsAccounts       FacebookAdsAccount[]
+  tiktokAdsAccounts         TikTokAdsAccount[]
+  chatSessions              ChatSession[]
+  chatMessages              ChatMessage[]
+  lineAdsAccounts           LineAdsAccount[]
+  webAnalyticsDaily         WebAnalyticsDaily[]
+  adGroups                  AdGroup[]
+  SeoSearchIntent           SeoSearchIntent[]
+  SeoTopKeywords            SeoTopKeywords[]
+  SeoAnchorText             SeoAnchorText[]
   SeoOffpageMetricSnapshots SeoOffpageMetricSnapshots[]
-  SeoTrafficByLocation    SeoTrafficByLocation[]
+  SeoTrafficByLocation      SeoTrafficByLocation[]
 
   @@map("tenants")
 }
 
 /// User - α╕£α╕╣α╣ëα╣âα╕èα╣ëα╕çα╕▓α╕Öα╣âα╕Öα╕úα╕░α╕Üα╕Ü
 model User {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String @map("tenant_id") @db.Uuid
-  email    String @map("email") @db.VarChar(255)
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  email    String  @map("email") @db.VarChar(255)
   username String? @unique @map("username") @db.VarChar(30)
-  password String @map("password_hash") @db.VarChar(255)
+  password String  @map("password_hash") @db.VarChar(255)
 
   // Profile
   firstName String? @map("first_name") @db.VarChar(100)
@@ -236,18 +240,18 @@ model User {
   isActive  Boolean  @default(true) @map("is_active")
 
   // Security
-  emailVerified     Boolean   @default(false) @map("email_verified")
+  emailVerified                   Boolean   @default(false) @map("email_verified")
   emailVerificationTokenHash      String?   @map("email_verification_token_hash") @db.VarChar(255)
   emailVerificationTokenExpiresAt DateTime? @map("email_verification_token_expires_at")
   passwordResetTokenHash          String?   @map("password_reset_token_hash") @db.VarChar(255)
   passwordResetTokenExpiresAt     DateTime? @map("password_reset_token_expires_at")
-  termsAcceptedAt   DateTime? @map("terms_accepted_at")
-  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
-  lastLoginAt       DateTime? @map("last_login_at")
-  lastLoginIp       String?   @map("last_login_ip") @db.VarChar(45)
-  failedLoginCount  Int       @default(0) @map("failed_login_count")
-  lockedUntil       DateTime? @map("locked_until")
-  passwordChangedAt DateTime? @map("password_changed_at")
+  termsAcceptedAt                 DateTime? @map("terms_accepted_at")
+  twoFactorEnabled                Boolean   @default(false) @map("two_factor_enabled")
+  lastLoginAt                     DateTime? @map("last_login_at")
+  lastLoginIp                     String?   @map("last_login_ip") @db.VarChar(45)
+  failedLoginCount                Int       @default(0) @map("failed_login_count")
+  lockedUntil                     DateTime? @map("locked_until")
+  passwordChangedAt               DateTime? @map("password_changed_at")
 
   // Preferences (JSONB)
   notificationPreferences Json?   @map("notification_preferences") @db.JsonB
@@ -260,12 +264,14 @@ model User {
   deletedAt DateTime? @map("deleted_at")
 
   // Relations
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sessions      Session[]
-  reports       Report[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  chatSessions  ChatSession[]
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions       Session[]
+  reports        Report[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+  chatSessions   ChatSession[]
+  behaviorEvents UserBehavior[]
+  securityEvents SecurityEvent[]
 
   @@unique([tenantId, email], name: "users_tenant_email_unique")
   @@index([tenantId], name: "idx_users_tenant")
@@ -713,13 +719,13 @@ model SeoTopKeywords {
   tenantId String   @map("tenant_id") @db.Uuid
   date     DateTime @map("date") @db.Date
 
-  keyword String @map("keyword") @db.VarChar(255)
-  position Float @map("position")
-  volume Int @map("volume")
-  traffic Int @map("traffic")
-  trafficPercentage Float @map("traffic_percentage")
-  url String @map("url") @db.Text
-  change Int @map("change")
+  keyword           String @map("keyword") @db.VarChar(255)
+  position          Float  @map("position")
+  volume            Int    @map("volume")
+  traffic           Int    @map("traffic")
+  trafficPercentage Float  @map("traffic_percentage")
+  url               String @map("url") @db.Text
+  change            Int    @map("change")
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
@@ -739,13 +745,13 @@ model SeoAnchorText {
   tenantId String   @map("tenant_id") @db.Uuid
   date     DateTime @map("date") @db.Date
 
-  anchorText String @map("anchor_text") @db.VarChar(255)
-  domains Int @map("domains")
-  totalBacklinks Int @map("total_backlinks")
-  dofollowBacklinks Int @map("dofollow_backlinks")
-  referringDomains Int @map("referring_domains")
-  traffic Int @map("traffic")
-  trafficPercentage Float @map("traffic_percentage")
+  anchorText        String @map("anchor_text") @db.VarChar(255)
+  domains           Int    @map("domains")
+  totalBacklinks    Int    @map("total_backlinks")
+  dofollowBacklinks Int    @map("dofollow_backlinks")
+  referringDomains  Int    @map("referring_domains")
+  traffic           Int    @map("traffic")
+  trafficPercentage Float  @map("traffic_percentage")
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
@@ -766,22 +772,22 @@ model SeoOffpageMetricSnapshots {
   date     DateTime @map("date") @db.Date
 
   // Authority metrics
-  ur Float @map("ur")
-  dr Float @map("dr")
-  backlinks Int @map("backlinks")
-  referringDomains Int @map("referring_domains")
-  keywords Int @map("keywords")
-  trafficCost Int @map("traffic_cost")
+  ur               Float @map("ur")
+  dr               Float @map("dr")
+  backlinks        Int   @map("backlinks")
+  referringDomains Int   @map("referring_domains")
+  keywords         Int   @map("keywords")
+  trafficCost      Int   @map("traffic_cost")
 
   // Traffic metrics
-  organicTraffic Int @map("organic_traffic")
+  organicTraffic      Int @map("organic_traffic")
   organicTrafficValue Int @map("organic_traffic_value")
 
   // Change metrics
-  newReferringDomains Int @default(0) @map("new_referring_domains")
-  newBacklinks Int @default(0) @map("new_backlinks")
+  newReferringDomains  Int @default(0) @map("new_referring_domains")
+  newBacklinks         Int @default(0) @map("new_backlinks")
   lostReferringDomains Int @default(0) @map("lost_referring_domains")
-  lostBacklinks Int @default(0) @map("lost_backlinks")
+  lostBacklinks        Int @default(0) @map("lost_backlinks")
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
@@ -802,10 +808,10 @@ model SeoTrafficByLocation {
   tenantId String   @map("tenant_id") @db.Uuid
   date     DateTime @map("date") @db.Date
 
-  location String @map("location") @db.VarChar(100)
-  traffic Int @map("traffic")
-  trafficPercentage Float @map("traffic_percentage")
-  keywords Int @map("keywords")
+  location          String @map("location") @db.VarChar(100)
+  traffic           Int    @map("traffic")
+  trafficPercentage Float  @map("traffic_percentage")
+  keywords          Int    @map("keywords")
 
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
@@ -840,6 +846,88 @@ model AiInsight {
   @@index([tenantId], name: "idx_ai_insights_tenant")
   @@index([tenantId, type, createdAt(sort: Desc)], name: "idx_ai_insights_tenant_type_created")
   @@map("ai_insights")
+}
+
+/// UserBehavior - user interaction tracking for AI/analytics
+model UserBehavior {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  action    String   @map("action") @db.VarChar(100)
+  data      Json?    @map("data") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_user_behavior_tenant")
+  @@index([userId], name: "idx_user_behavior_user")
+  @@index([action], name: "idx_user_behavior_action")
+  @@index([timestamp(sort: Desc)], name: "idx_user_behavior_timestamp")
+  @@map("user_behavior")
+}
+
+/// BusinessMetric - business performance tracking for AI/analytics
+model BusinessMetric {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  metrics   Json     @map("metrics") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_business_metrics_tenant")
+  @@index([timestamp(sort: Desc)], name: "idx_business_metrics_timestamp")
+  @@map("business_metrics")
+}
+
+/// AiRecommendation - actionable AI recommendations
+model AiRecommendation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  type        String    @map("type") @db.VarChar(50)
+  title       String    @map("title") @db.VarChar(255)
+  description String    @map("description") @db.Text
+  priority    String    @default("MEDIUM") @map("priority") @db.VarChar(20)
+  confidence  Decimal   @default(0) @map("confidence") @db.Decimal(3, 2)
+  status      String    @default("PENDING") @map("status") @db.VarChar(20)
+  payload     Json?     @map("payload") @db.JsonB
+  executedAt  DateTime? @map("executed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], name: "idx_ai_recommendations_tenant")
+  @@index([tenantId, status, priority], name: "idx_ai_recommendations_status_priority")
+  @@index([createdAt(sort: Desc)], name: "idx_ai_recommendations_created")
+  @@map("ai_recommendations")
+}
+
+/// SecurityEvent - security & compliance tracking for AI/analytics
+model SecurityEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  eventType String   @map("event_type") @db.VarChar(50)
+  severity  String   @default("LOW") @map("severity") @db.VarChar(20)
+  message   String   @map("message") @db.Text
+  metadata  Json?    @map("metadata") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], name: "idx_security_events_tenant")
+  @@index([userId], name: "idx_security_events_user")
+  @@index([eventType], name: "idx_security_events_type")
+  @@index([severity], name: "idx_security_events_severity")
+  @@index([timestamp(sort: Desc)], name: "idx_security_events_timestamp")
+  @@map("security_events")
 }
 
 // ============================================================
@@ -1091,20 +1179,20 @@ model AuditLog {
 
 /// ChatSession - Chat sessions for users
 model ChatSession {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  title     String   @map("title") @db.VarChar(200)
-  isActive  Boolean  @default(true) @map("is_active") @db.Boolean
-  
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  userId   String  @map("user_id") @db.Uuid
+  title    String  @map("title") @db.VarChar(200)
+  isActive Boolean @default(true) @map("is_active") @db.Boolean
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  ChatMessage[]
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
 
   @@index([tenantId], name: "idx_chat_sessions_tenant")
   @@index([userId], name: "idx_chat_sessions_user")
@@ -1114,12 +1202,12 @@ model ChatSession {
 
 /// ChatMessage - Messages in chat sessions
 model ChatMessage {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId   String   @map("tenant_id") @db.Uuid
-  sessionId  String   @map("session_id") @db.Uuid
-  content    String   @map("content") @db.Text
-  role       String   @map("role") @db.VarChar(20) // "user" or "assistant"
-  
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  content   String @map("content") @db.Text
+  role      String @map("role") @db.VarChar(20) // "user" or "assistant"
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

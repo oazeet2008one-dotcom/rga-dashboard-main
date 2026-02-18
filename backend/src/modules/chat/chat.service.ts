@@ -10,10 +10,14 @@ export class ChatService {
 
     constructor(private prisma: PrismaService) { }
 
-    async createSession(userId: string | null, createSessionDto: CreateChatSessionDto) {
+    async createSession(tenantId: string, userId: string | null, createSessionDto: CreateChatSessionDto) {
+        if (!userId) {
+            throw new NotFoundException('Cannot create chat session without user');
+        }
         return this.prisma.chatSession.create({
             data: {
-                userId: userId,
+                tenantId,
+                userId,
                 title: createSessionDto.title || 'New Chat',
             },
             include: {
@@ -56,7 +60,7 @@ export class ChatService {
         return session;
     }
 
-    async addMessage(sessionId: string, createMessageDto: CreateChatMessageDto) {
+    async addMessage(tenantId: string, sessionId: string, createMessageDto: CreateChatMessageDto) {
         // 1. Verify session exists
         const session = await this.prisma.chatSession.findUnique({
             where: { id: sessionId },
@@ -69,6 +73,7 @@ export class ChatService {
         // 2. Create message
         const message = await this.prisma.chatMessage.create({
             data: {
+                tenantId,
                 sessionId,
                 role: createMessageDto.role,
                 content: createMessageDto.content,
