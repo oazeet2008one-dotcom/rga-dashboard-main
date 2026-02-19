@@ -32,15 +32,46 @@ type Session = {
     messages: Message[];
 };
 
+const ROLE_OPTIONS = [
+    { id: 'general', label: 'ทั่วไป' },
+    { id: 'ads', label: 'Ads' },
+    { id: 'seo', label: 'SEO' },
+] as const;
+
+type RoleId = (typeof ROLE_OPTIONS)[number]['id'];
+
 export function AiAssistant() {
     const [query, setQuery] = useState("");
     const [isThinking, setIsThinking] = useState(false);
     const [isListening, setIsListening] = useState(false); // Voice Input State
-    const [messages, setMessages] = useState<Message[]>([]);
     const [isStreaming, setIsStreaming] = useState(false); // Fix: Prevent useEffect from overwriting streaming text
+    const [activeRole, setActiveRole] = useState<RoleId>('general');
+    const [messagesByRole, setMessagesByRole] = useState<Record<RoleId, Message[]>>({
+        general: [],
+        ads: [],
+        seo: [],
+    });
+
+    const messages = messagesByRole[activeRole] || [];
+    const updateMessages = (updater: (prev: Message[]) => Message[]) => {
+        setMessagesByRole((prev) => ({
+            ...prev,
+            [activeRole]: updater(prev[activeRole] || []),
+        }));
+    };
+    const setMessagesForRole = (next: Message[]) => {
+        setMessagesByRole((prev) => ({
+            ...prev,
+            [activeRole]: next,
+        }));
+    };
 
     // Controlled locally to avoid flash, but synced with React Query
-    const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+    const [activeSessionIdByRole, setActiveSessionIdByRole] = useState<Record<RoleId, string | null>>({
+        general: null,
+        ads: null,
+        seo: null,
+    });
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'chat' | 'summary' | 'tools'>('chat');
 
@@ -57,6 +88,15 @@ export function AiAssistant() {
 
     const { user, isAuthenticated } = useAuthStore();
     const queryClient = useQueryClient();
+    const envWebhookGeneral =
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') || '';
+    const envWebhookAds =
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_ADS : '') || '';
+    const envWebhookSeo =
+        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') || '';
+    const webhookUrl =
+        activeRole === 'ads' ? envWebhookAds : activeRole === 'seo' ? envWebhookSeo : envWebhookGeneral;
+    const activeSessionId = activeSessionIdByRole[activeRole];
 
     // 1. React Query: Fetch Sessions
     const { data: apiSessions = [] } = useQuery({
@@ -90,9 +130,7 @@ export function AiAssistant() {
                 content: m.content,
                 timestamp: new Date(m.createdAt)
             }));
-            setMessages(mappedMessages);
-        } else if (!activeSessionId) {
-            setMessages([]);
+            setMessagesForRole(mappedMessages);
         }
     }, [sessionData, activeSessionId, isThinking, isStreaming]);
 
@@ -171,12 +209,16 @@ export function AiAssistant() {
         const tempUserMsgId = Date.now().toString();
 
         try {
-            // 2. Ensure Session Exists
+            // 2. Ensure Session Exists (if API available)
             let currentSessionId = activeSessionId;
             if (!currentSessionId) {
-                const newSession = await createSessionMutation.mutateAsync(savedQuery.slice(0, 50));
-                currentSessionId = newSession.id;
-                setActiveSessionId(currentSessionId);
+                try {
+                    const newSession = await createSessionMutation.mutateAsync(savedQuery.slice(0, 50));
+                    currentSessionId = newSession.id;
+                    setActiveSessionIdByRole((prev) => ({ ...prev, [activeRole]: currentSessionId }));
+                } catch {
+                    currentSessionId = null;
+                }
             }
 
             // 3. Optimistic User Message
@@ -187,30 +229,60 @@ export function AiAssistant() {
                 timestamp: new Date()
             };
 
-            setMessages(prev => [...prev, userMsg]);
+            updateMessages(prev => [...prev, userMsg]);
             setQuery(""); // Clear input AFTER adding message
 
-            // 4. Send User Message to API
-            await sendMessageMutation.mutateAsync({
-                sessionId: currentSessionId!,
-                role: 'user',
-                content: savedQuery
-            });
-
-            // 5. Determine Response Logic (Mock AI + API storage)
+            // 4. Send User Message to API (skip if no session)
+            if (currentSessionId) {
+                await sendMessageMutation.mutateAsync({
+                    sessionId: currentSessionId,
+                    role: 'user',
+                    content: savedQuery
+                });
+            }
+            // 5. Determine Response Logic (Webhook preferred, fallback to mock)
             const lowerQ = savedQuery.toLowerCase();
             let responseText = "";
 
-            if (lowerQ.includes('caption')) {
-                responseText = "Here are a few caption options:\n\n1. 🚀 **Boost your ROI** with AI! #Marketing\n2. Stop guessing, start scaling. 📈\n3. Connect better with smart targeting. 🎯";
-            } else if (lowerQ.includes('performance')) {
-                responseText = "Recent data:\n\n- 🟢 **CTR +15%**\n- 🔴 **CPC $1.35**\n- 💡 **Suggestion:** Pause 'Mobile_Feed_B'.";
-            } else if (lowerQ.includes('trend')) {
-                responseText = "🔥 **Trending:**\n\n1. *Short-form video* (2x engagement)\n2. *Sustainability messaging*\n3. *Interactive polls*";
-            } else if (lowerQ.includes('lead') || lowerQ.includes('summarize') || lowerQ.includes('summary')) {
-                responseText = "📊 **AI Summary Report:**\n\n- **Overall Performance:** Strong growth in Q3.\n- **Key Driver:** Organic traffic increased by 22%.\n- **Risk:** CPA is trending up in paid channels.\n- **Recommendation:** Reallocate budget to high-performing ad sets.";
-            } else {
-                responseText = `Analyzed "${savedQuery}".Metrics stable.\nRecommendation: Improve ad relevance to lower CPA.`;
+            if (webhookUrl) {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: savedQuery,
+                        role: activeRole,
+                        timestamp: new Date().toISOString(),
+                    }),
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
+                    }
+                    responseText = data.reply || data.response || data.message || data.output || '';
+                } else {
+                    const text = await response.text();
+                    if (!response.ok) {
+                        throw new Error(text || `HTTP ${response.status}`);
+                    }
+                    responseText = text;
+                }
+            }
+
+            if (!responseText) {
+                if (lowerQ.includes('caption')) {
+                    responseText = "Here are a few caption options:\n\n1. Boost your ROI with AI!\n2. Stop guessing, start scaling.\n3. Connect better with smart targeting.";
+                } else if (lowerQ.includes('performance')) {
+                    responseText = "Recent data:\n\n- CTR +15%\n- CPC $1.35\n- Suggestion: Pause 'Mobile_Feed_B'.";
+                } else if (lowerQ.includes('trend')) {
+                    responseText = "Trending:\n\n1. Short-form video (2x engagement)\n2. Sustainability messaging\n3. Interactive polls";
+                } else if (lowerQ.includes('lead') || lowerQ.includes('summarize') || lowerQ.includes('summary')) {
+                    responseText = "AI Summary Report:\n\n- Overall Performance: Strong growth in Q3.\n- Key Driver: Organic traffic increased by 22%.\n- Risk: CPA is trending up in paid channels.\n- Recommendation: Reallocate budget to high-performing ad sets.";
+                } else {
+                    responseText = `Analyzed "${savedQuery}". Metrics stable.\nRecommendation: Improve ad relevance to lower CPA.`;
+                }
             }
 
             // 6. Simulate AI Thinking (reduced delay 400ms)
@@ -227,7 +299,7 @@ export function AiAssistant() {
                 content: '',
                 timestamp: new Date()
             };
-            setMessages(prev => [...prev, aiMsg]);
+            updateMessages(prev => [...prev, aiMsg]);
 
             // Streaming Visuals
             let charIndex = 0;
@@ -235,7 +307,7 @@ export function AiAssistant() {
             streamIntervalRef.current = setInterval(() => {
                 charIndex += chunkSize;
                 const currentContent = responseText.slice(0, Math.min(charIndex, responseText.length));
-                setMessages(prev => prev.map(msg =>
+                updateMessages(prev => prev.map(msg =>
                     msg.id === aiMsgId
                         ? { ...msg, content: currentContent }
                         : msg
@@ -248,24 +320,29 @@ export function AiAssistant() {
                     }
 
                     // 8. Save AI message THEN unlock
-                    sendMessageMutation.mutateAsync({
-                        sessionId: currentSessionId!,
-                        role: 'assistant',
-                        content: responseText
-                    }).then(async () => {
-                        // Critical: Wait for refetch to complete so we don't flash stale data
-                        await queryClient.invalidateQueries({ queryKey: ['chat-session', currentSessionId] });
+                    if (currentSessionId) {
+                        sendMessageMutation.mutateAsync({
+                            sessionId: currentSessionId,
+                            role: 'assistant',
+                            content: responseText
+                        }).then(async () => {
+                            // Critical: Wait for refetch to complete so we don't flash stale data
+                            await queryClient.invalidateQueries({ queryKey: ['chat-session', currentSessionId] });
 
-                        // Small buffer to ensure React renders the new data
-                        setTimeout(() => {
+                            // Small buffer to ensure React renders the new data
+                            setTimeout(() => {
+                                setIsStreaming(false);
+                                isProcessingRef.current = false;
+                            }, 100);
+                        }).catch(err => {
+                            console.error("Failed to save AI message:", err);
                             setIsStreaming(false);
                             isProcessingRef.current = false;
-                        }, 100);
-                    }).catch(err => {
-                        console.error("Failed to save AI message:", err);
+                        });
+                    } else {
                         setIsStreaming(false);
                         isProcessingRef.current = false;
-                    });
+                    }
                 }
             }, 30);
 
@@ -276,7 +353,7 @@ export function AiAssistant() {
             // Restore query so user can retry
             setQuery(savedQuery);
             // Remove the optimistic user message that failed
-            setMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
+            updateMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
 
             // Show more specific error
             const errorMessage = err?.response?.data?.message || err?.message || "AI connection failed";
@@ -331,15 +408,18 @@ export function AiAssistant() {
     };
 
     const handleNewChat = () => {
-        setActiveSessionId(null);
-        setMessages([]);
+        setActiveSessionIdByRole((prev) => ({
+            ...prev,
+            [activeRole]: null,
+        }));
+        setMessagesForRole([]);
         setQuery("");
         setIsThinking(false);
         if (!isSidebarOpen) setIsSidebarOpen(true);
     };
 
     const restoreSession = (session: Session) => {
-        setActiveSessionId(session.id);
+        setActiveSessionIdByRole((prev) => ({ ...prev, [activeRole]: session.id }));
         // Messages synced via React Query useEffect
     };
 
@@ -348,8 +428,11 @@ export function AiAssistant() {
         try {
             await deleteSessionMutation.mutateAsync(id);
             if (activeSessionId === id) {
-                setActiveSessionId(null);
-                setMessages([]);
+                setActiveSessionIdByRole((prev) => ({
+                    ...prev,
+                    [activeRole]: null,
+                }));
+                setMessagesForRole([]);
             }
         } catch (err) {
             // Error handled in mutation
@@ -521,28 +604,53 @@ export function AiAssistant() {
                     // Chat Interface
                     <>
                         {/* Chat Header */}
-                        <div className="h-14 border-b border-slate-100 bg-white/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-10 shrink-0">
-                            <div className="flex items-center gap-2">
-                                {/* Mobile/Desktop Toggle */}
-                                {!isSidebarOpen && (
-                                    <button
-                                        onClick={() => setIsSidebarOpen(true)}
-                                        className="p-2 mr-2 bg-white/50 hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition-colors block"
-                                        title="View Chat History"
-                                    >
-                                        <PanelLeft className="w-5 h-5 text-slate-600" />
-                                    </button>
-                                )}
-                                <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 p-1.5 overflow-hidden shrink-0">
-                                    <img src={chatbotImage} alt="AI" className="w-full h-full object-contain" />
+                        <div className="border-b border-slate-100 bg-white/80 backdrop-blur px-6 sticky top-0 z-10 shrink-0">
+                            <div className="h-14 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    {/* Mobile/Desktop Toggle */}
+                                    {!isSidebarOpen && (
+                                        <button
+                                            onClick={() => setIsSidebarOpen(true)}
+                                            className="p-2 mr-2 bg-white/50 hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition-colors block"
+                                            title="View Chat History"
+                                        >
+                                            <PanelLeft className="w-5 h-5 text-slate-600" />
+                                        </button>
+                                    )}
+                                    <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 p-1.5 overflow-hidden shrink-0">
+                                        <img src={chatbotImage} alt="AI" className="w-full h-full object-contain" />
+                                    </div>
+                                    <span className="font-semibold text-slate-800">AI Assistant</span>
+                                    <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold tracking-wide uppercase border border-orange-200">
+                                        Beta
+                                    </span>
                                 </div>
-                                <span className="font-semibold text-slate-800">AI Assistant</span>
-                                <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold tracking-wide uppercase border border-orange-200">
-                                    Beta
-                                </span>
                             </div>
-
-
+                            <div className="pb-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {ROLE_OPTIONS.map((role) => (
+                                        <button
+                                            key={role.id}
+                                            type="button"
+                                            onClick={() => setActiveRole(role.id)}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
+                                                activeRole === role.id
+                                                    ? "bg-orange-500 text-white border-orange-500"
+                                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                                            )}
+                                            aria-pressed={activeRole === role.id}
+                                        >
+                                            {role.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {!webhookUrl && (
+                                    <div className="mt-2 text-[11px] text-slate-400">
+                                        ยังไม่ได้ตั้งค่า `VITE_CHATBOT_WEBHOOK_URL_GENERAL/ADS/SEO` — ระบบจะใช้ข้อความจำลอง
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Messages Area */}
