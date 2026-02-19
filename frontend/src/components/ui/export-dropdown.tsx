@@ -48,8 +48,6 @@ export function ExportDropdown({
         }
     };
 
-    return null; // Hidden as requested
-
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

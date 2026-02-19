@@ -17,23 +17,6 @@ export function BrandLogo({ platformId, className }: BrandLogoProps) {
                     />
                 </svg>
             );
-        case 'instagram-ads':
-        case 'instagram':
-            return (
-                <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-                    <defs>
-                        <linearGradient id="igGradient" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stopColor="#F58529" />
-                            <stop offset="50%" stopColor="#DD2A7B" />
-                            <stop offset="100%" stopColor="#8134AF" />
-                        </linearGradient>
-                    </defs>
-                    <circle cx="32" cy="32" r="30" fill="url(#igGradient)" />
-                    <rect x="20" y="20" width="24" height="24" rx="7" ry="7" fill="none" stroke="#FFFFFF" strokeWidth="4" />
-                    <circle cx="32" cy="32" r="6" fill="none" stroke="#FFFFFF" strokeWidth="4" />
-                    <circle cx="41" cy="23" r="2.5" fill="#FFFFFF" />
-                </svg>
-            );
         case 'facebook-ads':
         case 'facebook':
             return (
