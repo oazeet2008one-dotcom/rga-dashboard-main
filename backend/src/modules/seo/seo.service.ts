@@ -1,9 +1,178 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../modules/prisma/prisma.service';
+import { GoogleSearchConsoleService } from './google-search-console.service';
 
 @Injectable()
 export class SeoService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly gsc: GoogleSearchConsoleService,
+    ) { }
+
+    private formatDate(date: Date): string {
+        return date.toISOString().split('T')[0];
+    }
+
+    private async fetchAllGscRows(params: {
+        siteUrl: string;
+        startDate: string;
+        endDate: string;
+        dimensions: string[];
+        rowLimit?: number;
+    }) {
+        const rowLimit = Math.min(params.rowLimit ?? 25000, 25000);
+        let startRow = 0;
+        const rows: any[] = [];
+
+        while (true) {
+            const data = await this.gsc.querySearchAnalytics({
+                siteUrl: params.siteUrl,
+                startDate: params.startDate,
+                endDate: params.endDate,
+                dimensions: params.dimensions,
+                rowLimit,
+                startRow,
+            });
+
+            const batch = data?.rows ?? [];
+            rows.push(...batch);
+
+            if (batch.length < rowLimit) break;
+            startRow += rowLimit;
+        }
+
+        return rows;
+    }
+
+    async syncGscForTenant(tenantId: string, opts: { days: number }) {
+        if (!this.gsc.hasCredentials()) {
+            throw new Error('GSC credentials not configured');
+        }
+
+        const tenant = await this.prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: { settings: true },
+        });
+
+        const siteUrl = this.gsc.getSiteUrl(tenant?.settings);
+        if (!siteUrl) {
+            throw new Error('GSC siteUrl not configured');
+        }
+
+        const days = Math.max(1, Math.min(opts.days ?? 30, 365));
+        const end = new Date();
+        end.setHours(0, 0, 0, 0);
+
+        const start = new Date(end);
+        start.setDate(start.getDate() - (days - 1));
+
+        for (
+            let d = new Date(start);
+            d.getTime() <= end.getTime();
+            d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
+        ) {
+            const dateStr = this.formatDate(d);
+
+            const [keywordRows, locationRows] = await Promise.all([
+                this.fetchAllGscRows({
+                    siteUrl,
+                    startDate: dateStr,
+                    endDate: dateStr,
+                    dimensions: ['query', 'page'],
+                }),
+                this.fetchAllGscRows({
+                    siteUrl,
+                    startDate: dateStr,
+                    endDate: dateStr,
+                    dimensions: ['country'],
+                }),
+            ]);
+
+            const keywordTotalClicks = keywordRows.reduce(
+                (sum, r) => sum + Number(r?.clicks ?? 0),
+                0,
+            );
+            const locationTotalClicks = locationRows.reduce(
+                (sum, r) => sum + Number(r?.clicks ?? 0),
+                0,
+            );
+
+            const topKeywords = keywordRows
+                .map((r) => {
+                    const keyword = String(r?.keys?.[0] ?? '').trim();
+                    const url = String(r?.keys?.[1] ?? '').trim();
+                    const clicks = Number(r?.clicks ?? 0);
+                    const impressions = Number(r?.impressions ?? 0);
+                    const position = Number(r?.position ?? 0);
+
+                    if (!keyword || !url) return null;
+
+                    return {
+                        tenantId,
+                        date: d,
+                        keyword,
+                        position,
+                        volume: impressions,
+                        traffic: clicks,
+                        trafficPercentage: keywordTotalClicks > 0 ? (clicks / keywordTotalClicks) * 100 : 0,
+                        url,
+                        change: 0,
+                    };
+                })
+                .filter(Boolean) as any[];
+
+            const trafficByLocation = locationRows
+                .map((r) => {
+                    const location = String(r?.keys?.[0] ?? '').trim();
+                    const clicks = Number(r?.clicks ?? 0);
+                    const impressions = Number(r?.impressions ?? 0);
+                    if (!location) return null;
+
+                    return {
+                        tenantId,
+                        date: d,
+                        location,
+                        traffic: clicks,
+                        trafficPercentage: locationTotalClicks > 0 ? (clicks / locationTotalClicks) * 100 : 0,
+                        keywords: impressions,
+                    };
+                })
+                .filter(Boolean) as any[];
+
+            await this.prisma.$transaction(async (tx) => {
+                await tx.seoTopKeywords.deleteMany({
+                    where: {
+                        tenantId,
+                        date: d,
+                    },
+                });
+
+                if (topKeywords.length > 0) {
+                    await tx.seoTopKeywords.createMany({
+                        data: topKeywords,
+                    });
+                }
+
+                for (const row of trafficByLocation) {
+                    await tx.seoTrafficByLocation.upsert({
+                        where: {
+                            seo_location_unique: {
+                                tenantId: row.tenantId,
+                                date: row.date,
+                                location: row.location,
+                            },
+                        },
+                        update: {
+                            traffic: row.traffic,
+                            trafficPercentage: row.trafficPercentage,
+                            keywords: row.keywords,
+                        },
+                        create: row,
+                    });
+                }
+            });
+        }
+    }
 
     async getSeoSummary(tenantId: string) {
         try {

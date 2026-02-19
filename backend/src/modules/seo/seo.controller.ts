@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -10,6 +10,13 @@ import { SeoService } from './seo.service';
 @UseGuards(JwtAuthGuard)
 export class SeoController {
     constructor(private readonly seoService: SeoService) { }
+
+    @Post('sync/gsc')
+    @ApiOperation({ summary: 'Trigger Google Search Console sync for tenant' })
+    async syncGsc(@CurrentUser() user: any, @Query('days') days?: number) {
+        await this.seoService.syncGscForTenant(user.tenantId, { days: days ? Number(days) : 30 });
+        return { ok: true };
+    }
 
     @Get('summary')
     @ApiOperation({ summary: 'Get SEO summary metrics' })
