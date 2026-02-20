@@ -1,0 +1,8 @@
+schemaVersion: "1.0.0"
+scenarioId: baseline
+name: Baseline Stable
+trend: STABLE
+aliases:
+  - default
+baseImpressions: 10000
+days: 30

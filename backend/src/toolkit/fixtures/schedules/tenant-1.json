@@ -1,0 +1,98 @@
+{
+  "version": "1.0",
+  "description": "Scheduled executions for tenant-1",
+  "schedules": [
+    {
+      "id": "sched-exec-morning-check",
+      "tenantId": "tenant-1",
+      "enabled": true,
+      "schedule": {
+        "scheduleId": "sched-morning-check",
+        "tenantId": "tenant-1",
+        "name": "Morning Alert Check",
+        "description": "Daily alert check at 9:00 AM",
+        "type": "CALENDAR",
+        "config": {
+          "hour": 9,
+          "minute": 0
+        },
+        "timezone": "America/New_York",
+        "enabled": true,
+        "metadata": {
+          "createdBy": "system",
+          "createdAt": "2024-01-01T00:00:00Z",
+          "category": "daily"
+        }
+      },
+      "policy": {
+        "allowedTimeWindows": [
+          {
+            "startTime": "08:00",
+            "endTime": "18:00",
+            "daysOfWeek": [1, 2, 3, 4, 5]
+          }
+        ],
+        "excludedDaysOfWeek": [0, 6],
+        "cooldownPeriodMs": 300000,
+        "maxExecutionsPerWindow": 10,
+        "executionWindowMs": 3600000,
+        "skipMissed": true
+      },
+      "executionParams": {
+        "triggerType": "PROGRAMMATIC",
+        "requestedBy": "scheduler",
+        "dryRunDefault": false,
+        "metadata": {
+          "source": "scheduled-morning-check",
+          "reason": "Daily scheduled alert evaluation"
+        }
+      }
+    },
+    {
+      "id": "sched-exec-frequent-monitor",
+      "tenantId": "tenant-1",
+      "enabled": true,
+      "schedule": {
+        "scheduleId": "sched-frequent-monitor",
+        "tenantId": "tenant-1",
+        "name": "Frequent Monitor",
+        "description": "Check every 15 minutes during business hours",
+        "type": "INTERVAL",
+        "config": {
+          "minutes": 15
+        },
+        "timezone": "America/New_York",
+        "enabled": true,
+        "metadata": {
+          "createdBy": "system",
+          "createdAt": "2024-01-01T00:00:00Z",
+          "category": "monitoring"
+        }
+      },
+      "policy": {
+        "allowedTimeWindows": [
+          {
+            "startTime": "09:00",
+            "endTime": "17:00",
+            "daysOfWeek": [1, 2, 3, 4, 5]
+          }
+        ],
+        "excludedDaysOfWeek": [0, 6],
+        "excludedDates": ["2024-12-25", "2024-01-01"],
+        "cooldownPeriodMs": 600000,
+        "maxExecutionsPerWindow": 32,
+        "executionWindowMs": 28800000,
+        "skipMissed": false
+      },
+      "executionParams": {
+        "triggerType": "PROGRAMMATIC",
+        "requestedBy": "scheduler",
+        "dryRunDefault": false,
+        "metadata": {
+          "source": "scheduled-frequent-monitor",
+          "reason": "High-frequency monitoring during business hours"
+        }
+      }
+    }
+  ]
+}

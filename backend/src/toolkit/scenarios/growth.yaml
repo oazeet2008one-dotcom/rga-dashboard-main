@@ -1,0 +1,6 @@
+schemaVersion: "1.0.0"
+scenarioId: growth
+name: Growth Trend
+trend: GROWTH
+baseImpressions: 12000
+days: 30

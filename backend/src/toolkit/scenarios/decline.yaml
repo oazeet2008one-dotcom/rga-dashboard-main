@@ -1,0 +1,6 @@
+schemaVersion: "1.0.0"
+scenarioId: decline
+name: Decline Trend
+trend: DECLINE
+baseImpressions: 8000
+days: 30

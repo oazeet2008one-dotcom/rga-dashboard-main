@@ -1,0 +1,103 @@
+{
+  "version": "1.0",
+  "description": "Default alert rules for simulation",
+  "rules": [
+    {
+      "id": "rule-high-spend",
+      "tenantId": "tenant-1",
+      "name": "High Daily Spend",
+      "description": "Triggers when daily spend exceeds threshold",
+      "condition": {
+        "type": "THRESHOLD",
+        "metric": "spend",
+        "operator": "GT",
+        "value": 10000
+      },
+      "severity": "HIGH",
+      "scope": "CAMPAIGN",
+      "enabled": true,
+      "metadata": {
+        "createdBy": "system",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "category": "budget"
+      }
+    },
+    {
+      "id": "rule-zero-conversions",
+      "tenantId": "tenant-1",
+      "name": "Budget Burn - Zero Conversions",
+      "description": "Triggers when spend exceeds minSpend with zero conversions",
+      "condition": {
+        "type": "ZERO_CONVERSIONS",
+        "minSpend": 5000
+      },
+      "severity": "CRITICAL",
+      "scope": "CAMPAIGN",
+      "enabled": true,
+      "metadata": {
+        "createdBy": "system",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "category": "performance"
+      }
+    },
+    {
+      "id": "rule-low-roas",
+      "tenantId": "tenant-1",
+      "name": "Low ROAS",
+      "description": "Triggers when ROAS falls below 1.0",
+      "condition": {
+        "type": "THRESHOLD",
+        "metric": "roas",
+        "operator": "LT",
+        "value": 1
+      },
+      "severity": "MEDIUM",
+      "scope": "CAMPAIGN",
+      "enabled": true,
+      "metadata": {
+        "createdBy": "system",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "category": "performance"
+      }
+    },
+    {
+      "id": "rule-ctr-drop",
+      "tenantId": "tenant-1",
+      "name": "CTR Significant Drop",
+      "description": "Triggers when CTR drops by 30% or more",
+      "condition": {
+        "type": "DROP_PERCENT",
+        "metric": "ctr",
+        "thresholdPercent": 30
+      },
+      "severity": "HIGH",
+      "scope": "CAMPAIGN",
+      "enabled": true,
+      "metadata": {
+        "createdBy": "system",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "category": "trend"
+      }
+    },
+    {
+      "id": "rule-low-conversion-rate",
+      "tenantId": "tenant-1",
+      "name": "Low Conversion Rate",
+      "description": "Triggers when CVR falls below 1%",
+      "condition": {
+        "type": "THRESHOLD",
+        "metric": "cvr",
+        "operator": "LT",
+        "value": 0.01
+      },
+      "severity": "LOW",
+      "scope": "CAMPAIGN",
+      "enabled": false,
+      "metadata": {
+        "createdBy": "system",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "category": "performance"
+      }
+    }
+  ]
+}

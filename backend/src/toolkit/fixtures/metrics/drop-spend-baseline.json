@@ -1,0 +1,22 @@
+{
+  "description": "Baseline period metrics for drop-spend comparison",
+  "baselines": {
+    "campaign-drop-test": {
+      "metrics": {
+        "impressions": 15000,
+        "clicks": 600,
+        "conversions": 20,
+        "spend": 3000,
+        "revenue": 6000,
+        "ctr": 0.04,
+        "cpc": 5.0,
+        "cvr": 0.033,
+        "roas": 2
+      },
+      "dateRange": {
+        "start": "2024-01-08T00:00:00.000Z",
+        "end": "2024-01-14T23:59:59.000Z"
+      }
+    }
+  }
+}

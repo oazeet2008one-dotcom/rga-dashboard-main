@@ -1,0 +1,74 @@
+name: Toolkit Smoke Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: rga_dashboard
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://postgres:password@localhost:5432/rga_dashboard?schema=public
+      DIRECT_URL: postgres://postgres:password@localhost:5432/rga_dashboard?schema=public
+      TOOLKIT_ISOLATED_DATABASE_URL: postgres://postgres:password@localhost:5432/rga_dashboard?schema=toolkit_ci
+      TOOLKIT_ISOLATED_DIRECT_URL: postgres://postgres:password@localhost:5432/rga_dashboard?schema=toolkit_ci
+      TOOLKIT_ISOLATED_SCHEMA: toolkit_ci
+      JWT_SECRET: test-secret-for-ci-smoke-test-only-do-not-use-in-production
+      # Add other required env vars if needed
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: npx prisma generate
+
+      - name: Build Backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Run Migrations (Isolated Schema)
+        working-directory: ./backend
+        run: |
+          # Create schema if not exists (Prisma migrate deploy might handle this or fail if schema doesn't exist)
+          # We might need to ensure the schema exists first.
+          # Or let migrate deploy handle it?
+          # Actually, smoke-local.js forces the schema in the connection string.
+          # We need to run migrations AGAINST that schema.
+          export DATABASE_URL=$TOOLKIT_ISOLATED_DATABASE_URL
+          npx prisma migrate deploy
+
+      - name: Run Smoke Test
+        working-directory: ./backend
+        run: npm run toolkit:smoke

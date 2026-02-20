@@ -1,0 +1,22 @@
+{
+  "description": "Current period metrics showing drop in spend and clicks",
+  "metrics": [
+    {
+      "tenantId": "demo-tenant",
+      "campaignId": "campaign-drop-test",
+      "date": "2024-01-15T00:00:00.000Z",
+      "platform": "GOOGLE_ADS",
+      "metrics": {
+        "impressions": 8000,
+        "clicks": 240,
+        "conversions": 8,
+        "spend": 1200,
+        "revenue": 2400,
+        "ctr": 0.03,
+        "cpc": 5.0,
+        "cvr": 0.033,
+        "roas": 2
+      }
+    }
+  ]
+}

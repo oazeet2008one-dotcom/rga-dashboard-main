@@ -1,0 +1,22 @@
+{
+  "description": "Campaign spending with zero conversions - triggers budget burn alert",
+  "metrics": [
+    {
+      "tenantId": "demo-tenant",
+      "campaignId": "campaign-high-spend-no-conv",
+      "date": "2024-01-15T00:00:00.000Z",
+      "platform": "GOOGLE_ADS",
+      "metrics": {
+        "impressions": 45000,
+        "clicks": 2250,
+        "conversions": 0,
+        "spend": 7500,
+        "revenue": 0,
+        "ctr": 0.05,
+        "cpc": 3.33,
+        "cvr": 0,
+        "roas": 0
+      }
+    }
+  ]
+}
