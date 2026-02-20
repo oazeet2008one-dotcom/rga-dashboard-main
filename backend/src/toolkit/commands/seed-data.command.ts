@@ -201,8 +201,6 @@ export class SeedDataCommandHandler implements ICommandHandler<SeedDataCommand> 
                 budget: 100000,
                 budgetType: 'DAILY',
                 currency: 'THB',
-                isMockData: true,
-                source: PROVENANCE.SOURCE_TOOLKIT_SEED,
             },
         });
     }

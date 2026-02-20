@@ -401,9 +401,10 @@ export class SeedUnifiedCommandHandler implements ICommandHandler<SeedUnifiedCom
                 await this.prisma.campaign.deleteMany({
                     where: {
                         tenantId: tenant,
-                        isMockData: true,
-                        source: sourceTag,
                         platform: dbPlatform,
+                        externalId: {
+                            startsWith: `unified-${scenarioSpec.scenarioId}-${seed}-${platform}`
+                        }
                     }
                 });
 
@@ -443,8 +444,6 @@ export class SeedUnifiedCommandHandler implements ICommandHandler<SeedUnifiedCom
                             name: campaignName,
                             platform: dbPlatform,
                             status: 'ACTIVE',
-                            isMockData: true,
-                            source: sourceTag,
                             externalId
                         }
                     });
@@ -558,7 +557,13 @@ export class SeedUnifiedCommandHandler implements ICommandHandler<SeedUnifiedCom
 
         // 2. Check Campaigns for REAL data
         const hasRealCampaigns = await this.prisma.campaign.findFirst({
-            where: { tenantId, isMockData: false }
+            where: {
+                tenantId,
+                OR: [
+                    { externalId: null },
+                    { NOT: { externalId: { startsWith: 'unified-' } } },
+                ],
+            }
         });
 
         // 3. Metric + Campaign are primary concern per contract

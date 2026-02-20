@@ -34,8 +34,6 @@ async function main() {
             name: 'Pass Campaign',
             platform: googleAds,
             status: 'ACTIVE',
-            isMockData: true,
-            source,
             externalId: 'pass-campaign-1'
         }
     });

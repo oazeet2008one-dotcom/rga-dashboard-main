@@ -36,7 +36,14 @@ export function getMetricProvenanceFilter(mode: ProvenanceMode): Prisma.MetricWh
 }
 
 export function getCampaignProvenanceFilter(mode: ProvenanceMode): Prisma.CampaignWhereInput {
-    if (mode === ProvenanceMode.MOCK) return { isMockData: true };
+    const mockCampaignExternalIdFilter: Prisma.CampaignWhereInput = {
+        OR: [
+            { externalId: { startsWith: 'toolkit-seed-' } },
+            { externalId: { startsWith: 'unified-' } },
+        ],
+    };
+
+    if (mode === ProvenanceMode.MOCK) return mockCampaignExternalIdFilter;
     if (mode === ProvenanceMode.ALL) return {};
-    return { isMockData: false };
+    return { NOT: mockCampaignExternalIdFilter };
 }

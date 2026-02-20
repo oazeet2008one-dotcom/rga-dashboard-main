@@ -34,8 +34,6 @@ async function main() {
             name: 'Fail Campaign',
             platform: googleAds,
             status: 'ACTIVE',
-            isMockData: true,
-            source,
             externalId: 'fail-campaign-1'
         }
     });
