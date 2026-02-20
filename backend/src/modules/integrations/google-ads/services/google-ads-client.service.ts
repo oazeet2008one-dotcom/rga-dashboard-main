@@ -21,13 +21,11 @@ export class GoogleAdsClientService {
    * @param refreshToken - OAuth refresh token
    * @returns Customer instance for querying
    */
-  getCustomer(customerId: string, refreshToken: string): Customer {
-    const loginCustomerId = this.configService.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
-
+  getCustomer(customerId: string, refreshToken: string, loginCustomerId?: string | null): Customer {
     return this.client.Customer({
       customer_id: customerId,
       refresh_token: refreshToken,
-      login_customer_id: loginCustomerId, // 🔑 สำคัญมาก! MCC Manager ID
+      login_customer_id: loginCustomerId || undefined, // 🔑 สำคัญมาก! ใช้ค่าตามบริบท Tenant (อาจไม่มีถ้าเป็น Direct Account)
     });
   }
 
@@ -54,11 +52,9 @@ export class GoogleAdsClientService {
    * @param refreshToken - OAuth refresh token
    * @returns Array of client accounts with id, name, and status
    */
-  async getClientAccounts(refreshToken: string) {
-    const loginCustomerId = this.configService.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
-
+  async getClientAccounts(refreshToken: string, loginCustomerId: string) {
     if (!loginCustomerId) {
-      throw new Error('GOOGLE_ADS_LOGIN_CUSTOMER_ID not configured');
+      throw new Error('loginCustomerId is required to get client accounts');
     }
 
     this.logger.log(`Using Manager Account ID: ${loginCustomerId} to list client accounts`);
@@ -148,22 +144,16 @@ export class GoogleAdsClientService {
 
       try {
         // ========================================================
-        // CRITICAL FIX: MCC Impersonation for Test/Standard Access
+        // CRITICAL FIX: Tenant-Specific Authentication
         // ========================================================
-        // When using Standard/Test Access via MCC, we MUST use the MCC ID
-        // as login_customer_id to "impersonate" access to child accounts.
-        // Using the child ID as login_customer_id causes "invalid_grant" error.
+        // Do NOT use global MCC ID. Use the customer's own ID as the login_customer_id 
+        // to discover if they are an MCC or regular account, and to list their children.
         // ========================================================
-        const mccLoginCustomerId = this.configService.get<string>('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
-
-        if (!mccLoginCustomerId) {
-          this.logger.warn(`GOOGLE_ADS_LOGIN_CUSTOMER_ID not configured. Using customerId as fallback (may fail for MCC-managed accounts).`);
-        }
 
         const customer = this.client.Customer({
           customer_id: customerId,
           refresh_token: refreshToken,
-          login_customer_id: mccLoginCustomerId || customerId, // 🔑 Use MCC ID for impersonation
+          login_customer_id: customerId, // 🔑 Use their own ID directly
         });
 
         // First, get info about this account itself

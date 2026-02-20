@@ -10,101 +10,101 @@ datasource db {
 
 /// Tenant - องค์กร/ลูกค้า (Multi-tenant Root)
 model Tenant {
-  id                           String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                         String                         @map("name") @db.VarChar(255)
-  slug                         String?                        @unique @map("slug") @db.VarChar(100)
-  domain                       String?                        @map("domain") @db.VarChar(255)
-  logoUrl                      String?                        @map("logo_url")
-  primaryColor                 String?                        @default("#3B82F6") @map("primary_color") @db.VarChar(7)
-  secondaryColor               String?                        @default("#10B981") @map("secondary_color") @db.VarChar(7)
-  timezone                     String?                        @default("Asia/Bangkok") @map("timezone") @db.VarChar(50)
-  currency                     String?                        @default("THB") @map("currency") @db.VarChar(3)
-  language                     String?                        @default("th") @map("language") @db.VarChar(5)
-  subscriptionPlan             SubscriptionPlan?              @default(BASIC) @map("subscription_plan")
-  subscriptionStatus           SubscriptionStatus?            @default(ACTIVE) @map("subscription_status")
-  subscriptionEndsAt           DateTime?                      @map("subscription_ends_at")
-  settings                     Json?                          @map("settings")
-  createdAt                    DateTime                       @default(now()) @map("created_at")
-  updatedAt                    DateTime                       @updatedAt @map("updated_at")
-  deletedAt                    DateTime?                      @map("deleted_at")
-  adGroups                     AdGroup[]
-  aiInsights                   AiInsight[]
-  aiRecommendations            AiRecommendation[]
-  alertHistories               AlertHistory[]
-  alertRules                   AlertRule[]
-  alerts                       Alert[]
-  auditLogs                    AuditLog[]
-  businessMetrics              BusinessMetric[]
-  campaigns                    Campaign[]
-  facebookAdsAccounts          FacebookAdsAccount[]
-  googleAdsAccounts            GoogleAdsAccount[]
-  googleAnalyticsAccounts      GoogleAnalyticsAccount[]
-  integrations                 Integration[]
-  lineAdsAccounts              LineAdsAccount[]
-  metrics                      Metric[]
-  notifications                Notification[]
-  platformTokens               PlatformToken[]
-  reports                      Report[]
-  roles                        Role[]
-  seoAnchorText                SeoAnchorText[]
-  seoOffpageMetricSnapshots    SeoOffpageMetricSnapshots[]
-  SeoSearchIntent              SeoSearchIntent[]
-  seoTopKeywords               SeoTopKeywords[]
-  seoTrafficByLocation         SeoTrafficByLocation[]
-  suppabet                     Suppabet[]
-  syncLogs                     SyncLog[]
-  securityEvents               SecurityEvent[]
-  tiktokAdsAccounts            TikTokAdsAccount[]
-  users                        User[]
-  userBehaviorEvents           UserBehavior[]
-  webAnalyticsDaily            WebAnalyticsDaily[]
-  searchConsolePerformance     SearchConsolePerformance[]
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                      String                      @map("name") @db.VarChar(255)
+  slug                      String?                     @unique @map("slug") @db.VarChar(100)
+  domain                    String?                     @map("domain") @db.VarChar(255)
+  logoUrl                   String?                     @map("logo_url")
+  primaryColor              String?                     @default("#3B82F6") @map("primary_color") @db.VarChar(7)
+  secondaryColor            String?                     @default("#10B981") @map("secondary_color") @db.VarChar(7)
+  timezone                  String?                     @default("Asia/Bangkok") @map("timezone") @db.VarChar(50)
+  currency                  String?                     @default("THB") @map("currency") @db.VarChar(3)
+  language                  String?                     @default("th") @map("language") @db.VarChar(5)
+  subscriptionPlan          SubscriptionPlan?           @default(BASIC) @map("subscription_plan")
+  subscriptionStatus        SubscriptionStatus?         @default(ACTIVE) @map("subscription_status")
+  subscriptionEndsAt        DateTime?                   @map("subscription_ends_at")
+  settings                  Json?                       @map("settings")
+  createdAt                 DateTime                    @default(now()) @map("created_at")
+  updatedAt                 DateTime                    @updatedAt @map("updated_at")
+  deletedAt                 DateTime?                   @map("deleted_at")
+  adGroups                  AdGroup[]
+  aiInsights                AiInsight[]
+  aiRecommendations         AiRecommendation[]
+  alertHistories            AlertHistory[]
+  alertRules                AlertRule[]
+  alerts                    Alert[]
+  auditLogs                 AuditLog[]
+  businessMetrics           BusinessMetric[]
+  campaigns                 Campaign[]
+  facebookAdsAccounts       FacebookAdsAccount[]
+  googleAdsAccounts         GoogleAdsAccount[]
+  googleAnalyticsAccounts   GoogleAnalyticsAccount[]
+  integrations              Integration[]
+  lineAdsAccounts           LineAdsAccount[]
+  metrics                   Metric[]
+  notifications             Notification[]
+  platformTokens            PlatformToken[]
+  reports                   Report[]
+  roles                     Role[]
+  seoAnchorText             SeoAnchorText[]
+  seoOffpageMetricSnapshots SeoOffpageMetricSnapshots[]
+  SeoSearchIntent           SeoSearchIntent[]
+  seoTopKeywords            SeoTopKeywords[]
+  seoTrafficByLocation      SeoTrafficByLocation[]
+  suppabet                  Suppabet[]
+  syncLogs                  SyncLog[]
+  securityEvents            SecurityEvent[]
+  tiktokAdsAccounts         TikTokAdsAccount[]
+  users                     User[]
+  userBehaviorEvents        UserBehavior[]
+  webAnalyticsDaily         WebAnalyticsDaily[]
+  searchConsolePerformance  SearchConsolePerformance[]
 
   @@map("tenants")
 }
 
 /// User - ผู้ใช้งานในระบบ
 model User {
-  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId                String         @map("tenant_id") @db.Uuid
-  email                   String         @map("email") @db.VarChar(255)
-  password                String         @map("password_hash") @db.VarChar(255)
-  firstName               String?        @map("first_name") @db.VarChar(100)
-  lastName                String?        @map("last_name") @db.VarChar(100)
-  phone                   String?        @map("phone") @db.VarChar(20)
-  avatarUrl               String?        @map("avatar_url")
-  role                    UserRole       @default(CLIENT) @map("role")
-  adminType               String?        @map("admin_type") @db.VarChar(50)
-  isActive                Boolean        @default(true) @map("is_active")
-  
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  email     String   @map("email") @db.VarChar(255)
+  password  String   @map("password_hash") @db.VarChar(255)
+  firstName String?  @map("first_name") @db.VarChar(100)
+  lastName  String?  @map("last_name") @db.VarChar(100)
+  phone     String?  @map("phone") @db.VarChar(20)
+  avatarUrl String?  @map("avatar_url")
+  role      UserRole @default(CLIENT) @map("role")
+  adminType String?  @map("admin_type") @db.VarChar(50)
+  isActive  Boolean  @default(true) @map("is_active")
+
   // Auth & Security
-  username                        String?        @unique @map("username") @db.VarChar(30)
-  emailVerificationTokenHash      String?        @map("email_verification_token_hash") @db.VarChar(255)
-  emailVerificationTokenExpiresAt DateTime?      @map("email_verification_token_expires_at")
-  passwordResetTokenHash          String?        @map("password_reset_token_hash") @db.VarChar(255)
-  passwordResetTokenExpiresAt     DateTime?      @map("password_reset_token_expires_at")
-  termsAcceptedAt                 DateTime?      @map("terms_accepted_at")
-  emailVerified           Boolean        @default(false) @map("email_verified")
-  twoFactorEnabled        Boolean        @default(false) @map("two_factor_enabled")
-  lastLoginAt             DateTime?      @map("last_login_at")
-  lastLoginIp             String?        @map("last_login_ip") @db.VarChar(45)
-  failedLoginCount        Int            @default(0) @map("failed_login_count")
-  lockedUntil             DateTime?      @map("locked_until")
-  passwordChangedAt       DateTime?      @map("password_changed_at")
-  notificationPreferences Json?          @map("notification_preferences")
-  timezone                String?        @default("Asia/Bangkok") @map("timezone") @db.VarChar(50)
-  language                String?        @default("th") @map("language") @db.VarChar(5)
-  createdAt               DateTime       @default(now()) @map("created_at")
-  updatedAt               DateTime       @updatedAt @map("updated_at")
-  deletedAt               DateTime?      @map("deleted_at")
-  auditLogs               AuditLog[]
-  notifications           Notification[]
-  reports                 Report[]
-  sessions                Session[]
-  chatSessions            ChatSession[]
-  behaviorEvents          UserBehavior[]
-  securityEvents          SecurityEvent[]
-  tenant                  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  username                        String?         @unique @map("username") @db.VarChar(30)
+  emailVerificationTokenHash      String?         @map("email_verification_token_hash") @db.VarChar(255)
+  emailVerificationTokenExpiresAt DateTime?       @map("email_verification_token_expires_at")
+  passwordResetTokenHash          String?         @map("password_reset_token_hash") @db.VarChar(255)
+  passwordResetTokenExpiresAt     DateTime?       @map("password_reset_token_expires_at")
+  termsAcceptedAt                 DateTime?       @map("terms_accepted_at")
+  emailVerified                   Boolean         @default(false) @map("email_verified")
+  twoFactorEnabled                Boolean         @default(false) @map("two_factor_enabled")
+  lastLoginAt                     DateTime?       @map("last_login_at")
+  lastLoginIp                     String?         @map("last_login_ip") @db.VarChar(45)
+  failedLoginCount                Int             @default(0) @map("failed_login_count")
+  lockedUntil                     DateTime?       @map("locked_until")
+  passwordChangedAt               DateTime?       @map("password_changed_at")
+  notificationPreferences         Json?           @map("notification_preferences")
+  timezone                        String?         @default("Asia/Bangkok") @map("timezone") @db.VarChar(50)
+  language                        String?         @default("th") @map("language") @db.VarChar(5)
+  createdAt                       DateTime        @default(now()) @map("created_at")
+  updatedAt                       DateTime        @updatedAt @map("updated_at")
+  deletedAt                       DateTime?       @map("deleted_at")
+  auditLogs                       AuditLog[]
+  notifications                   Notification[]
+  reports                         Report[]
+  sessions                        Session[]
+  chatSessions                    ChatSession[]
+  behaviorEvents                  UserBehavior[]
+  securityEvents                  SecurityEvent[]
+  tenant                          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, email], name: "users_tenant_email_unique")
   @@index([tenantId], map: "idx_users_tenant")
@@ -176,19 +176,21 @@ model Integration {
 
 /// Google Ads Account
 model GoogleAdsAccount {
-  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String     @map("tenant_id") @db.Uuid
-  customerId     String     @map("customer_id") @db.VarChar(255)
-  accountName    String?    @map("account_name") @db.VarChar(255)
-  status         String     @default("ENABLED") @map("status") @db.VarChar(20)
-  accessToken    String     @map("access_token")
-  refreshToken   String     @map("refresh_token")
-  tokenExpiresAt DateTime?  @map("token_expires_at")
-  lastSyncAt     DateTime?  @map("last_sync_at")
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-  campaigns      Campaign[]
-  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String     @map("tenant_id") @db.Uuid
+  customerId      String     @map("customer_id") @db.VarChar(255)
+  accountName     String?    @map("account_name") @db.VarChar(255)
+  loginCustomerId String?    @map("login_customer_id") @db.VarChar(255)
+  isMccAccount    Boolean    @default(false) @map("is_mcc_account")
+  status          String     @default("ENABLED") @map("status") @db.VarChar(20)
+  accessToken     String     @map("access_token")
+  refreshToken    String     @map("refresh_token")
+  tokenExpiresAt  DateTime?  @map("token_expires_at")
+  lastSyncAt      DateTime?  @map("last_sync_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  campaigns       Campaign[]
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, customerId], name: "google_ads_accounts_tenant_customer_unique")
   @@index([status], map: "idx_google_ads_status")
@@ -893,22 +895,22 @@ enum AdPlatform {
 }
 
 model SearchConsolePerformance {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
-  siteUrl         String   @map("site_url") @db.VarChar(255)
-  date            DateTime @map("date") @db.Date
-  page            String?  @map("page") @db.Text
-  query           String?  @map("query") @db.Text
-  device          String?  @map("device") @db.VarChar(50)
-  country         String?  @map("country") @db.VarChar(10)
-  clicks          Int      @default(0) @map("clicks")
-  impressions     Int      @default(0) @map("impressions")
-  ctr             Decimal  @default(0) @map("ctr") @db.Decimal(10, 6)
-  position        Decimal  @default(0) @map("position") @db.Decimal(10, 4)
-  externalKey     String?  @map("external_key") @db.Text
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  siteUrl     String   @map("site_url") @db.VarChar(255)
+  date        DateTime @map("date") @db.Date
+  page        String?  @map("page") @db.Text
+  query       String?  @map("query") @db.Text
+  device      String?  @map("device") @db.VarChar(50)
+  country     String?  @map("country") @db.VarChar(10)
+  clicks      Int      @default(0) @map("clicks")
+  impressions Int      @default(0) @map("impressions")
+  ctr         Decimal  @default(0) @map("ctr") @db.Decimal(10, 6)
+  position    Decimal  @default(0) @map("position") @db.Decimal(10, 4)
+  externalKey String?  @map("external_key") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, date], map: "idx_gsc_tenant_date")
   @@index([siteUrl], map: "idx_gsc_site_url")
@@ -1032,5 +1034,3 @@ model ChatMessage {
   @@index([sessionId], map: "idx_chat_messages_session")
   @@map("chat_messages")
 }
-
-

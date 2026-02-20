@@ -158,24 +158,18 @@ export class GoogleAdsApiService {
             throw new Error('Google Ads account not found or not connected');
         }
 
-        // Validate MCC configuration before making API call
-        const mccLoginCustomerId = this.configService.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
-        if (!mccLoginCustomerId) {
-            this.logger.warn(`[fetchCampaigns] WARNING: GOOGLE_ADS_LOGIN_CUSTOMER_ID not set. API call may fail.`);
-        }
-
         await this.refreshTokenIfNeeded(account);
 
         // 🔑 CRITICAL FIX: Decrypt the refresh token before passing to API!
         const decryptedRefreshToken = this.decryptRefreshToken(account.refreshToken);
 
         // ================================================================
-        // CRITICAL: getCustomer() uses MCC ID as login_customer_id
-        // This enables "impersonation" required for Standard/Test Access
+        // CRITICAL FIX: Use tenant-specific loginCustomerId
         // ================================================================
         const customer = this.googleAdsClientService.getCustomer(
             account.customerId,       // Target (Child) Account ID
             decryptedRefreshToken,    // ✅ Use DECRYPTED token
+            account.loginCustomerId   // ✅ Use Tenant-specific MCC ID if exists
         );
 
         const query = `
@@ -203,14 +197,24 @@ export class GoogleAdsApiService {
             this.logger.error(`Google Ads API Error: ${error.message}`);
 
             // Enhanced error diagnosis
-            if (error.message?.includes('invalid_grant')) {
-                this.logger.error(`[fetchCampaigns] DIAGNOSIS: invalid_grant error detected.`);
+            if (error.message?.includes('invalid_grant') || error.message?.includes('USER_PERMISSION_DENIED')) {
+                this.logger.error(`[fetchCampaigns] DIAGNOSIS: invalid_grant or permission error detected.`);
                 this.logger.error(`  - Customer ID: ${account.customerId}`);
-                this.logger.error(`  - MCC Login ID: ${mccLoginCustomerId || 'NOT SET'}`);
+                this.logger.error(`  - MCC Login ID: ${account.loginCustomerId || 'DIRECT ACCOUNT'}`);
                 this.logger.error(`  - Possible causes:`);
                 this.logger.error(`    1. Refresh token is expired/revoked`);
                 this.logger.error(`    2. Token decryption failed`);
-                this.logger.error(`    3. MCC does not have access to this child account`);
+                this.logger.error(`    3. Login Customer ID does not have access to this child account`);
+
+                // Update account status to ERROR/DISCONNECTED proactively to prevent retry looping
+                try {
+                    await this.prisma.googleAdsAccount.update({
+                        where: { id: account.id },
+                        data: { status: 'DISCONNECTED' }
+                    });
+                } catch (e) {
+                    this.logger.error(`Failed to update account status to DISCONNECTED: ${e.message}`);
+                }
             }
 
             throw new Error(`Failed to fetch campaigns: ${error.message}`);
@@ -243,11 +247,12 @@ export class GoogleAdsApiService {
             const decryptedRefreshToken = this.decryptRefreshToken(account.refreshToken);
 
             // ================================================================
-            // CRITICAL: getCustomer() uses MCC ID as login_customer_id
+            // CRITICAL FIX: Use tenant-specific loginCustomerId 
             // ================================================================
             const customer = this.googleAdsClientService.getCustomer(
                 account.customerId,       // Target (Child) Account ID
                 decryptedRefreshToken,    // ✅ Use DECRYPTED token
+                account.loginCustomerId   // ✅ Use Tenant-specific MCC ID if exists
             );
 
             const startDateStr = startDate.toISOString().split('T')[0];
@@ -307,11 +312,10 @@ export class GoogleAdsApiService {
             errorCode = errorCode || error.code || error.status || null;
 
             // User-friendly error mapping
-            if (errorMessage === 'invalid_grant') {
-                const mccLoginCustomerId = this.configService.get('GOOGLE_ADS_LOGIN_CUSTOMER_ID');
+            if (errorMessage === 'invalid_grant' || errorMessage.includes('USER_PERMISSION_DENIED')) {
                 errorMessage = 'Token expired or invalid. Please reconnect your Google Ads account.';
                 this.logger.warn(`Token expired for account ${accountId}. User needs to reconnect.`);
-                this.logger.warn(`DIAGNOSIS: MCC Login ID = ${mccLoginCustomerId || 'NOT SET'}`);
+                this.logger.warn(`DIAGNOSIS: The token or loginCustomerId is invalid.`);
             } else if (errorMessage.includes('permission') || errorMessage.includes('access')) {
                 errorMessage = 'Permission denied. Please check account access permissions.';
             } else if (errorMessage.includes('developer_token')) {

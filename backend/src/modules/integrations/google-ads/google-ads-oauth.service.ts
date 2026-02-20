@@ -159,10 +159,11 @@ export class GoogleAdsOAuthService {
     const accessToken = tokens.access_token;
     const tokenExpiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
 
-    // Get cached accounts to find the account name
     const cachedAccounts = await this.cacheManager.get<any[]>(`google_ads_temp_accounts:${tempToken}`);
     const selectedAccount = cachedAccounts?.find(acc => acc.id === customerId);
     const accountName = selectedAccount?.name || `Account ${customerId}`;
+    const parentMccId = selectedAccount?.parentMccId || null;
+    const isMccAccount = selectedAccount?.type === 'MANAGER' ? true : false;
 
     const cleanCustomerId = customerId.replace('customers/', '');
 
@@ -179,6 +180,8 @@ export class GoogleAdsOAuthService {
         data: {
           refreshToken: this.encryptionService.encrypt(refreshToken),
           accountName, // Update with proper name from MCC
+          loginCustomerId: parentMccId,
+          isMccAccount,
           status: 'ENABLED',
           updatedAt: new Date()
         }
@@ -189,6 +192,8 @@ export class GoogleAdsOAuthService {
         data: {
           customerId: cleanCustomerId,
           accountName, // Use name from MCC flatten
+          loginCustomerId: parentMccId,
+          isMccAccount,
           refreshToken: this.encryptionService.encrypt(refreshToken),
           status: 'ENABLED',
           tenantId: tenantId,
@@ -267,7 +272,7 @@ export class GoogleAdsOAuthService {
    * Save all client accounts from Manager Account to database
    * Optimized to avoid N+1 queries
    */
-  async saveClientAccounts(refreshToken: string, userId: string, tenantId: string) {
+  async saveClientAccounts(refreshToken: string, userId: string, tenantId: string, loginCustomerId: string) {
     try {
       // Log accessible customers for debugging
       try {
@@ -278,7 +283,7 @@ export class GoogleAdsOAuthService {
       }
 
       // 1. Get client accounts from Google Ads
-      const clientAccounts = await this.googleAdsClientService.getClientAccounts(refreshToken);
+      const clientAccounts = await this.googleAdsClientService.getClientAccounts(refreshToken, loginCustomerId);
       this.logger.log(`Found ${clientAccounts.length} client accounts for user ${userId}`);
 
       if (clientAccounts.length === 0) {
@@ -308,6 +313,8 @@ export class GoogleAdsOAuthService {
               where: { id: existing.id },
               data: {
                 accountName: account.name,
+                loginCustomerId: loginCustomerId,
+                isMccAccount: false,
                 refreshToken: this.encryptionService.encrypt(refreshToken),
                 status: account.status,
                 updatedAt: new Date(),
@@ -321,6 +328,8 @@ export class GoogleAdsOAuthService {
               data: {
                 customerId: account.id,
                 accountName: account.name,
+                loginCustomerId: loginCustomerId,
+                isMccAccount: false,
                 refreshToken: this.encryptionService.encrypt(refreshToken),
                 status: account.status,
                 tenantId: tenantId,
