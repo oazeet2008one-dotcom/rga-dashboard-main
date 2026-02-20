@@ -30,6 +30,8 @@ export interface SummaryCardProps {
     className?: string;
     /** Accent color for the card */
     accentColor?: 'indigo' | 'violet' | 'cyan' | 'amber';
+    /** Optional click handler (makes card interactive) */
+    onClick?: () => void;
 }
 
 // Metric-specific styling configuration
@@ -92,6 +94,7 @@ export function SummaryCard({
     loading = false,
     className,
     accentColor = 'indigo',
+    onClick,
 }: SummaryCardProps) {
     // Show skeleton when loading
     if (loading) {
@@ -103,13 +106,25 @@ export function SummaryCard({
     const isNegative = trend !== null && trend < 0;
     const TrendIcon = isPositive ? TrendingUp : TrendingDown;
     const accent = ACCENT_STYLES[accentColor];
+    const isInteractive = Boolean(onClick);
 
     return (
         <Card
+            role={isInteractive ? 'button' : undefined}
+            tabIndex={isInteractive ? 0 : undefined}
+            onClick={onClick}
+            onKeyDown={(event) => {
+                if (!isInteractive) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onClick?.();
+                }
+            }}
             className={cn(
                 'relative overflow-hidden group',
                 'transition-all duration-300 ease-out',
                 'hover:shadow-lg hover:-translate-y-1',
+                isInteractive && 'cursor-pointer',
                 accent.hoverBorder,
                 className
             )}

@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { CreditCard, Eye, MousePointerClick, Target } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { SummaryCard } from './ui/summary-card';
 import { formatCurrencyTHB, formatNumber } from '@/lib/formatters';
 import type { SummaryMetrics, GrowthMetrics } from '../schemas';
@@ -28,6 +29,7 @@ export interface DashboardMetricsProps {
 interface MetricConfig {
     title: string;
     icon: typeof CreditCard;
+    getRawValue: (summary: SummaryMetrics) => number;
     getValue: (summary: SummaryMetrics) => string;
     getTrend: (growth: GrowthMetrics) => number | null;
     accentColor: 'indigo' | 'violet' | 'cyan' | 'amber';
@@ -37,6 +39,7 @@ const metricsConfig: MetricConfig[] = [
     {
         title: 'Total Spend',
         icon: CreditCard,
+        getRawValue: (s) => s.totalCost,
         getValue: (s) => formatCurrencyTHB(s.totalCost),
         getTrend: (g) => g.costGrowth,
         accentColor: 'indigo',
@@ -44,6 +47,7 @@ const metricsConfig: MetricConfig[] = [
     {
         title: 'Impressions',
         icon: Eye,
+        getRawValue: (s) => s.totalImpressions,
         getValue: (s) => formatNumber(s.totalImpressions),
         getTrend: (g) => g.impressionsGrowth,
         accentColor: 'violet',
@@ -51,6 +55,7 @@ const metricsConfig: MetricConfig[] = [
     {
         title: 'Clicks',
         icon: MousePointerClick,
+        getRawValue: (s) => s.totalClicks,
         getValue: (s) => formatNumber(s.totalClicks),
         getTrend: (g) => g.clicksGrowth,
         accentColor: 'cyan',
@@ -58,6 +63,7 @@ const metricsConfig: MetricConfig[] = [
     {
         title: 'Conversions',
         icon: Target,
+        getRawValue: (s) => s.totalConversions,
         getValue: (s) => formatNumber(s.totalConversions),
         getTrend: (g) => g.conversionsGrowth,
         accentColor: 'amber',
@@ -73,6 +79,31 @@ export function DashboardMetrics({
     growth,
     loading = false,
 }: DashboardMetricsProps) {
+    const [, setLocation] = useLocation();
+
+    const isOverviewAllZero = Boolean(
+        summary &&
+        summary.totalCost === 0 &&
+        summary.totalImpressions === 0 &&
+        summary.totalClicks === 0 &&
+        summary.totalConversions === 0
+    );
+
+    const handleMetricClick = (metric: MetricConfig) => {
+        if (loading) return;
+        if (!summary) return;
+
+        if (isOverviewAllZero) {
+            setLocation('/ecommerce-insights#pricing');
+            return;
+        }
+
+        const rawValue = metric.getRawValue(summary);
+        if (rawValue === 0) {
+            setLocation('/ecommerce-insights#pricing');
+        }
+    };
+
     return (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             {metricsConfig.map((metric) => (
@@ -94,6 +125,7 @@ export function DashboardMetrics({
                     trend={growth ? metric.getTrend(growth) : null}
                     trendLabel="vs last period"
                     loading={loading}
+                    onClick={() => handleMetricClick(metric)}
                 />
             ))}
         </div>

@@ -28,6 +28,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
 import { CommonModule } from './common/common.module';
 import { SeoModule } from './modules/seo/seo.module';
+import { EntitlementsModule } from './modules/entitlements/entitlements.module';
 
 
 @Module({
@@ -87,6 +88,7 @@ import { SeoModule } from './modules/seo/seo.module';
     NotificationModule, // Notification System (Sprint 4)
     SeoModule, // SEO System
     CommonModule, // Shared Services (Encryption, etc.)
+    EntitlementsModule,
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     ...(process.env.NODE_ENV !== 'production' ? [require('./modules/debug/debug.module').DebugModule] : []),

@@ -20,7 +20,7 @@ const PRODUCTS = [
         description: 'High-quality shirt mockup that helps you visualize your artwork before production.',
         color: 'bg-sky-50',
         zIndex: 40,
-        marginLeft: '-ml-16 sm:-ml-36',
+        marginLeft: 'sm:-ml-36',
         rotate: 'rotate-3',
     },
     {
@@ -29,20 +29,20 @@ const PRODUCTS = [
         description: 'High-quality trousers mockup that helps you visualize your artwork before production.',
         color: 'bg-fuchsia-50',
         zIndex: 30,
-        marginLeft: '-ml-16 sm:-ml-36',
+        marginLeft: 'sm:-ml-36',
         rotate: 'rotate-6',
     },
 ];
 
 export function ProductStack() {
     return (
-        <div className="flex justify-center items-center py-12 pl-8 sm:pl-36 pr-8 overflow-visible">
-            <div className="flex items-center perspective-[1000px] group/stack">
+        <div className="flex justify-center lg:justify-start items-center py-12 px-4 sm:px-6 overflow-x-auto sm:overflow-visible w-full snap-x snap-mandatory">
+            <div className="flex items-center perspective-[1000px] group/stack max-w-full gap-4 sm:gap-0">
                 {PRODUCTS.map((product) => (
                     <div
                         key={product.id}
                         className={cn(
-                            "relative h-[240px] w-[180px] sm:h-[340px] sm:w-[260px] shrink-0 rounded-3xl bg-white shadow-2xl transition-all duration-700 ease-out flex flex-col overflow-hidden border border-slate-100",
+                            "relative h-[240px] w-[180px] sm:h-[340px] sm:w-[260px] shrink-0 rounded-3xl bg-white shadow-2xl transition-all duration-700 ease-out flex flex-col overflow-hidden border border-slate-200 snap-start",
                             "hover:-translate-y-6 sm:hover:-translate-y-10 hover:z-[60] hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] hover:scale-110 hover:rotate-0",
                             "group-hover/stack:translate-x-2",
                             product.marginLeft,
