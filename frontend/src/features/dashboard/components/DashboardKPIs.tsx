@@ -81,7 +81,7 @@ export const DashboardKPIs = ({ overview, isLoading }: DashboardKPIsProps) => {
         },
         {
             title: 'ROAS',
-            value: `${(current.roas || 0).toFixed(2)}x`,
+            value: `${(current.roas || 0).toFixed(2)}`,
             icon: <Zap className="w-5 h-5" />,
             iconClassName: 'bg-purple-50 text-purple-600',
             trend: {

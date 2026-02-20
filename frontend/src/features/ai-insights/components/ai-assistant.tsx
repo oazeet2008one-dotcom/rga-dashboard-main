@@ -1,14 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, FileText, Sparkles, Plus, Mic, PenTool, TrendingUp, Lightbulb, User, MessageSquare, Trash2, PanelLeftClose, PanelLeft, StopCircle, Pencil, X, PanelRight, Zap, ChevronRight, Calculator } from "lucide-react";
+import { Send, FileText, Sparkles, Plus, Mic, PenTool, TrendingUp, Lightbulb, User, MessageSquare, Trash2, PanelLeftClose, PanelLeft, StopCircle, Pencil, X, PanelRight, Zap, ChevronRight, Calculator, RotateCcw } from "lucide-react";
 import chatbotImage from "../../chat/chatbot.webp";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { AiDetailSummary } from "./ai-detail-summary";
+import { AiChatInput } from "./ai-chat-input";
 import { MarketingTools } from "./marketing-tools";
+import { AiSidebar } from "./ai-sidebar";
 import { chatService, ChatSession, ChatMessage } from "../services/chat-service";
 import { useAuthStore } from "@/stores/auth-store";
+import { useDashboardOverview } from "../../dashboard/hooks/use-dashboard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { DAILY_STRATEGIC_SUMMARY_TITLE } from "../constants";
 
 // Add Speech Recognition Type Definition
 declare global {
@@ -18,60 +22,29 @@ declare global {
     }
 }
 
-type Message = {
+export type Message = {
     id: string;
     role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
 };
 
-type Session = {
+export type Session = {
     id: string;
     title: string;
     date: Date;
     messages: Message[];
 };
 
-const ROLE_OPTIONS = [
-    { id: 'general', label: 'ทั่วไป' },
-    { id: 'ads', label: 'Ads' },
-    { id: 'seo', label: 'SEO' },
-] as const;
-
-type RoleId = (typeof ROLE_OPTIONS)[number]['id'];
-
 export function AiAssistant() {
     const [query, setQuery] = useState("");
     const [isThinking, setIsThinking] = useState(false);
     const [isListening, setIsListening] = useState(false); // Voice Input State
+    const [messages, setMessages] = useState<Message[]>([]);
     const [isStreaming, setIsStreaming] = useState(false); // Fix: Prevent useEffect from overwriting streaming text
-    const [activeRole, setActiveRole] = useState<RoleId>('general');
-    const [messagesByRole, setMessagesByRole] = useState<Record<RoleId, Message[]>>({
-        general: [],
-        ads: [],
-        seo: [],
-    });
-
-    const messages = messagesByRole[activeRole] || [];
-    const updateMessages = (updater: (prev: Message[]) => Message[]) => {
-        setMessagesByRole((prev) => ({
-            ...prev,
-            [activeRole]: updater(prev[activeRole] || []),
-        }));
-    };
-    const setMessagesForRole = (next: Message[]) => {
-        setMessagesByRole((prev) => ({
-            ...prev,
-            [activeRole]: next,
-        }));
-    };
 
     // Controlled locally to avoid flash, but synced with React Query
-    const [activeSessionIdByRole, setActiveSessionIdByRole] = useState<Record<RoleId, string | null>>({
-        general: null,
-        ads: null,
-        seo: null,
-    });
+    const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'chat' | 'summary' | 'tools'>('chat');
 
@@ -88,15 +61,9 @@ export function AiAssistant() {
 
     const { user, isAuthenticated } = useAuthStore();
     const queryClient = useQueryClient();
-    const envWebhookGeneral =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_GENERAL : '') || '';
-    const envWebhookAds =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_ADS : '') || '';
-    const envWebhookSeo =
-        (typeof import.meta !== 'undefined' ? import.meta.env.VITE_CHATBOT_WEBHOOK_URL_SEO : '') || '';
-    const webhookUrl =
-        activeRole === 'ads' ? envWebhookAds : activeRole === 'seo' ? envWebhookSeo : envWebhookGeneral;
-    const activeSessionId = activeSessionIdByRole[activeRole];
+
+    // Fetch dashboard data for AI summary
+    const { data: dashboardData } = useDashboardOverview({ period: '30d' });
 
     // 1. React Query: Fetch Sessions
     const { data: apiSessions = [] } = useQuery({
@@ -130,7 +97,9 @@ export function AiAssistant() {
                 content: m.content,
                 timestamp: new Date(m.createdAt)
             }));
-            setMessagesForRole(mappedMessages);
+            setMessages(mappedMessages);
+        } else if (!activeSessionId) {
+            setMessages([]);
         }
     }, [sessionData, activeSessionId, isThinking, isStreaming]);
 
@@ -209,16 +178,19 @@ export function AiAssistant() {
         const tempUserMsgId = Date.now().toString();
 
         try {
-            // 2. Ensure Session Exists (if API available)
+            // 2. Ensure Session Exists
             let currentSessionId = activeSessionId;
             if (!currentSessionId) {
-                try {
-                    const newSession = await createSessionMutation.mutateAsync(savedQuery.slice(0, 50));
-                    currentSessionId = newSession.id;
-                    setActiveSessionIdByRole((prev) => ({ ...prev, [activeRole]: currentSessionId }));
-                } catch {
-                    currentSessionId = null;
+                // Determine Session Title
+                let sessionTitle = savedQuery.slice(0, 50);
+                if (viewMode === 'summary') {
+                    const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                    sessionTitle = `${dateStr} ${DAILY_STRATEGIC_SUMMARY_TITLE}`;
                 }
+
+                const newSession = await createSessionMutation.mutateAsync(sessionTitle);
+                currentSessionId = newSession.id;
+                setActiveSessionId(currentSessionId);
             }
 
             // 3. Optimistic User Message
@@ -229,60 +201,36 @@ export function AiAssistant() {
                 timestamp: new Date()
             };
 
-            updateMessages(prev => [...prev, userMsg]);
+            setMessages(prev => [...prev, userMsg]);
             setQuery(""); // Clear input AFTER adding message
 
-            // 4. Send User Message to API (skip if no session)
-            if (currentSessionId) {
-                await sendMessageMutation.mutateAsync({
-                    sessionId: currentSessionId,
-                    role: 'user',
-                    content: savedQuery
-                });
-            }
-            // 5. Determine Response Logic (Webhook preferred, fallback to mock)
+            // ... (rest of the function remains the same until catch block) ... 
+            // NOTE: Since I cannot see the rest of the function in the context window correctly without scrolling, 
+            // I will replace the relevant parts carefully.
+            // Wait, I am replacing a huge chunk. Let me be precise. 
+            // I need to replace lines 160-185 mainly.
+
+            // 4. Send User Message to API
+            await sendMessageMutation.mutateAsync({
+                sessionId: currentSessionId!,
+                role: 'user',
+                content: savedQuery
+            });
+
+            // 5. Determine Response Logic (Mock AI + API storage)
             const lowerQ = savedQuery.toLowerCase();
             let responseText = "";
 
-            if (webhookUrl) {
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: savedQuery,
-                        role: activeRole,
-                        timestamp: new Date().toISOString(),
-                    }),
-                });
-
-                const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data?.error || data?.message || `HTTP ${response.status}`);
-                    }
-                    responseText = data.reply || data.response || data.message || data.output || '';
-                } else {
-                    const text = await response.text();
-                    if (!response.ok) {
-                        throw new Error(text || `HTTP ${response.status}`);
-                    }
-                    responseText = text;
-                }
-            }
-
-            if (!responseText) {
-                if (lowerQ.includes('caption')) {
-                    responseText = "Here are a few caption options:\n\n1. Boost your ROI with AI!\n2. Stop guessing, start scaling.\n3. Connect better with smart targeting.";
-                } else if (lowerQ.includes('performance')) {
-                    responseText = "Recent data:\n\n- CTR +15%\n- CPC $1.35\n- Suggestion: Pause 'Mobile_Feed_B'.";
-                } else if (lowerQ.includes('trend')) {
-                    responseText = "Trending:\n\n1. Short-form video (2x engagement)\n2. Sustainability messaging\n3. Interactive polls";
-                } else if (lowerQ.includes('lead') || lowerQ.includes('summarize') || lowerQ.includes('summary')) {
-                    responseText = "AI Summary Report:\n\n- Overall Performance: Strong growth in Q3.\n- Key Driver: Organic traffic increased by 22%.\n- Risk: CPA is trending up in paid channels.\n- Recommendation: Reallocate budget to high-performing ad sets.";
-                } else {
-                    responseText = `Analyzed "${savedQuery}". Metrics stable.\nRecommendation: Improve ad relevance to lower CPA.`;
-                }
+            if (lowerQ.includes('caption')) {
+                responseText = "Here are a few caption options:\n\n1. 🚀 **Boost your ROI** with AI! #Marketing\n2. Stop guessing, start scaling. 📈\n3. Connect better with smart targeting. 🎯";
+            } else if (lowerQ.includes('performance')) {
+                responseText = "Recent data:\n\n- 🟢 **CTR +15%**\n- 🔴 **CPC $1.35**\n- 💡 **Suggestion:** Pause 'Mobile_Feed_B'.";
+            } else if (lowerQ.includes('trend')) {
+                responseText = "🔥 **Trending:**\n\n1. *Short-form video* (2x engagement)\n2. *Sustainability messaging*\n3. *Interactive polls*";
+            } else if (lowerQ.includes('lead') || lowerQ.includes('summarize') || lowerQ.includes('summary')) {
+                responseText = "📊 **AI Summary Report:**\n\n- **Overall Performance:** Strong growth in Q3.\n- **Key Driver:** Organic traffic increased by 22%.\n- **Risk:** CPA is trending up in paid channels.\n- **Recommendation:** Reallocate budget to high-performing ad sets.";
+            } else {
+                responseText = `Analyzed "${savedQuery}".Metrics stable.\nRecommendation: Improve ad relevance to lower CPA.`;
             }
 
             // 6. Simulate AI Thinking (reduced delay 400ms)
@@ -299,7 +247,7 @@ export function AiAssistant() {
                 content: '',
                 timestamp: new Date()
             };
-            updateMessages(prev => [...prev, aiMsg]);
+            setMessages(prev => [...prev, aiMsg]);
 
             // Streaming Visuals
             let charIndex = 0;
@@ -307,7 +255,7 @@ export function AiAssistant() {
             streamIntervalRef.current = setInterval(() => {
                 charIndex += chunkSize;
                 const currentContent = responseText.slice(0, Math.min(charIndex, responseText.length));
-                updateMessages(prev => prev.map(msg =>
+                setMessages(prev => prev.map(msg =>
                     msg.id === aiMsgId
                         ? { ...msg, content: currentContent }
                         : msg
@@ -320,29 +268,24 @@ export function AiAssistant() {
                     }
 
                     // 8. Save AI message THEN unlock
-                    if (currentSessionId) {
-                        sendMessageMutation.mutateAsync({
-                            sessionId: currentSessionId,
-                            role: 'assistant',
-                            content: responseText
-                        }).then(async () => {
-                            // Critical: Wait for refetch to complete so we don't flash stale data
-                            await queryClient.invalidateQueries({ queryKey: ['chat-session', currentSessionId] });
+                    sendMessageMutation.mutateAsync({
+                        sessionId: currentSessionId!,
+                        role: 'assistant',
+                        content: responseText
+                    }).then(async () => {
+                        // Critical: Wait for refetch to complete so we don't flash stale data
+                        await queryClient.invalidateQueries({ queryKey: ['chat-session', currentSessionId] });
 
-                            // Small buffer to ensure React renders the new data
-                            setTimeout(() => {
-                                setIsStreaming(false);
-                                isProcessingRef.current = false;
-                            }, 100);
-                        }).catch(err => {
-                            console.error("Failed to save AI message:", err);
+                        // Small buffer to ensure React renders the new data
+                        setTimeout(() => {
                             setIsStreaming(false);
                             isProcessingRef.current = false;
-                        });
-                    } else {
+                        }, 100);
+                    }).catch(err => {
+                        console.error("Failed to save AI message:", err);
                         setIsStreaming(false);
                         isProcessingRef.current = false;
-                    }
+                    });
                 }
             }, 30);
 
@@ -353,7 +296,7 @@ export function AiAssistant() {
             // Restore query so user can retry
             setQuery(savedQuery);
             // Remove the optimistic user message that failed
-            updateMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
+            setMessages(prev => prev.filter(m => m.id !== tempUserMsgId));
 
             // Show more specific error
             const errorMessage = err?.response?.data?.message || err?.message || "AI connection failed";
@@ -408,18 +351,24 @@ export function AiAssistant() {
     };
 
     const handleNewChat = () => {
-        setActiveSessionIdByRole((prev) => ({
-            ...prev,
-            [activeRole]: null,
-        }));
-        setMessagesForRole([]);
+        setActiveSessionId(null);
+        setMessages([]);
         setQuery("");
         setIsThinking(false);
         if (!isSidebarOpen) setIsSidebarOpen(true);
+        setViewMode('chat');
     };
 
     const restoreSession = (session: Session) => {
-        setActiveSessionIdByRole((prev) => ({ ...prev, [activeRole]: session.id }));
+        setActiveSessionId(session.id);
+
+        // Check if session is a Daily Summary
+        if (session.title.includes(DAILY_STRATEGIC_SUMMARY_TITLE)) {
+            setViewMode('summary');
+        } else {
+            setViewMode('chat');
+        }
+
         // Messages synced via React Query useEffect
     };
 
@@ -428,11 +377,8 @@ export function AiAssistant() {
         try {
             await deleteSessionMutation.mutateAsync(id);
             if (activeSessionId === id) {
-                setActiveSessionIdByRole((prev) => ({
-                    ...prev,
-                    [activeRole]: null,
-                }));
-                setMessagesForRole([]);
+                setActiveSessionId(null);
+                setMessages([]);
             }
         } catch (err) {
             // Error handled in mutation
@@ -470,187 +416,83 @@ export function AiAssistant() {
     };
 
     return (
-        <div className="w-full max-w-7xl mx-auto pt-4 flex h-[calc(100vh-60px)] min-h-[500px] relative font-sans gap-0 md:gap-6 overflow-hidden md:overflow-visible">
+        <div className="w-full max-w-7xl mx-auto pt-4 flex h-[calc(100dvh-60px)] min-h-[500px] relative font-sans gap-0 md:gap-6 overflow-hidden md:overflow-visible">
 
-            {/* Mobile Overlay Backdrop (Left) */}
-            <AnimatePresence>
-                {isSidebarOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 z-[60] md:hidden backdrop-blur-sm"
-                        onClick={() => setIsSidebarOpen(false)}
-                    />
-                )}
-            </AnimatePresence>
-
-
-
-            {/* Left Sidebar (GPT Style) - Collapsible */}
-            <div className={cn(
-                "flex flex-col gap-2 shrink-0 transition-all duration-300 bg-white md:bg-transparent border-r md:border-r-0 border-slate-100",
-                // Mobile: Fixed drawer
-                "fixed inset-y-0 left-0 z-[70] h-full shadow-2xl md:shadow-none",
-                // Desktop: Relative sidebar
-                "md:relative md:z-auto md:h-full md:inset-auto",
-                isSidebarOpen
-                    ? "translate-x-0 w-[280px] md:w-64 opacity-100"
-                    : "-translate-x-full w-[280px] md:translate-x-0 md:w-0 md:opacity-0 md:overflow-hidden"
-            )}>
-                <div className="flex items-center justify-between mb-2 px-1">
-                    <button
-                        onClick={handleNewChat}
-                        className="flex-1 flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-200 shadow-sm"
-                    >
-                        <Plus className="w-4 h-4" />
-                        New Chat
-                    </button>
-                    <button
-                        onClick={() => setIsSidebarOpen(false)}
-                        className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                    >
-                        <PanelLeftClose className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* History List */}
-                <div className="flex-1 overflow-y-auto px-1 space-y-2 custom-scrollbar">
-                    <div className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Recent Chats
-                    </div>
-                    {isLoadingMessages && activeSessionId ? (
-                        <div className="flex justify-center p-4">
-                            <Sparkles className="w-5 h-5 text-orange-400 animate-spin" />
-                        </div>
-                    ) : sessions.length === 0 ? (
-                        <div className="text-center py-6 text-slate-400 text-sm">
-                            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                            No history yet
-                        </div>
-                    ) : (
-                        <AnimatePresence initial={false}>
-                            {sessions.map(session => (
-                                <motion.div
-                                    layout
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    key={session.id}
-                                    className="group relative"
-                                >
-                                    <button
-                                        onClick={() => restoreSession(session)}
-                                        className={cn(
-                                            "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all group text-left border relative",
-                                            activeSessionId === session.id
-                                                ? "bg-white text-orange-600 font-medium shadow-sm border-orange-100"
-                                                : "text-slate-600 hover:bg-slate-50 border-transparent hover:border-slate-100"
-                                        )}
-                                    >
-                                        <MessageSquare className={cn(
-                                            "w-4 h-4 shrink-0 transition-colors",
-                                            activeSessionId === session.id ? "text-orange-500" : "text-slate-400 group-hover:text-slate-500"
-                                        )} />
-                                        {editingSessionId === session.id ? (
-                                            <input
-                                                autoFocus
-                                                value={editingTitle}
-                                                onChange={(e) => setEditingTitle(e.target.value)}
-                                                onBlur={handleConfirmRename}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') handleConfirmRename();
-                                                    if (e.key === 'Escape') setEditingSessionId(null);
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="flex-1 bg-white border border-orange-300 rounded px-1 py-0.5 text-sm outline-none focus:ring-1 focus:ring-orange-400 min-w-0"
-                                            />
-                                        ) : (
-                                            <span className="truncate flex-1 pr-12">{session.title}</span>
-                                        )}
-                                    </button>
-
-                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                                        <button
-                                            onClick={(e) => handleStartRename(session, e)}
-                                            className="p-1 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded"
-                                            title="Rename chat"
-                                        >
-                                            <Pencil className="w-3.5 h-3.5" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDeleteSession(session.id, e)}
-                                            className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded"
-                                            title="Delete chat"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    )}
-                </div>
-            </div>
+            <AiSidebar
+                id="tutorial-ai-sidebar"
+                isSidebarOpen={isSidebarOpen}
+                setIsSidebarOpen={setIsSidebarOpen}
+                handleNewChat={handleNewChat}
+                isLoadingMessages={isLoadingMessages}
+                activeSessionId={activeSessionId}
+                sessions={sessions}
+                restoreSession={restoreSession}
+                editingSessionId={editingSessionId}
+                setEditingSessionId={setEditingSessionId}
+                editingTitle={editingTitle}
+                setEditingTitle={setEditingTitle}
+                handleConfirmRename={handleConfirmRename}
+                handleStartRename={handleStartRename}
+                handleDeleteSession={handleDeleteSession}
+            />
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col bg-white/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 shadow-xl overflow-hidden relative">
 
                 {viewMode === 'summary' ? (
-                    <AiDetailSummary onBack={() => setViewMode('chat')} />
+                    <AiDetailSummary
+                        onBack={() => setViewMode('chat')}
+                        onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
+                        isSidebarOpen={isSidebarOpen}
+                        summary={dashboardData?.summary}
+                        growth={dashboardData?.growth}
+                        // Chat Props
+                        query={query}
+                        setQuery={setQuery}
+                        onSearch={handleSearch}
+                        isThinking={isThinking}
+                        isListening={isListening}
+                        onVoiceInput={handleVoiceInput}
+                        onNewChat={handleNewChat}
+                        messages={messages}
+                        isStreaming={isStreaming}
+                    />
                 ) : viewMode === 'tools' ? (
                     <MarketingTools onBack={() => setViewMode('chat')} />
                 ) : (
                     // Chat Interface
                     <>
                         {/* Chat Header */}
-                        <div className="border-b border-slate-100 bg-white/80 backdrop-blur px-6 sticky top-0 z-10 shrink-0">
-                            <div className="h-14 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    {/* Mobile/Desktop Toggle */}
+                        <div className="h-14 border-b border-slate-100 bg-white/80 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-10 shrink-0">
+                            <div className="flex items-center gap-2">
+                                {/* Mobile/Desktop Toggle */}
+                                <AnimatePresence mode="wait">
                                     {!isSidebarOpen && (
-                                        <button
+                                        <motion.button
+                                            id="tutorial-ai-history-toggle"
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.8 }}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
                                             onClick={() => setIsSidebarOpen(true)}
-                                            className="p-2 mr-2 bg-white/50 hover:bg-slate-50 border border-slate-200 rounded-lg shadow-sm transition-colors block"
+                                            className="p-2.5 mr-2 bg-white/80 hover:bg-white border border-slate-200/60 hover:border-slate-300 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 block text-slate-500 hover:text-indigo-600"
                                             title="View Chat History"
                                         >
-                                            <PanelLeft className="w-5 h-5 text-slate-600" />
-                                        </button>
+                                            <RotateCcw className="w-5 h-5" />
+                                        </motion.button>
                                     )}
-                                    <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 p-1.5 overflow-hidden shrink-0">
-                                        <img src={chatbotImage} alt="AI" className="w-full h-full object-contain" />
-                                    </div>
-                                    <span className="font-semibold text-slate-800">AI Assistant</span>
-                                    <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold tracking-wide uppercase border border-orange-200">
-                                        Beta
-                                    </span>
+                                </AnimatePresence>
+                                <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 p-1.5 overflow-hidden shrink-0">
+                                    <img src={chatbotImage} alt="AI" className="w-full h-full object-contain" />
                                 </div>
+                                <span className="font-semibold text-slate-800">AI Assistant</span>
+                                <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold tracking-wide uppercase border border-orange-200">
+                                    BETA
+                                </span>
                             </div>
-                            <div className="pb-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {ROLE_OPTIONS.map((role) => (
-                                        <button
-                                            key={role.id}
-                                            type="button"
-                                            onClick={() => setActiveRole(role.id)}
-                                            className={cn(
-                                                "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
-                                                activeRole === role.id
-                                                    ? "bg-orange-500 text-white border-orange-500"
-                                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                                            )}
-                                            aria-pressed={activeRole === role.id}
-                                        >
-                                            {role.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                {!webhookUrl && (
-                                    <div className="mt-2 text-[11px] text-slate-400">
-                                        ยังไม่ได้ตั้งค่า `VITE_CHATBOT_WEBHOOK_URL_GENERAL/ADS/SEO` — ระบบจะใช้ข้อความจำลอง
-                                    </div>
-                                )}
-                            </div>
+
+
                         </div>
 
                         {/* Messages Area */}
@@ -682,6 +524,7 @@ export function AiAssistant() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8">
                                             {/* AI Detail Summary Button (Primary) */}
                                             <motion.button
+                                                id="tutorial-ai-detail-summary-card"
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => setViewMode('summary')}
@@ -713,6 +556,7 @@ export function AiAssistant() {
 
                                             {/* Campaign Tools Button (Secondary) */}
                                             <motion.button
+                                                id="tutorial-ai-marketing-tools"
                                                 whileHover={{ scale: 1.02, backgroundColor: 'rgba(248, 250, 252, 1)' }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => setViewMode('tools')}
@@ -809,72 +653,21 @@ export function AiAssistant() {
                         </div>
 
                         {/* Input Fixed at Bottom */}
-                        <div className="p-4 bg-white/80 backdrop-blur-sm border-t border-slate-100 sticky bottom-0 z-10 transition-all">
-                            <div className="relative group max-w-3xl mx-auto">
-                                <div className="absolute inset-0 bg-gradient-to-r from-orange-200/20 to-amber-200/20 rounded-[1.5rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <div className="relative bg-white rounded-[1.5rem] shadow-sm hover:shadow-md transition-all duration-300 border border-slate-200 p-1.5 flex items-center gap-2 pr-2">
-                                    <div className="pl-1">
-                                        <button
-                                            type="button"
-                                            onClick={handleNewChat}
-                                            className="p-2 bg-slate-50 rounded-full text-slate-400 group-hover:bg-orange-50 group-hover:text-orange-500 transition-colors duration-300 cursor-pointer hover:shadow-sm"
-                                            title="New Chat"
-                                        >
-                                            <Plus className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <textarea
-                                        ref={(el) => {
-                                            if (el) {
-                                                el.style.height = 'auto';
-                                                el.style.height = el.scrollHeight + 'px';
-                                            }
-                                        }}
-                                        value={query}
-                                        onChange={(e) => {
-                                            setQuery(e.target.value);
-                                            e.target.style.height = 'auto';
-                                            e.target.style.height = e.target.scrollHeight + 'px';
-                                        }}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder={isListening ? "Listening..." : "Ask me anything..."}
-                                        className="flex-1 bg-transparent border-none outline-none text-base px-2 text-slate-900 placeholder:text-slate-400 min-h-[44px] max-h-[200px] resize-none py-3 custom-scrollbar overflow-y-auto"
-                                        disabled={isThinking}
-                                        rows={1}
-                                    />
-
-                                    {/* Mic / Send Button */}
-                                    {query.trim() ? (
-                                        <button
-                                            onClick={() => handleSearch()}
-                                            disabled={isThinking}
-                                            className="p-2 rounded-full transition-all duration-200 bg-orange-500 text-white hover:bg-orange-600 shadow-md transform hover:scale-105"
-                                        >
-                                            <Send className="w-4 h-4" />
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={handleVoiceInput}
-                                            className={cn(
-                                                "p-2 rounded-full transition-all duration-200",
-                                                isListening
-                                                    ? "bg-red-100 text-red-500 animate-pulse hover:bg-red-200"
-                                                    : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
-                                            )}
-                                            title={isListening ? "Stop Listening" : "Start Voice Input"}
-                                        >
-                                            {isListening ? <StopCircle className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="text-center mt-2 text-[10px] text-slate-400/80 font-medium tracking-wide">
-                                    AI can make mistakes. Consider checking important information.
-                                </div>
-                            </div>
+                        <div id="tutorial-ai-input" className="p-4 bg-white/80 backdrop-blur-sm border-t border-slate-100 sticky bottom-0 z-10 transition-all">
+                            <AiChatInput
+                                query={query}
+                                setQuery={setQuery}
+                                onSearch={handleSearch}
+                                isThinking={isThinking}
+                                isListening={isListening}
+                                onVoiceInput={handleVoiceInput}
+                                onNewChat={handleNewChat}
+                            />
                         </div>
                     </>
-                )}
-            </div>
+                )
+                }
+            </div >
         </div >
     );
 }

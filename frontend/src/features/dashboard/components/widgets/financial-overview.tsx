@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
-import { Download } from 'lucide-react';
-import { Cell, Pie, PieChart, ResponsiveContainer, Sector, Tooltip } from 'recharts';
-import { Button } from '@/components/ui/button';
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatCompactCurrency, formatCurrencyFull } from '@/lib/formatters';
@@ -105,6 +104,10 @@ export function FinancialOverview({
     const cardRef = useRef<HTMLDivElement>(null);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     const computedTotal = total ?? breakdown.reduce((acc, cur) => acc + cur.value, 0);
+    const activeItem =
+        activeIndex !== null && activeIndex >= 0 && activeIndex < breakdown.length
+            ? breakdown[activeIndex]
+            : null;
 
     const handleExportCsv = () => {
         downloadCsv(
@@ -169,57 +172,47 @@ export function FinancialOverview({
                                             paddingAngle={2}
                                             stroke="var(--background)"
                                             strokeWidth={3}
-                                            activeIndex={activeIndex ?? undefined}
-                                            activeShape={(props: any) => (
-                                                <Sector
-                                                    {...props}
-                                                    outerRadius={(props.outerRadius ?? 0) + 6}
-                                                />
-                                            )}
                                             onMouseLeave={() => setActiveIndex(null)}
                                         >
                                             {breakdown.map((entry, index) => (
                                                 <Cell
-                                                    key={entry.name}
+                                                    key={`${entry.name}-${index}`}
                                                     fill={entry.color}
                                                     onMouseEnter={() => setActiveIndex(index)}
-                                                    className="transition-opacity duration-200"
-                                                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.35}
+                                                    className="transition-all duration-150"
                                                 />
                                             ))}
                                         </Pie>
-                                        <Tooltip
-                                            position={{ x: 8, y: 8 }}
-                                            formatter={(value: number | string, name: string | number) => {
-                                                const label = typeof name === 'string' ? name : String(name ?? '');
-                                                return [formatCurrencyFull(Number(value), currency), label];
-                                            }}
-                                            contentStyle={{
-                                                backgroundColor: 'var(--popover)',
-                                                border: '1px solid var(--border)',
-                                                borderRadius: '0.75rem',
-                                                color: 'var(--popover-foreground)',
-                                            }}
-                                            labelStyle={{ color: 'var(--muted-foreground)' }}
-                                        />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
 
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none select-none">
-                                <p className="text-[10px] uppercase text-gray-400 tracking-wide">TOTAL</p>
-                                <div className="max-w-[200px]">
-                                    <p className="text-lg md:text-xl font-semibold text-gray-900 leading-none whitespace-nowrap">
-                                        {formatCompactCurrency(computedTotal, currency)}
-                                    </p>
-                                </div>
+                                <AnimatePresence mode="wait" initial={false}>
+                                    <motion.div
+                                        key={activeIndex !== null ? `active-${activeIndex}` : 'total'}
+                                        initial={{ opacity: 0, y: 3, scale: 0.99 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -3, scale: 0.99 }}
+                                        transition={{ duration: 0.1, ease: 'easeOut' }}
+                                    >
+                                        <p className="text-[10px] uppercase text-gray-400 tracking-wide">
+                                            {activeItem ? activeItem.name : 'TOTAL'}
+                                        </p>
+                                        <div className="max-w-[200px]">
+                                            <p className="text-lg md:text-xl font-semibold text-gray-900 leading-none whitespace-nowrap">
+                                                {formatCompactCurrency(activeItem ? activeItem.value : computedTotal, currency)}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                </AnimatePresence>
                             </div>
                         </div>
 
                         <div className="w-full md:flex-1 space-y-2 text-xs">
                             {breakdown.map((item, index) => (
                                 <div
-                                    key={item.name}
+                                    key={`${item.name}-${index}`}
                                     className={cn(
                                         'rounded-2xl px-3 py-2.5 flex items-center justify-between border',
                                         activeIndex === index && 'shadow-sm'
@@ -259,7 +252,7 @@ export function FinancialOverview({
 
                 <div className="grid grid-cols-3 gap-4 pt-4 text-center">
                     {summary.map((item) => (
-                        <div key={item.label} className="space-y-1">
+                        <div key={`${item.label}-${item.value}`} className="space-y-1">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 {item.label}
                             </p>
@@ -270,7 +263,7 @@ export function FinancialOverview({
                             {item.deltaLabel ? (
                                 <p className={cn('text-xs font-medium', item.deltaClassName)}>{item.deltaLabel}</p>
                             ) : (
-                                <p className="text-xs font-medium text-muted-foreground">—</p>
+                                <p className="text-xs font-medium text-muted-foreground">-</p>
                             )}
                         </div>
                     ))}
@@ -281,3 +274,4 @@ export function FinancialOverview({
 }
 
 export default FinancialOverview;
+

@@ -87,7 +87,7 @@ export const TopCampaignsTable = ({ campaigns }: TopCampaignsTableProps) => {
                                                         ? 'text-yellow-600'
                                                         : 'text-red-600'
                                                     }`}>
-                                                    {(metrics.roas || 0).toFixed(2)}x
+                                                    {(metrics.roas || 0).toFixed(2)}
                                                 </span>
                                             </td>
                                         </tr>

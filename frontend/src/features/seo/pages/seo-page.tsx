@@ -36,7 +36,8 @@ export function SeoPage() {
     return (
         <DashboardLayout>
             <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                {/* Page Header */}
+                <div id="tutorial-seo-header" className="flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">SEO & Web Analytics</h1>
                         <p className="text-muted-foreground mt-1">
@@ -46,27 +47,43 @@ export function SeoPage() {
                 </div>
 
                 {/* Standard Summary Cards */}
-                <SeoSummaryCards data={displayData} isLoading={isLoading} />
+                <div id="tutorial-seo-overview">
+                    <SeoSummaryCards data={displayData} isLoading={isLoading} />
+                </div>
 
                 {/* Premium SEO Metrics (Ahrefs Style) */}
-                <SeoPremiumCards data={displayData} isLoading={isLoading} />
+                <div id="tutorial-seo-premium">
+                    <SeoPremiumCards data={displayData} isLoading={isLoading} />
+                </div>
 
 
                 {/* Charts Area */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 items-start">
                     <div className="col-span-5 space-y-6">
-                        <SeoPerformanceChart />
-                        <TopOrganicKeywords />
+                        <div id="tutorial-seo-chart">
+                            <SeoPerformanceChart />
+                        </div>
+                        <div id="tutorial-seo-keywords">
+                            <TopOrganicKeywords />
+                        </div>
                     </div>
                     <div className="col-span-2 space-y-6">
-                        <TrafficByLocation isLoading={isLoading} />
-                        <OrganicKeywordsByIntent isLoading={isLoading} />
-                        <SeoAnchorText />
+                        <div id="tutorial-seo-location">
+                            <TrafficByLocation isLoading={isLoading} />
+                        </div>
+                        <div id="tutorial-seo-intent">
+                            <OrganicKeywordsByIntent isLoading={isLoading} />
+                        </div>
+                        <div id="tutorial-seo-anchor">
+                            <SeoAnchorText />
+                        </div>
                     </div>
                 </div>
 
                 {/* Off-page Metrics */}
-                <SeoOffPageMetrics />
+                <div id="tutorial-seo-offpage">
+                    <SeoOffPageMetrics />
+                </div>
             </div>
         </DashboardLayout>
     );

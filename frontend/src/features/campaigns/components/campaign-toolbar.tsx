@@ -152,7 +152,7 @@ export function CampaignToolbar({
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
 
                 {/* Search Input */}
-                <div className="relative w-full md:max-w-sm group">
+                <div id="tutorial-campaigns-search" className="relative w-full md:max-w-sm group">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search className="h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors duration-200" />
                     </div>
@@ -182,10 +182,11 @@ export function CampaignToolbar({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
+                                id="tutorial-campaigns-status-filter"
                                 variant="outline"
                                 className={`h-10 border-dashed rounded-lg px-3 lg:px-4 font-normal ${status.has('ALL')
-                                        ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                                        : 'border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-50'
+                                    ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                    : 'border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-50'
                                     }`}
                             >
                                 <ListFilter className={`mr-2 h-4 w-4 ${status.has('ALL') ? 'opacity-50' : 'text-blue-600'}`} />
@@ -221,10 +222,11 @@ export function CampaignToolbar({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
+                                id="tutorial-campaigns-platform-filter"
                                 variant="outline"
                                 className={`h-10 border-dashed rounded-lg px-3 lg:px-4 font-normal ${platform.has('ALL')
-                                        ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                                        : 'border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-50'
+                                    ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                    : 'border-indigo-200 bg-indigo-50/50 text-indigo-700 hover:bg-indigo-50'
                                     }`}
                             >
                                 <ListFilter className={`mr-2 h-4 w-4 ${platform.has('ALL') ? 'opacity-50' : 'text-indigo-600'}`} />
@@ -261,19 +263,20 @@ export function CampaignToolbar({
 
                     {/* Only Select Filter */}
                     <Button
+                        id="tutorial-campaigns-selected-only"
                         variant={showSelectedOnly ? 'secondary' : 'ghost'}
                         onClick={() => onShowSelectedOnlyChange(!showSelectedOnly)}
                         disabled={selectedCount === 0}
                         className={`h-10 rounded-lg px-3 font-normal transition-all ${showSelectedOnly
-                                ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-md transform scale-105'
-                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                            ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-md transform scale-105'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                             } ${selectedCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         Selected Only {selectedCount > 0 && `(${selectedCount})`}
                     </Button>
 
                     {/* Date Filter - Wrapped for consistent height */}
-                    <div className="h-10 [&>button]:h-10 [&>button]:rounded-lg [&>button]:border-gray-200 [&>button]:shadow-sm">
+                    <div id="tutorial-campaigns-date-filter" className="h-10 [&>button]:h-10 [&>button]:rounded-lg [&>button]:border-gray-200 [&>button]:shadow-sm">
                         <DashboardDateFilter value={period} onValueChange={onPeriodChange} />
                     </div>
 

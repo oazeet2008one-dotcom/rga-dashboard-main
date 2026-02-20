@@ -1,18 +1,84 @@
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Calculator, TrendingUp, Users, DollarSign, Target, ArrowLeft } from "lucide-react";
+import { Calculator, TrendingUp, Users, DollarSign, Target, ArrowLeft, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MarketingToolsProps {
     onBack?: () => void;
 }
 
+function TabNavigation({ tabs, activeTab, onChange }: { tabs: any[], activeTab: string, onChange: (id: string) => void }) {
+    return (
+        <>
+            {/* Mobile Tabs */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="relative z-10 mb-5 grid grid-cols-2 gap-2 md:hidden"
+            >
+                {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => onChange(tab.id)}
+                            className={cn(
+                                "flex h-11 items-center gap-2 rounded-xl border px-3 text-left text-sm font-medium transition-colors duration-200",
+                                isActive
+                                    ? "border-orange-200 bg-orange-50 text-orange-700"
+                                    : "border-slate-200 bg-white text-slate-600"
+                            )}
+                        >
+                            <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-orange-600" : "text-slate-400")} />
+                            <span className="truncate">{tab.mobileLabel}</span>
+                        </button>
+                    );
+                })}
+            </motion.div>
+
+            {/* Desktop Tabs */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="mb-8 hidden border-b border-slate-200 pb-1 md:flex md:justify-center md:gap-2"
+            >
+                {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => onChange(tab.id)}
+                            className={cn(
+                                "relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200",
+                                isActive ? "text-orange-600" : "text-slate-500 hover:text-slate-700"
+                            )}
+                        >
+                            <Icon className={cn("h-4 w-4", isActive ? "text-orange-600" : "text-slate-400")} />
+                            <span>{tab.label}</span>
+                            {isActive && (
+                                <motion.span
+                                    layoutId="activeTab"
+                                    className="absolute bottom-[-5px] left-0 h-[2px] w-full rounded-t-full bg-orange-600"
+                                />
+                            )}
+                        </button>
+                    );
+                })}
+            </motion.div>
+        </>
+    );
+}
+
 export function MarketingTools({ onBack }: MarketingToolsProps) {
     const [activeTab, setActiveTab] = useState('conversion');
+    const [showGuide, setShowGuide] = useState(false);
 
     // State for calculators
     const [conversion, setConversion] = useState({ actions: '', visitors: '', result: 0 });
@@ -78,87 +144,95 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
     };
 
     const tabs = [
-        { id: 'conversion', label: 'Conversion Rate', icon: Target },
-        { id: 'lead', label: 'Lead/Traffic', icon: Users },
-        { id: 'roi', label: 'ROI', icon: TrendingUp },
-        { id: 'profit', label: 'Profit', icon: DollarSign },
-        { id: 'cpl', label: 'CPL', icon: DollarSign },
-        { id: 'cpa', label: 'CPA', icon: Calculator },
+        { id: 'conversion', label: 'Conversion Rate', mobileLabel: 'Conversion', icon: Target },
+        { id: 'lead', label: 'Lead/Traffic', mobileLabel: 'Lead/Traffic', icon: Users },
+        { id: 'roi', label: 'ROI', mobileLabel: 'ROI', icon: TrendingUp },
+        { id: 'profit', label: 'Profit', mobileLabel: 'Profit', icon: DollarSign },
+        { id: 'cpl', label: 'CPL', mobileLabel: 'CPL', icon: DollarSign },
+        { id: 'cpa', label: 'CPA', mobileLabel: 'CPA', icon: Calculator },
     ];
 
+    const calculatorGuide: Record<string, { formula: string; purpose: string }> = {
+        conversion: {
+            formula: "(Number of Actions / Total Visitors) x 100",
+            purpose: "Shows what percent of visitors complete your target action."
+        },
+        lead: {
+            formula: "(Monthly Traffic x Expected Conversion Rate) / 100",
+            purpose: "Estimates how many leads you can generate from expected traffic and conversion rate."
+        },
+        roi: {
+            formula: "((Revenue - Investment Cost) / Investment Cost) x 100",
+            purpose: "Measures whether your investment returns are worth the spend."
+        },
+        profit: {
+            formula: "Total Revenue - Total Cost",
+            purpose: "Calculates net profit after all costs are deducted."
+        },
+        cpl: {
+            formula: "Total Spend / Total Leads",
+            purpose: "Shows cost per lead for comparing campaign efficiency."
+        },
+        cpa: {
+            formula: "Total Cost Used / Number of Customers",
+            purpose: "Shows cost per acquired customer to control acquisition efficiency."
+        }
+    };
+
     return (
-        <div className="flex flex-col items-center w-full h-full overflow-y-auto custom-scrollbar pb-12 space-y-8 relative">
+        <div className="relative flex h-full w-full flex-col items-center gap-6 overflow-y-auto custom-scrollbar pb-6 md:gap-8 md:pb-12">
             {onBack && (
-                <div className="h-16 w-full border-b border-slate-100 flex items-center justify-between px-6 bg-white/80 backdrop-blur sticky top-0 z-10">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={onBack}
-                            className="group flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-200"
-                        >
-                            <div className="p-1.5 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                                <ArrowLeft className="w-4 h-4 text-indigo-600" />
-                            </div>
-                            <span className="hidden md:inline text-sm font-bold text-slate-700 group-hover:text-slate-900">Back to AI Assistant</span>
-                        </button>
+                <div className="sticky top-0 z-20 w-full">
+                    <div className="w-full border-b border-slate-100 bg-white backdrop-blur">
+                        <div className="flex h-16 w-full items-center px-4">
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={onBack}
+                                className="group flex items-center gap-3 px-4 py-2.5 bg-white/80 border border-slate-200/60 rounded-xl shadow-sm hover:shadow-md backdrop-blur-sm hover:border-indigo-200/60 hover:bg-indigo-50/30 transition-all duration-300"
+                            >
+                                <div className="p-1.5 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 group-hover:scale-110 transition-all duration-300">
+                                    <ArrowLeft className="w-4 h-4 text-indigo-600" />
+                                </div>
+                                <span className="hidden md:inline text-sm font-bold text-slate-600 group-hover:text-indigo-700 transition-colors">Back to AI Assistant</span>
+                            </motion.button>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Header Section */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col items-center text-center space-y-3 max-w-2xl px-4 pt-12"
-            >
-                <div className="p-3 bg-orange-50 rounded-xl mb-2">
-                    <Calculator className="w-6 h-6 text-orange-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                    Marketing Calculators
-                </h2>
-                <p className="text-slate-500 text-base max-w-lg">
-                    Simple calculators for your digital marketing metrics.
-                </p>
-            </motion.div>
-
-            {/* Tabs Navigation */}
-            <div className="w-full max-w-4xl px-4">
+            {/* Header + Tabs + Calculator in one container */}
+            <div className="mt-1 w-full max-w-4xl px-4 md:mt-0">
                 <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    className="flex flex-wrap justify-center gap-2 mb-8 border-b border-slate-200 pb-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="mb-5 flex flex-col items-center space-y-2 pt-8 text-center md:mb-8 md:space-y-3 md:pt-12"
                 >
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={cn(
-                                    "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-200 relative",
-                                    isActive
-                                        ? "text-orange-600"
-                                        : "text-slate-500 hover:text-slate-700"
-                                )}
-                            >
-                                <Icon className={cn("w-4 h-4", isActive ? "text-orange-600" : "text-slate-400")} />
-                                <span>{tab.label}</span>
-                                {isActive && (
-                                    <motion.span
-                                        layoutId="activeTab"
-                                        className="absolute bottom-[-5px] left-0 w-full h-[2px] bg-orange-600 rounded-t-full"
-                                    />
-                                )}
-                            </button>
-                        );
-                    })}
+                    <div className="mb-2 rounded-xl bg-orange-50 p-3">
+                        <Calculator className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight md:text-3xl">
+                        Marketing Calculators
+                    </h2>
+                    <p className="max-w-lg text-sm text-slate-500 md:text-base">
+                        Simple calculators for your digital marketing metrics.
+                    </p>
                 </motion.div>
 
+
+                {/* Tabs Navigation */}
+                <TabNavigation
+                    tabs={tabs}
+                    activeTab={activeTab}
+                    onChange={(id) => {
+                        setActiveTab(id);
+                        setShowGuide(false);
+                    }}
+                />
+
                 {/* Tab Content Panels */}
-                <div className="grid gap-8 lg:grid-cols-12 items-start">
+                <div className="grid items-start gap-4 lg:grid-cols-12 lg:gap-8">
                     {/* Information Side (Left) */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -173,7 +247,7 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
-                                className="bg-slate-50 rounded-xl p-6 border border-slate-100"
+                                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6"
                             >
                                 <h3 className="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
                                     {activeTab === 'conversion' && <Target className="w-5 h-5 text-orange-600" />}
@@ -203,6 +277,43 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                         {activeTab === 'cpa' && "Retargeting usually lowers CPA."}
                                     </p>
                                 </div>
+                                <div className="mt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowGuide((prev) => !prev)}
+                                        className="flex items-center gap-1 text-sm font-semibold text-orange-600 transition-colors hover:text-orange-700"
+                                    >
+                                        <motion.span
+                                            animate={{ rotate: showGuide ? 180 : 0 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            <ChevronDown className="h-4 w-4" />
+                                        </motion.span>
+                                        {showGuide ? "Hide details" : "Show details"}
+                                    </button>
+                                    <AnimatePresence initial={false}>
+                                        {showGuide && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, y: -6 }}
+                                                animate={{ opacity: 1, height: "auto", y: 0 }}
+                                                exit={{ opacity: 0, height: 0, y: -6 }}
+                                                transition={{ duration: 0.22, ease: "easeInOut" }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="mt-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                                    <div>
+                                                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">How it is calculated</span>
+                                                        <p className="mt-1 text-sm text-slate-700">{calculatorGuide[activeTab]?.formula}</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Why this metric matters</span>
+                                                        <p className="mt-1 text-sm text-slate-700">{calculatorGuide[activeTab]?.purpose}</p>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                             </motion.div>
                         </AnimatePresence>
                     </motion.div>
@@ -214,7 +325,7 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                         transition={{ delay: 0.3, duration: 0.5 }}
                         className="lg:col-span-8"
                     >
-                        <Card className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
+                        <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                             <AnimatePresence mode='wait'>
                                 <motion.div
                                     key={activeTab}
@@ -223,7 +334,7 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                     exit={{ opacity: 0, x: -20 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    <CardContent className="p-6 md:p-8 space-y-6">
+                                    <CardContent className="p-4 md:p-8 space-y-6">
                                         {/* Conversion Rate Inputs */}
                                         {activeTab === 'conversion' && (
                                             <div className="space-y-6">
@@ -249,9 +360,9 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                                                <div className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                                                     <span className="text-slate-700 font-medium">Conversion Rate</span>
-                                                    <div className="flex items-baseline gap-1">
+                                                    <div className="flex items-baseline gap-1 self-end sm:self-auto">
                                                         <motion.span
                                                             key={conversion.result}
                                                             initial={{ opacity: 0, y: -10 }}
@@ -291,9 +402,9 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                                                <div className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                                                     <span className="text-slate-700 font-medium">Return on Investment</span>
-                                                    <div className="flex items-baseline gap-1">
+                                                    <div className="flex items-baseline gap-1 self-end sm:self-auto">
                                                         <motion.span
                                                             key={roi.result}
                                                             initial={{ opacity: 0, y: -10 }}
@@ -333,9 +444,9 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                                                <div className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                                                     <span className="text-slate-700 font-medium">Net Profit</span>
-                                                    <div className="flex items-baseline gap-1">
+                                                    <div className="flex items-baseline gap-1 self-end sm:self-auto">
                                                         <span className="text-lg font-medium text-slate-500">฿</span>
                                                         <motion.span
                                                             key={profit.result}
@@ -378,9 +489,9 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                                                <div className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                                                     <span className="text-slate-700 font-medium">Cost Per Lead</span>
-                                                    <div className="flex items-baseline gap-1">
+                                                    <div className="flex items-baseline gap-1 self-end sm:self-auto">
                                                         <span className="text-lg font-medium text-slate-500">฿</span>
                                                         <motion.span
                                                             key={cpl.result}
@@ -420,9 +531,9 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                                                <div className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                                                     <span className="text-slate-700 font-medium">Projected Leads</span>
-                                                    <div className="flex items-baseline gap-1">
+                                                    <div className="flex items-baseline gap-1 self-end sm:self-auto">
                                                         <motion.span
                                                             key={leads.result}
                                                             initial={{ opacity: 0, y: -10 }}
@@ -462,9 +573,9 @@ export function MarketingTools({ onBack }: MarketingToolsProps) {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                                                <div className="flex flex-col gap-2 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                                                     <span className="text-slate-700 font-medium">Cost Per Customer</span>
-                                                    <div className="flex items-baseline gap-1">
+                                                    <div className="flex items-baseline gap-1 self-end sm:self-auto">
                                                         <span className="text-lg font-medium text-slate-500">฿</span>
                                                         <motion.span
                                                             key={cpa.result}

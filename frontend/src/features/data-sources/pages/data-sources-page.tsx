@@ -65,7 +65,7 @@ export default function DataSourcesPage() {
         <DashboardLayout>
             <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
                 {/* Page Header */}
-                <div className="flex items-center justify-between">
+                <div id="tutorial-datasources-header" className="flex items-center justify-between">
                     <div className="space-y-1">
                         <h2 className="text-3xl font-bold tracking-tight">Data Sources</h2>
                         <p className="text-muted-foreground">
@@ -90,7 +90,7 @@ export default function DataSourcesPage() {
                 </div>
 
                 {/* Info Section */}
-                <div className="rounded-lg border bg-muted/50 p-4">
+                <div id="tutorial-datasources-help" className="rounded-lg border bg-muted/50 p-4">
                     <h3 className="font-medium mb-2">Need Help?</h3>
                     <p className="text-sm text-muted-foreground">
                         When you connect a platform, you'll be redirected to authorize access.

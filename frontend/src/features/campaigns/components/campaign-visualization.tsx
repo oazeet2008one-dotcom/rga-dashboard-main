@@ -68,7 +68,7 @@ export function CampaignVisualization({ campaigns, summary, onDownload }: Campai
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {/* 1. Budget vs Spend vs Revenue Chart */}
-                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-inner space-y-4">
+                <div id="tutorial-campaigns-visualization-chart" className="rounded-3xl border border-gray-100 bg-white p-6 shadow-inner space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-semibold text-gray-900">Performance (Budget vs Spend vs Revenue)</p>
@@ -136,7 +136,7 @@ export function CampaignVisualization({ campaigns, summary, onDownload }: Campai
                 </div>
 
                 {/* 2. Campaign Snapshot */}
-                <div className="rounded-3xl border border-gray-100 bg-white p-6 flex flex-col justify-between space-y-4">
+                <div id="tutorial-campaigns-visualization-highlights" className="rounded-3xl border border-gray-100 bg-white p-6 flex flex-col justify-between space-y-4">
                     <div className="space-y-1">
                         <p className="text-sm font-semibold text-gray-900">Performance Highlights</p>
                         <p className="text-xs text-gray-500 mt-1">Quick view of spend and best-performing campaign</p>

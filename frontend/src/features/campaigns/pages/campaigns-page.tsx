@@ -482,7 +482,7 @@ export function CampaignsPage() {
         <DashboardLayout>
             <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-8 relative z-10">
                 {/* Page Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div id="tutorial-campaigns-header" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
                         <p className="text-muted-foreground">
@@ -512,20 +512,22 @@ export function CampaignsPage() {
                 </div>
 
                 {/* Search and Filter Toolbar */}
-                <CampaignToolbar
-                    search={search}
-                    onSearchChange={setSearch}
-                    status={status}
-                    onStatusChange={setStatus}
-                    platform={platform}
-                    onPlatformChange={setPlatform}
-                    isLoading={isFetching}
-                    period={period}
-                    onPeriodChange={setPeriod}
-                    showSelectedOnly={showSelectedOnly}
-                    onShowSelectedOnlyChange={setShowSelectedOnly}
-                    selectedCount={selectedIds.size}
-                />
+                <div id="tutorial-campaigns-filter">
+                    <CampaignToolbar
+                        search={search}
+                        onSearchChange={setSearch}
+                        status={status}
+                        onStatusChange={setStatus}
+                        platform={platform}
+                        onPlatformChange={setPlatform}
+                        isLoading={isFetching}
+                        period={period}
+                        onPeriodChange={setPeriod}
+                        showSelectedOnly={showSelectedOnly}
+                        onShowSelectedOnlyChange={setShowSelectedOnly}
+                        selectedCount={selectedIds.size}
+                    />
+                </div>
 
 
 
@@ -543,41 +545,49 @@ export function CampaignsPage() {
                 {/* Pagination Header (Removed - Moved to Table) */}
 
                 {/* Campaigns Table with Sorting and Selection */}
-                <CampaignsTable
-                    campaigns={displayedCampaigns}
-                    isLoading={isFetching}
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onSort={handleSort}
-                    selectedIds={selectedIds}
-                    onToggleSelect={handleToggleSelect}
-                    onToggleAll={handleToggleAll}
-                    onEdit={handleEdit}
-                    onDelete={handleDeleteClick}
+                <div id="tutorial-campaigns-list">
+                    <CampaignsTable
+                        campaigns={displayedCampaigns}
+                        isLoading={isFetching}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSort={handleSort}
+                        selectedIds={selectedIds}
+                        onToggleSelect={handleToggleSelect}
+                        onToggleAll={handleToggleAll}
+                        onEdit={handleEdit}
+                        onDelete={handleDeleteClick}
 
-                    page={showSelectedOnly ? 1 : page}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    pageSize={DEFAULT_PAGE_SIZE}
-                    onPageChange={handlePageChange}
-                />
+                        page={showSelectedOnly ? 1 : page}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        pageSize={DEFAULT_PAGE_SIZE}
+                        onPageChange={handlePageChange}
+                    />
+                </div>
 
 
 
                 {/* Campaign Summary Dashboard (Middle Section) */}
-                <CampaignSummary summary={campaignsResponse?.summary} isLoading={isLoading} />
+                <div id="tutorial-campaigns-summary">
+                    <CampaignSummary summary={campaignsResponse?.summary} isLoading={isLoading} />
+                </div>
 
                 {/* Visualization Panel (Bottom) */}
                 {!isLoading && campaignsResponse?.summary && (
                     <>
-                        <CampaignVisualization
-                            campaigns={displayedGlobalCampaigns}
-                            summary={campaignsResponse.summary}
-                            onDownload={handleExport}
-                        />
+                        <div id="tutorial-campaigns-visualization">
+                            <CampaignVisualization
+                                campaigns={displayedGlobalCampaigns}
+                                summary={campaignsResponse.summary}
+                                onDownload={handleExport}
+                            />
+                        </div>
 
                         {/* Campaign Analytics (Conversion Rate) */}
-                        <CampaignAnalytics campaigns={displayedGlobalCampaigns} />
+                        <div id="tutorial-campaigns-analytics">
+                            <CampaignAnalytics campaigns={displayedGlobalCampaigns} />
+                        </div>
                     </>
                 )}
             </div>
