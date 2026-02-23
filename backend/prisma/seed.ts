@@ -345,6 +345,7 @@ async function main() {
       name: 'Google Ads Main',
       provider: 'google',
       isActive: true,
+      status: 'CONNECTED',
     },
   });
   const googleAccount = await prisma.googleAdsAccount.create({
@@ -365,6 +366,7 @@ async function main() {
       name: 'Facebook Ads Main',
       provider: 'meta',
       isActive: true,
+      status: 'CONNECTED',
     },
   });
   const fbAccount = await prisma.facebookAdsAccount.create({
@@ -480,7 +482,7 @@ async function main() {
         costPerAction: new Prisma.Decimal(dailyData.conversions > 0 ? dailyData.spend / dailyData.conversions : 0),
         ctr: new Prisma.Decimal(dailyData.impressions > 0 ? (dailyData.clicks / dailyData.impressions) * 100 : 0),
         conversionRate: new Prisma.Decimal(dailyData.clicks > 0 ? (dailyData.conversions / dailyData.clicks) * 100 : 0),
-        isMockData: true,
+        isMockData: false,
       });
 
       currentDate.setDate(currentDate.getDate() + 1);
@@ -515,7 +517,7 @@ async function main() {
       engagementRate: new Prisma.Decimal(0.6 + Math.random() * 0.2),
       bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
       avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
-      isMockData: true,
+      isMockData: false,
     });
     currentDate.setDate(currentDate.getDate() + 1);
   }
@@ -605,7 +607,7 @@ async function main() {
       engagementRate: new Prisma.Decimal(0.6 + Math.random() * 0.2),
       bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
       avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
-      isMockData: true,
+      isMockData: false,
       metadata: {
         seoMetrics: {
           avgPosition: parseFloat(avgPosition.toFixed(1)),
@@ -668,7 +670,7 @@ async function main() {
       engagementRate: new Prisma.Decimal(0.6 + Math.random() * 0.2),
       bounceRate: new Prisma.Decimal(0.3 + Math.random() * 0.1),
       avgSessionDuration: new Prisma.Decimal(120 + Math.random() * 60),
-      isMockData: true,
+      isMockData: false,
     };
   });
 
@@ -691,7 +693,7 @@ async function main() {
   const seoTopKeywordsData = topKeywords.map((kw, index) => {
     const keywordDate = new Date(premiumStartDate);
     keywordDate.setDate(premiumStartDate.getDate() + index);
-    
+
     return {
       tenantId: tenant.id,
       date: keywordDate,
@@ -715,7 +717,7 @@ async function main() {
   const seoTrafficByLocationData = locations.map((location, index) => {
     const locationDate = new Date(premiumStartDate);
     locationDate.setDate(premiumStartDate.getDate() + index);
-    
+
     return {
       tenantId: tenant.id,
       date: locationDate,
@@ -741,7 +743,7 @@ async function main() {
   const seoAnchorTextData = anchorTexts.map((anchor, index) => {
     const anchorDate = new Date(premiumStartDate);
     anchorDate.setDate(premiumStartDate.getDate() + index);
-    
+
     return {
       tenantId: tenant.id,
       date: anchorDate,
@@ -769,7 +771,7 @@ async function main() {
   const seoOffpageData = offpageMetrics.map((metric, index) => {
     const metricDate = new Date(premiumStartDate);
     metricDate.setDate(premiumStartDate.getDate() + index);
-    
+
     return {
       tenantId: tenant.id,
       date: metricDate,
@@ -792,6 +794,40 @@ async function main() {
     data: seoOffpageData
   });
   console.log(`✅ Created ${seoOffpageData.length} SEO Offpage Metrics records.`);
+
+  // 14. Create AI Insights
+  console.log('🤖 Creating AI Insights...');
+  const aiInsights = [
+    {
+      type: 'PERFORMANCE',
+      title: 'Core metrics efficiency',
+      message: 'Your overall ROAS has increased by 15% this week due to optimization in Google search campaigns. Consider increasing budget for "Google Search - Brand Keywords".',
+      status: 'ACTIVE',
+    },
+    {
+      type: 'EFFICIENCY',
+      title: 'Budget Allocation Insight',
+      message: 'TikTok Ads are currently showing a lower Cost Per conversion compared to Facebook. Reallocating 10% of FB budget to TikTok could improve overall efficiency.',
+      status: 'ACTIVE',
+    },
+    {
+      type: 'ANOMALY',
+      title: 'High Bounce Rate Detected',
+      message: 'We noticed a sudden spike in bounce rate for mobile users on the landing page "shopping-deal-2026". Check for mobile responsiveness issues.',
+      status: 'ACTIVE',
+    }
+  ];
+
+  for (const insight of aiInsights) {
+    await prisma.aiInsight.create({
+      data: {
+        tenantId: tenant.id,
+        ...insight,
+        occurredAt: new Date(),
+      }
+    });
+  }
+  console.log(`✅ Created ${aiInsights.length} AI Insights.`);
 
   console.log('🎉 Seed completed successfully!');
 }

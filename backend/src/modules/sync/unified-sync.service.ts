@@ -31,6 +31,29 @@ export class UnifiedSyncService {
         private readonly integrationFactory: IntegrationFactory,
     ) { }
 
+    private async resolveIntegrationId(
+        platform: AdPlatform,
+        tenantId: string,
+        account: any,
+    ): Promise<string | null> {
+        if (account?.integrationId && typeof account.integrationId === 'string') {
+            return account.integrationId;
+        }
+
+        const integration = await this.prisma.integration.findFirst({
+            where: {
+                tenantId,
+                type: platform,
+                isActive: true,
+                status: 'CONNECTED',
+            },
+            select: { id: true },
+            orderBy: { updatedAt: 'desc' },
+        });
+
+        return integration?.id ?? null;
+    }
+
     /**
      * Sync all connected accounts across all platforms
      */
@@ -154,13 +177,20 @@ export class UnifiedSyncService {
     /**
      * Sync a specific account using the Adapter Pattern
      */
-    async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, accountData?: any) {
-        const adapter = this.integrationFactory.getAdapter(platform);
+    async syncAccount(platform: AdPlatform, accountId: string, tenantId: string, account?: any) {
+        this.logger.log(`Syncing ${platform} account: ${accountId} (tenant ${tenantId})`);
 
         // 1. Prepare Credentials
+        // Fetch account record to get credentials
+        const accountData = account ?? (await this.fetchAccountData(platform, accountId));
+
         if (!accountData) {
-            accountData = await this.fetchAccountData(platform, accountId);
+            throw new Error(`Account not found: ${platform} ${accountId}`);
         }
+
+        const integrationId = await this.resolveIntegrationId(platform, tenantId, accountData);
+
+        const adapter = this.integrationFactory.getAdapter(platform);
 
         const credentials = {
             accessToken: accountData.accessToken,
@@ -183,12 +213,11 @@ export class UnifiedSyncService {
             })(),
         };
 
-        // 2. Fetch Campaigns (if applicable)
+        // 2. Fetch Campaigns
         const campaigns = await adapter.fetchCampaigns(credentials);
 
-        // 3. Save Campaigns to DB
-        for (const campaign of campaigns) {
-            await this.saveCampaign(tenantId, platform, accountId, campaign);
+        for (const c of campaigns) {
+            const campaign = await this.saveCampaign(tenantId, platform, accountId, c, integrationId);
         }
 
         // 4. Fetch & Save Metrics
@@ -251,7 +280,13 @@ export class UnifiedSyncService {
         }
     }
 
-    private async saveCampaign(tenantId: string, platform: AdPlatform, accountId: string, data: any) {
+    private async saveCampaign(
+        tenantId: string,
+        platform: AdPlatform,
+        accountId: string,
+        data: any,
+        integrationId: string | null,
+    ) {
         // Common logic to upsert campaign
         const fkField =
             platform === AdPlatform.GOOGLE_ADS
@@ -278,6 +313,7 @@ export class UnifiedSyncService {
             startDate: data.startDate,
             endDate: data.endDate,
             [fkField]: accountId,
+            ...(integrationId ? { integrationId } : {}),
         };
 
         if (existing) {

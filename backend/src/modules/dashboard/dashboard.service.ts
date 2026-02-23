@@ -48,13 +48,24 @@ export class DashboardService {
       where: {
         tenantId,
         isActive: true,
-        status: 'CONNECTED',
+        status: { in: ['CONNECTED', 'active'] },
         type: { in: [AdPlatform.GOOGLE_ADS, AdPlatform.FACEBOOK, AdPlatform.TIKTOK, AdPlatform.LINE_ADS] },
       },
       select: { type: true },
     });
 
-    return integrations.map((i) => i.type as AdPlatform);
+    const connectedPlatforms = integrations.map((i) => i.type as AdPlatform);
+
+    // ✅ Fallback: If no explicit integrations, check which platforms have campaigns/data
+    if (connectedPlatforms.length === 0) {
+      const campaignPlatforms = await this.prisma.campaign.groupBy({
+        by: ['platform'],
+        where: { tenantId },
+      });
+      return campaignPlatforms.map((p) => p.platform);
+    }
+
+    return connectedPlatforms;
   }
 
   async getSummary(tenantId: string, days: number = 30) {
@@ -579,45 +590,6 @@ export class DashboardService {
 
     const connectedPlatforms = await this.getConnectedAdPlatforms(tenantId);
     const platformWhere = connectedPlatforms.length > 0 ? { platform: { in: connectedPlatforms } } : undefined;
-
-    if (connectedPlatforms.length === 0) {
-      return {
-        success: true,
-        data: {
-          summary: {
-            totalCost: 0,
-            totalImpressions: 0,
-            totalClicks: 0,
-            totalConversions: 0,
-            averageRoas: 0,
-            averageCpm: 0,
-            averageCtr: 0,
-            averageRoi: -100,
-          },
-          growth: {
-            impressionsGrowth: 0,
-            clicksGrowth: 0,
-            costGrowth: 0,
-            conversionsGrowth: 0,
-            ctrGrowth: 0,
-            cpmGrowth: 0,
-            roasGrowth: 0,
-            roiGrowth: 0,
-          },
-          trends: [],
-          recentCampaigns: [],
-        },
-        meta: {
-          period,
-          dateRange: {
-            from: startDate.toISOString().split('T')[0],
-            to: endDate.toISOString().split('T')[0],
-          },
-          tenantId,
-          generatedAt: new Date().toISOString(),
-        },
-      };
-    }
 
     // Get previous period for comparison
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));

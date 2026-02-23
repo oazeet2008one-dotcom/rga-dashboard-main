@@ -82,3 +82,4 @@ backend/test_api_real.js
 backend/test_login_api.js
 backend/test_seo_api.js
 backend/update_seo_metrics_quick.js
+.vercel

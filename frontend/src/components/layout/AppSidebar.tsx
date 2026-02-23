@@ -60,6 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
             { label: 'AI Insights & Tools', href: '/ai-insights', icon: Sparkles },
             { label: 'SEO & Web', href: '/seo-web-analytics', icon: Search },
             { label: 'E-commerce Insights', href: '/ecommerce-insights', icon: TrendingUp },
+            { label: 'CRM & Leads', href: '/crm-leads-insights', icon: Users },
         ],
     },
     {

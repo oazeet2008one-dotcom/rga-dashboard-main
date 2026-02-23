@@ -1,0 +1,15 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "npm run start:prod",
+    "healthcheckPath": "/health",
+    "port": 3000
+  },
+  "nixpacks": {
+    "buildCommand": "npm install && npm run build",
+    "installCommand": "npm install",
+    "startCommand": "npm run start:prod"
+  }
+}

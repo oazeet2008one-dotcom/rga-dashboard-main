@@ -24,7 +24,17 @@ export class CampaignsService {
       select: { type: true },
     });
 
-    return integrations.map((i) => i.type as AdPlatform);
+    const connectedPlatforms = integrations.map((i) => i.type as AdPlatform);
+
+    if (connectedPlatforms.length === 0) {
+      const campaignPlatforms = await this.prisma.campaign.groupBy({
+        by: ['platform'],
+        where: { tenantId },
+      });
+      return campaignPlatforms.map((p) => p.platform);
+    }
+
+    return connectedPlatforms;
   }
 
   /**

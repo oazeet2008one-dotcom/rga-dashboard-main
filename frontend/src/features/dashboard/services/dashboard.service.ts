@@ -54,9 +54,15 @@ export async function getDashboardOverview(
         }
     );
 
+    // api-client may return either the inner data or a wrapped { success, data, meta }
+    const raw: unknown = (response as any).data;
+    const unwrapped =
+        raw && typeof raw === 'object' && !Array.isArray(raw)
+            ? ((raw as any).data ?? (raw as any).result ?? raw)
+            : raw;
+
     // ✅ Runtime validation using Zod
-    // This catches any backend contract violations early
-    const validatedData = DashboardOverviewDataSchema.parse(response.data);
+    const validatedData = DashboardOverviewDataSchema.parse(unwrapped);
 
     return validatedData;
 }

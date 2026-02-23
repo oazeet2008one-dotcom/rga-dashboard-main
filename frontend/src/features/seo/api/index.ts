@@ -6,7 +6,12 @@ import { SeoMetricSummary } from '../types';
 export const SeoService = {
     getSummary: async (): Promise<SeoMetricSummary> => {
         const response = await apiClient.get('/seo/summary');
-        return response.data;
+        const data = response.data;
+        // Fallback: use avgSessionDuration if avgTimeOnPage is 0
+        if (data && data.avgTimeOnPage === 0 && data.avgSessionDuration > 0) {
+            data.avgTimeOnPage = data.avgSessionDuration;
+        }
+        return data;
     },
     getHistory: async (days: number = 30): Promise<any[]> => {
         const response = await apiClient.get(`/seo/history?days=${days}`);

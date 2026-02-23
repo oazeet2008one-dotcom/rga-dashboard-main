@@ -68,7 +68,7 @@ export const SummaryMetricsSchema = z
         /** Calculated ROI percentage ((revenue - cost) / cost * 100) */
         averageRoi: z.number(),
     })
-    .strict();
+    .passthrough();
 
 export type SummaryMetrics = z.infer<typeof SummaryMetricsSchema>;
 
@@ -88,7 +88,7 @@ export const GrowthMetricsSchema = z
         roasGrowth: z.number().nullable(),
         roiGrowth: z.number().nullable(),
     })
-    .strict();
+    .passthrough();
 
 export type GrowthMetrics = z.infer<typeof GrowthMetricsSchema>;
 
@@ -112,7 +112,7 @@ export const TrendDataPointSchema = z
         /** Daily conversions */
         conversions: z.number().int().nonnegative(),
     })
-    .strict();
+    .passthrough();
 
 export type TrendDataPoint = z.infer<typeof TrendDataPointSchema>;
 
@@ -148,7 +148,7 @@ export const RecentCampaignSchema = z
         /** Budget utilization percentage (optional) */
         budgetUtilization: z.number().nonnegative().optional(),
     })
-    .strict();
+    .passthrough();
 
 export type RecentCampaign = z.infer<typeof RecentCampaignSchema>;
 
@@ -174,7 +174,7 @@ export const ResponseMetaSchema = z
         /** Response generation timestamp (ISO 8601 datetime) */
         generatedAt: z.string().datetime({ offset: true }),
     })
-    .strict();
+    .passthrough();
 
 export type ResponseMeta = z.infer<typeof ResponseMetaSchema>;
 
@@ -193,7 +193,7 @@ export const DashboardOverviewDataSchema = z
         recentCampaigns: z.array(RecentCampaignSchema),
         isDemo: z.boolean().optional(),
     })
-    .strict();
+    .passthrough();
 
 export type DashboardOverviewData = z.infer<typeof DashboardOverviewDataSchema>;
 
@@ -207,7 +207,7 @@ export const DashboardOverviewResponseSchema = z
         data: DashboardOverviewDataSchema,
         meta: ResponseMetaSchema,
     })
-    .strict();
+    .passthrough();
 
 export type DashboardOverviewResponse = z.infer<typeof DashboardOverviewResponseSchema>;
 
