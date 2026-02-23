@@ -2,14 +2,30 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CampaignsRepository } from './campaigns.repository';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateCampaignDto, UpdateCampaignDto, QueryCampaignsDto } from './dto';
-import { Campaign, Metric, Prisma } from '@prisma/client';
+import { Campaign, Metric, Prisma, AdPlatform } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CampaignsService {
   constructor(
     private readonly repository: CampaignsRepository,
     private readonly auditLogsService: AuditLogsService,
+    private readonly prisma: PrismaService,
   ) { }
+
+  private async getConnectedAdPlatforms(tenantId: string): Promise<AdPlatform[]> {
+    const integrations = await this.prisma.integration.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        status: 'CONNECTED',
+        type: { in: [AdPlatform.GOOGLE_ADS, AdPlatform.FACEBOOK, AdPlatform.TIKTOK, AdPlatform.LINE_ADS] },
+      },
+      select: { type: true },
+    });
+
+    return integrations.map((i) => i.type as AdPlatform);
+  }
 
   /**
    * Safely convert unknown value to number
@@ -59,11 +75,22 @@ export class CampaignsService {
     const dbSortFields = ['name', 'createdAt', 'status', 'platform', 'budget', 'startDate', 'endDate', 'updatedAt'];
     const isDbSort = dbSortFields.includes(sortBy);
 
+    const connectedPlatforms = await this.getConnectedAdPlatforms(tenantId);
+    const connectedPlatformsCsv = connectedPlatforms.length ? connectedPlatforms.join(',') : '___NONE___';
+
+    // API-level filtering:
+    // - If connectedPlatforms is empty => return only manual campaigns (externalId null)
+    // - If connectedPlatforms is non-empty => return campaigns for connected platforms AND manual campaigns (handled in repository)
+    const queryWithPlatformGuard: QueryCampaignsDto = {
+      ...query,
+      platform: connectedPlatformsCsv,
+    };
+
     if (isDbSort) {
       // Parallel Execution: Fetch data and summary concurrently
       const [[items, total], summaryRaw] = await Promise.all([
-        this.repository.findAll(tenantId, query),
-        this.repository.getSummary(tenantId, query),
+        this.repository.findAll(tenantId, queryWithPlatformGuard),
+        this.repository.getSummary(tenantId, queryWithPlatformGuard),
       ]);
 
       const normalized = items.map((c) => this.normalizeCampaign(c));
@@ -100,7 +127,7 @@ export class CampaignsService {
     } else {
       // In-memory sorting for calculated metrics (CTR, ROAS, Spend, etc.)
       const queryForRepo = {
-        ...query,
+        ...queryWithPlatformGuard,
         page: 1,
         limit: 10000,
         sortBy: 'createdAt'
@@ -109,7 +136,7 @@ export class CampaignsService {
       // Parallel Execution: Fetch all data (for sorting) and summary concurrently
       const [[items, total], summaryRaw] = await Promise.all([
         this.repository.findAll(tenantId, queryForRepo),
-        this.repository.getSummary(tenantId, query),
+        this.repository.getSummary(tenantId, queryWithPlatformGuard),
       ]);
 
       const s = summaryRaw._sum;

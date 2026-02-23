@@ -331,6 +331,18 @@ export default function Login() {
                   />
                 </div>
                 <FieldError message={fieldErrors.password} />
+                <div className="flex justify-end mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setForgotEmail(email);
+                    }}
+                    className="text-[13px] font-medium text-orange-600 hover:text-orange-700 transition-colors"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
               </div>
 
               {/* Submit Button */}
@@ -364,17 +376,7 @@ export default function Login() {
 
             {/* Forgot Password & Register links */}
             <div className="space-y-3">
-              <p className="text-center text-[13px] text-slate-400">
-                <button
-                  onClick={() => {
-                    setIsForgotPassword(true);
-                    setForgotEmail(email);
-                  }}
-                  className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
-                >
-                  Forgot your password?
-                </button>
-              </p>
+
               <p className="text-center text-[13px] text-slate-400">
                 Don't have an account?{' '}
                 <button
@@ -418,8 +420,8 @@ export default function Login() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-blue-600" />
+                <div className="flex items-center justify-center mx-auto mb-6">
+                  <img src={logo} alt="RGA Logo" className="h-12 w-auto object-contain" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-2">Reset Password</h3>
                 <p className="text-slate-600 text-sm">
@@ -437,7 +439,7 @@ export default function Login() {
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="Enter your email"
-                    className="h-11 rounded-lg border-slate-200 focus:border-blue-400 focus:ring-blue-500/20"
+                    className="h-11 rounded-lg border-slate-200 focus:border-orange-400 focus:ring-orange-500/20 transition-all duration-200"
                     disabled={isSendingReset}
                   />
                   <FieldError message={fieldErrors.forgotEmail} />
@@ -448,14 +450,14 @@ export default function Login() {
                     type="button"
                     variant="outline"
                     onClick={() => setIsForgotPassword(false)}
-                    className="flex-1 h-11 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50"
+                    className="flex-1 h-11 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                     disabled={isSendingReset}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    className="flex-1 h-11 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg shadow-md shadow-orange-500/20 border-0"
                     disabled={isSendingReset}
                   >
                     {isSendingReset ? (

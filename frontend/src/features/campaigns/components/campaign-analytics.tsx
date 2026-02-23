@@ -230,7 +230,7 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 mt-6">
             {/* LEFT COLUMN: Conversion Rate Insights (2/3 width) */}
-            <div className="lg:col-span-1 xl:col-span-2 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 space-y-4 shadow-sm h-full flex flex-col">
+            <div id="tutorial-campaigns-conversion-rate" className="lg:col-span-1 xl:col-span-2 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 space-y-4 shadow-sm h-full flex flex-col">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
                         <p className="text-2xl font-bold tracking-tight">Conversion Rate</p>
@@ -399,7 +399,7 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
             </div>
 
             {/* RIGHT COLUMN: Platform Breakdown (1/3 width) */}
-            <div className="lg:col-span-1 xl:col-span-1 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 space-y-4 sm:space-y-6 shadow-sm flex flex-col h-full">
+            <div id="tutorial-campaigns-platform-breakdown" className="lg:col-span-1 xl:col-span-1 rounded-3xl border border-gray-100 bg-white p-4 sm:p-6 space-y-4 sm:space-y-6 shadow-sm flex flex-col h-full">
                 <div>
                     <p className="text-2xl font-bold tracking-tight">Platform Breakdown</p>
                     <p className="text-sm text-muted-foreground">Key metrics and budget utilization</p>
@@ -470,7 +470,7 @@ export function CampaignAnalytics({ campaigns }: CampaignAnalyticsProps) {
 
                     {/* AI Suggestion Box */}
                     {/* Interactive AI Suggestion Carousel */}
-                    <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 relative group">
+                    <div id="tutorial-campaigns-ai-tips" className="bg-gray-50 rounded-2xl p-5 border border-gray-100 relative group">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <Lightbulb className={cn("h-4 w-4",

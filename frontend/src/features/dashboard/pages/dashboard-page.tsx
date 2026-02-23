@@ -93,7 +93,6 @@ const PLATFORM_ORDER: AdPlatform[] = [
 
 function buildPlatformBreakdown(campaigns: RecentCampaign[] | undefined) {
     const sums = new Map<AdPlatform, number>();
-    for (const key of PLATFORM_ORDER) sums.set(key, 0);
 
     for (const c of campaigns ?? []) {
         // Skip GA4 - it's web analytics, not an ad platform
@@ -103,11 +102,14 @@ function buildPlatformBreakdown(campaigns: RecentCampaign[] | undefined) {
         sums.set(c.platform, prev + (c.spending ?? 0));
     }
 
-    return PLATFORM_ORDER.map((platform) => ({
-        name: PLATFORM_LABELS[platform] ?? platform,
-        value: sums.get(platform) ?? 0,
-        color: PLATFORM_COLORS[platform] ?? '#94a3b8',
-    }));
+    // Show only connected platforms with actual spending values (> 0).
+    return PLATFORM_ORDER
+        .map((platform) => ({
+            name: PLATFORM_LABELS[platform] ?? platform,
+            value: sums.get(platform) ?? 0,
+            color: PLATFORM_COLORS[platform] ?? '#94a3b8',
+        }))
+        .filter((item) => item.value > 0);
 }
 
 function buildPlatformFunnelStages(campaigns: RecentCampaign[] | undefined) {
@@ -138,6 +140,7 @@ function buildPlatformFunnelStages(campaigns: RecentCampaign[] | undefined) {
     return PLATFORM_ORDER.map((platform) => {
         const data = platformData.get(platform)!;
         return {
+            id: platform,
             platform: PLATFORM_LABELS[platform] ?? platform,
             impressions: data.impressions,
             clicks: data.clicks,
@@ -213,7 +216,7 @@ export function DashboardPage() {
         <DashboardLayout>
             <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
                 {/* Page Header */}
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div id="tutorial-overview-header" className="flex items-center justify-between gap-4 flex-wrap">
                     <div className="space-y-1">
                         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
                         <p className="text-muted-foreground">
@@ -222,7 +225,7 @@ export function DashboardPage() {
                     </div>
                 </div>
 
-                <section id="integration-checklist">
+                <section id="tutorial-checklist">
                     <h3 className="sr-only">Integration Checklist</h3>
                     <IntegrationChecklist />
                 </section>
@@ -231,7 +234,7 @@ export function DashboardPage() {
                 {error && <ErrorState error={error} onRetry={refetch} />}
 
                 {/* Metrics Grid */}
-                <section>
+                <section id="tutorial-overview-kpi">
                     <h3 className="sr-only">Key Performance Metrics</h3>
                     <DashboardMetrics
                         summary={data?.summary}
@@ -241,7 +244,7 @@ export function DashboardPage() {
                 </section>
 
                 {/* AI Summaries */}
-                <section>
+                <section id="tutorial-overview-ai-summary">
                     <h3 className="sr-only">AI Summaries</h3>
                     {isLoading ? (
                         <Skeleton className="h-[160px] w-full rounded-3xl" />
@@ -251,11 +254,11 @@ export function DashboardPage() {
                 </section>
 
                 {/* Charts & Campaigns Grid - Responsive Layout */}
-                <section id="performance-trends">
+                <section>
                     <h3 className="sr-only">Performance Trends & Recent Campaigns</h3>
                     <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
                         {/* Trend Chart - 4/7 on desktop */}
-                        <div className="col-span-1 lg:col-span-4">
+                        <div id="tutorial-overview-trend-chart" className="col-span-1 lg:col-span-4">
                             {isLoading ? (
                                 <Skeleton className="h-[400px] w-full rounded-lg" />
                             ) : (
@@ -270,7 +273,7 @@ export function DashboardPage() {
                         </div>
 
                         {/* Recent Campaigns - 3/7 on desktop */}
-                        <div className="col-span-1 lg:col-span-3">
+                        <div id="tutorial-overview-recent-campaigns" className="col-span-1 lg:col-span-3">
                             {isLoading ? (
                                 <Skeleton className="h-[400px] w-full rounded-lg" />
                             ) : (
@@ -281,46 +284,50 @@ export function DashboardPage() {
                 </section>
 
                 {/* Financial Overview & Conversion Funnel */}
-                <section id="conversion-funnel">
+                <section>
                     <h3 className="sr-only">Financial Overview & Conversion Funnel</h3>
                     <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
-                        {isLoading ? (
-                            <Skeleton className="h-[400px] w-full rounded-3xl" />
-                        ) : (
-                            <FinancialOverview
-                                subtitle="ROAS"
-                                roi={data?.summary.averageRoas ?? 0}
-                                total={totalCost}
-                                currency="THB"
-                                breakdown={financialBreakdown}
-                                summary={[
-                                    {
-                                        label: 'Revenue',
-                                        value: estimatedRevenue,
-                                        deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
-                                        deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
-                                    },
-                                    {
-                                        label: 'Profit',
-                                        value: estimatedProfit,
-                                        deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
-                                        deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
-                                    },
-                                    {
-                                        label: 'Cost',
-                                        value: totalCost,
-                                        deltaLabel: formatPercentDelta(data?.growth.costGrowth),
-                                        deltaClassName: deltaClassName(data?.growth.costGrowth),
-                                    },
-                                ]}
-                            />
-                        )}
+                        <div id="tutorial-overview-financial">
+                            {isLoading ? (
+                                <Skeleton className="h-[400px] w-full rounded-3xl" />
+                            ) : (
+                                <FinancialOverview
+                                    subtitle="ROAS"
+                                    roi={data?.summary.averageRoas ?? 0}
+                                    total={totalCost}
+                                    currency="THB"
+                                    breakdown={financialBreakdown}
+                                    summary={[
+                                        {
+                                            label: 'Revenue',
+                                            value: estimatedRevenue,
+                                            deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
+                                            deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roasGrowth)),
+                                        },
+                                        {
+                                            label: 'Profit',
+                                            value: estimatedProfit,
+                                            deltaLabel: formatPercentDelta(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
+                                            deltaClassName: deltaClassName(combineGrowth(data?.growth.costGrowth, data?.growth.roiGrowth)),
+                                        },
+                                        {
+                                            label: 'Cost',
+                                            value: totalCost,
+                                            deltaLabel: formatPercentDelta(data?.growth.costGrowth),
+                                            deltaClassName: deltaClassName(data?.growth.costGrowth),
+                                        },
+                                    ]}
+                                />
+                            )}
+                        </div>
 
-                        {isLoading ? (
-                            <Skeleton className="h-[400px] w-full rounded-3xl" />
-                        ) : (
-                            <ConversionFunnel stages={funnelStages} platformStages={platformFunnelStages} />
-                        )}
+                        <div id="tutorial-overview-funnel">
+                            {isLoading ? (
+                                <Skeleton className="h-[400px] w-full rounded-3xl" />
+                            ) : (
+                                <ConversionFunnel stages={funnelStages} platformStages={platformFunnelStages} />
+                            )}
+                        </div>
                     </div>
                 </section>
             </div>

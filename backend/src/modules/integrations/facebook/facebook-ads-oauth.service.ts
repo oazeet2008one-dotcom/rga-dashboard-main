@@ -7,6 +7,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
+import { AdPlatform } from '@prisma/client';
 import { EncryptionService } from '../../../common/services/encryption.service';
 
 @Injectable()
@@ -173,6 +174,11 @@ export class FacebookAdsOAuthService {
 
         await this.prisma.facebookAdsAccount.deleteMany({
             where: { tenantId },
+        });
+
+        await this.prisma.integration.updateMany({
+            where: { tenantId, type: AdPlatform.FACEBOOK },
+            data: { status: 'DISCONNECTED', isActive: false },
         });
 
         return true;

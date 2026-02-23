@@ -28,9 +28,10 @@ import { HealthModule } from './modules/health/health.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { envValidationSchema } from './config/env.validation';
 import { CommonModule } from './common/common.module';
+import { EntitlementsModule } from './modules/entitlements/entitlements.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AiModule } from './modules/ai/ai.module';
-
+import { IntegrationsSummaryModule } from './modules/integrations/integrations-summary.module';
 
 
 @Module({
@@ -85,6 +86,7 @@ import { AiModule } from './modules/ai/ai.module';
     FacebookAdsModule,
     TikTokAdsModule,
     LineAdsModule,
+    IntegrationsSummaryModule,
     AlertModule, // Alert System
     SeoModule,
     HealthModule, // Health Check
@@ -92,6 +94,7 @@ import { AiModule } from './modules/ai/ai.module';
     ChatModule, // Chat Persistence System
     AiModule, // AI Analytics & History
     CommonModule, // Shared Services (Encryption, etc.)
+    EntitlementsModule,
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     ...(process.env.NODE_ENV !== 'production' ? [require('./modules/debug/debug.module').DebugModule] : []),

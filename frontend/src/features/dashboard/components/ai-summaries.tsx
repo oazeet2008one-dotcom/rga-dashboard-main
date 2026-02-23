@@ -48,7 +48,7 @@ export function AiSummaries({ summary, growth }: AiSummariesProps) {
         {
             key: 'roas',
             label: 'ROAS',
-            value: summary ? `${summary.averageRoas.toFixed(1)}x` : '0.0x',
+            value: summary ? `${summary.averageRoas.toFixed(1)}` : '0.0',
             delta: growth?.roasGrowth,
             accentClassName: 'group-hover:text-purple-500',
         },

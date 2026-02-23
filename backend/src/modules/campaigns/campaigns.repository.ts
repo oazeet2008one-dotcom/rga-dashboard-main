@@ -51,13 +51,11 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
     // Handle multi-select Platform
     let platformFilter: Prisma.EnumAdPlatformFilter | undefined;
 
-    // DEBUG LOG
-    if (query.platform) {
-      console.log('DEBUG: buildWhereClause platform input:', query.platform);
-      console.log('DEBUG: AdPlatform Enum Keys/Values:', JSON.stringify(AdPlatform));
-    }
+    const platformInput = query.platform;
+    const platformTokens = platformInput ? platformInput.split(',').map((p) => p.trim()) : [];
+    const isOnlyNoneToken = platformTokens.length === 1 && platformTokens[0] === '___NONE___';
 
-    if (query.platform && query.platform !== 'ALL') {
+    if (platformInput && platformInput !== 'ALL' && !isOnlyNoneToken) {
       const platforms = query.platform.split(',').filter(p => p !== 'ALL').map(p => {
         const key = p.trim().toUpperCase().replace('-', '_');
 
@@ -83,6 +81,10 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
 
     const where: Prisma.CampaignWhereInput = { tenantId };
 
+    if (isOnlyNoneToken) {
+      where.externalId = null;
+    }
+
     if (ids && ids.length > 0) {
       where.id = { in: ids };
     }
@@ -98,7 +100,29 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
       where.status = statusFilter;
     }
 
-    if (platformFilter) {
+    // Platform filtering rules:
+    // - If platformFilter exists => show campaigns from those platforms OR manual campaigns (externalId null)
+    // - If ___NONE___ token => manual-only (handled earlier)
+    if (platformFilter && !isOnlyNoneToken) {
+      // Preserve existing OR clauses by combining under AND
+      const baseWhere: Prisma.CampaignWhereInput = { ...where };
+      delete (baseWhere as any).OR;
+
+      where.AND = [
+        baseWhere,
+        {
+          OR: [
+            { platform: platformFilter },
+            { externalId: null },
+          ],
+        },
+        ...(where.OR ? [{ OR: where.OR }] : []),
+      ];
+
+      delete (where as any).platform;
+      delete (where as any).externalId;
+      delete (where as any).OR;
+    } else if (platformFilter) {
       where.platform = platformFilter;
     }
 
@@ -133,11 +157,6 @@ export class PrismaCampaignsRepository implements CampaignsRepository {
         where: { date: dateFilter }
       };
     }
-
-    // DEBUG: Log the final query object
-    console.log('DEBUG: findAll execution');
-    console.log('DEBUG: where clause:', JSON.stringify(where, null, 2));
-    console.log('DEBUG: metricsInclude:', JSON.stringify(metricsInclude, null, 2));
 
     return Promise.all([
       this.prisma.campaign.findMany({

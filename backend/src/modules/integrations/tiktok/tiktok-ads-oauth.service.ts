@@ -5,6 +5,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
+import { AdPlatform } from '@prisma/client';
 import { EncryptionService } from '../../../common/services/encryption.service';
 import {
     OAuthProvider,
@@ -539,6 +540,11 @@ export class TikTokAdsOAuthService implements OAuthProvider, SandboxSupport {
 
         await this.prisma.tikTokAdsAccount.deleteMany({
             where: { tenantId },
+        });
+
+        await this.prisma.integration.updateMany({
+            where: { tenantId, type: AdPlatform.TIKTOK },
+            data: { status: 'DISCONNECTED', isActive: false },
         });
 
         return true;

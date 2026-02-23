@@ -7,21 +7,21 @@ import { ProductStack } from './product-stack-section';
 export function HeroSection() {
     return (
         <section className="relative w-full overflow-hidden bg-slate-50 text-slate-900">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-200 via-slate-50 to-slate-50 opacity-40" />
-            <div className="pointer-events-none absolute -left-24 top-10 h-96 w-96 rounded-full bg-sky-200 blur-3xl opacity-30 animate-blob" />
-            <div className="pointer-events-none absolute -right-24 top-20 h-96 w-96 rounded-full bg-fuchsia-200 blur-3xl opacity-30 animate-blob animation-delay-2000" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-300 via-slate-50 to-slate-50 opacity-55" />
+            <div className="pointer-events-none absolute -left-24 top-10 h-96 w-96 rounded-full bg-sky-300 blur-3xl opacity-40 animate-blob" />
+            <div className="pointer-events-none absolute -right-24 top-20 h-96 w-96 rounded-full bg-fuchsia-300 blur-3xl opacity-40 animate-blob animation-delay-2000" />
 
-            <div className="relative mx-auto max-w-7xl px-4 py-20 sm:py-24 lg:py-28">
-                <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-                    <div className="space-y-10">
+            <div className="relative mx-auto max-w-7xl px-4 py-16 sm:py-20 lg:py-24">
+                <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+                    <div className="space-y-8">
                         <div className="space-y-6">
-                            <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-4 duration-1000 text-slate-900">
+                            <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl animate-in fade-in slide-in-from-bottom-4 duration-1000 text-slate-900">
                                 <span className="bg-gradient-to-r from-indigo-600 via-sky-500 to-fuchsia-500 bg-clip-text text-transparent">
                                     NovaPulse
                                 </span>{' '}
                                 Analytics
                             </h1>
-                            <p className="max-w-2xl text-lg text-slate-600 sm:text-xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+                            <p className="max-w-2xl text-base text-slate-600 sm:text-xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
                                 Real-time sales and campaign analytics dashboard. Empower your marketing team to make faster decisions with clear, single-page insights.
                             </p>
                         </div>
@@ -39,13 +39,13 @@ export function HeroSection() {
                             </Button>
                         </div>
 
-                        <div className="grid gap-4 pt-4 sm:grid-cols-3 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
+                        <div className="flex gap-3 pt-2 overflow-x-auto sm:overflow-visible sm:grid sm:grid-cols-3 sm:gap-4 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
                             <HeroPill icon={<BarChart3 className="h-5 w-5" />} label="Comprehensive Overview" />
                             <HeroPill icon={<Cpu className="h-5 w-5" />} label="Automated Insights" />
                             <HeroPill icon={<Layers3 className="h-5 w-5" />} label="Multi-User Support" />
                         </div>
 
-                        <div className="rounded-3xl border border-white/60 bg-white/40 backdrop-blur-md p-6 shadow-xl shadow-slate-100/50 animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-700">
+                        <div className="rounded-3xl border border-white/60 bg-white/40 backdrop-blur-md p-4 sm:p-6 shadow-xl shadow-slate-100/50 animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-700">
                             <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-4">Metrics Tracked</div>
 
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -87,7 +87,7 @@ function HeroPill({
     label: string;
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm text-slate-700 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm text-slate-700 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">{icon}</span>
             <span className="leading-tight font-semibold">{label}</span>
         </div>
@@ -119,7 +119,7 @@ function MetricTile({
     };
 
     return (
-        <div className="group rounded-2xl border border-slate-100 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm transition-all hover:bg-white hover:shadow-md">
+        <div className="group rounded-2xl border border-slate-200 bg-white/60 backdrop-blur-sm px-4 py-3 shadow-sm transition-all hover:bg-white hover:shadow-md">
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                     <span className={`h-2.5 w-2.5 rounded-full shadow-sm ${toneStyles[tone].dot}`} />

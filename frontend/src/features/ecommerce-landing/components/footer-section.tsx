@@ -3,17 +3,17 @@ import type { ReactNode } from 'react';
 
 export function FooterSection() {
     return (
-        <footer className="bg-slate-50 text-slate-900 pt-16 pb-8 border-t border-slate-400">
+        <footer className="bg-slate-50 text-slate-900 pt-10 sm:pt-12 pb-6 border-t border-slate-400">
             <div className="container px-4 mx-auto max-w-6xl">
 
                 {/* Main Footer Content */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 mb-10 sm:mb-12">
 
                     {/* Brand & Description */}
                     <div className="space-y-4 lg:border-r lg:border-slate-400 lg:pr-12">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">N</div>
-                            <span className="text-xl font-bold tracking-tight text-slate-900">NovaPulse</span>
+                            <span className="text-lg font-bold tracking-tight text-slate-900">NovaPulse</span>
                         </div>
                         <p className="text-slate-600 text-sm leading-relaxed">
                             Comprehensive marketing analytics platform to help your business grow with precise and fast data.
@@ -28,7 +28,7 @@ export function FooterSection() {
 
                     {/* Links Column 1 */}
                     <div className="lg:border-r lg:border-slate-400 lg:pl-12 lg:pr-12">
-                        <h3 className="font-semibold text-lg mb-4 text-slate-900">Product</h3>
+                        <h3 className="font-semibold text-base mb-3 text-slate-900">Product</h3>
                         <ul className="space-y-2 text-sm text-slate-600">
                             <FooterLink>Features</FooterLink>
                             <FooterLink>Pricing</FooterLink>
@@ -39,7 +39,7 @@ export function FooterSection() {
 
                     {/* Links Column 2 */}
                     <div className="lg:border-r lg:border-slate-400 lg:pl-12 lg:pr-12">
-                        <h3 className="font-semibold text-lg mb-4 text-slate-900">Company</h3>
+                        <h3 className="font-semibold text-base mb-3 text-slate-900">Company</h3>
                         <ul className="space-y-2 text-sm text-slate-600">
                             <FooterLink>About Us</FooterLink>
                             <FooterLink>Careers</FooterLink>
@@ -50,18 +50,18 @@ export function FooterSection() {
 
                     {/* Security Badge Section */}
                     <div className="lg:pl-12">
-                        <h3 className="font-semibold text-lg mb-4 text-slate-900">Enterprise-Grade Security</h3>
-                        <div className="space-y-4">
+                        <h3 className="font-semibold text-base mb-3 text-slate-900">Enterprise-Grade Security</h3>
+                        <div className="space-y-3">
                             <div className="flex items-center gap-3 text-sm text-slate-600">
-                                <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                                <ShieldCheck className="w-4 h-4 text-emerald-500" />
                                 <span>SSL Secured Connection</span>
                             </div>
                             <div className="flex items-center gap-3 text-sm text-slate-600">
-                                <Lock className="w-5 h-5 text-indigo-500" />
+                                <Lock className="w-4 h-4 text-indigo-500" />
                                 <span>End-to-End Encryption</span>
                             </div>
                             <div className="flex items-center gap-3 text-sm text-slate-600">
-                                <FileCheck className="w-5 h-5 text-blue-500" />
+                                <FileCheck className="w-4 h-4 text-blue-500" />
                                 <span>GDPR Compliant</span>
                             </div>
                         </div>
@@ -69,7 +69,7 @@ export function FooterSection() {
                 </div>
 
                 {/* Divider Line */}
-                <div className="h-px bg-slate-400 mt-12" />
+                <div className="h-px bg-slate-400 mt-10" />
 
             </div>
         </footer>
@@ -78,7 +78,7 @@ export function FooterSection() {
 
 function SocialIcon({ icon }: { icon: ReactNode }) {
     return (
-        <a href="#" className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-indigo-600 transition-all">
+        <a href="#" className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-indigo-600 transition-all">
             {icon}
         </a>
     )

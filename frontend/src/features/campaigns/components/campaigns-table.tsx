@@ -367,9 +367,9 @@ export function CampaignsTable({
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8">
-                                    <Columns className="h-4 w-4" />
-                                    <span className="hidden sm:inline ml-2">Columns</span>
+                                <Button id="tutorial-campaigns-columns-button" variant="outline" size="sm" className="h-8 ml-auto">
+                                    <Columns className="mr-2 h-4 w-4" />
+                                    <span className="hidden sm:inline">Columns</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-[150px]">
@@ -393,7 +393,7 @@ export function CampaignsTable({
             <div className="rounded-xl border shadow-sm bg-white overflow-hidden overflow-x-auto">
                 <div className="min-w-[800px]">
                     <Table>
-                        <TableHeader className="bg-gray-50/50">
+                        <TableHeader id="tutorial-campaigns-table-columns" className="bg-gray-50/50">
                             <TableRow>
                                 {/* 1. SELECTION (Fixed) */}
                                 <TableHead className="w-[50px]">

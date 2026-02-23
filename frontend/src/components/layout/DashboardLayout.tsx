@@ -8,6 +8,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/s
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { ChatWidget } from '@/features/chat';
 import { TopRightPanel } from '@/components/layout/TopRightPanel';
+import { TutorialOverlay } from '@/components/tutorial/tutorial-overlay';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -35,6 +36,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </SidebarInset>
       <ChatWidget />
       <TopRightPanel />
+      <TutorialOverlay />
     </SidebarProvider>
   );
 }

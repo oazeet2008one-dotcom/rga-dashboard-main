@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Download } from 'lucide-react';
+import { Download, HelpCircle, Eye, MousePointer2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandLogo } from '@/components/ui/brand-logo';
@@ -16,6 +16,7 @@ export interface FunnelStage {
 }
 
 export interface PlatformFunnelStage {
+    id?: string;
     platform: string;
     impressions: number;
     clicks: number;
@@ -132,39 +133,64 @@ export function ConversionFunnel({
                     </div>
 
                     {hasPlatformData && (
-                        <div className="pt-4 border-t border-border/60">
-                            <h4 className="text-sm font-semibold mb-4 text-foreground/80">Platform Performance</h4>
-                            <div className="grid gap-3 sm:grid-cols-1">
+                        <div className="pt-6 border-t border-border/40">
+                            <h4 className="text-sm font-semibold mb-4 text-foreground/90 flex items-center gap-2">
+                                Platform Performance
+                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium border border-slate-200">Breakdown</span>
+                            </h4>
+                            <div className="grid gap-3 sm:grid-cols-1 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
                                 {platformStages?.map((platform) => (
                                     <div
                                         key={platform.platform}
-                                        className="flex flex-wrap items-center justify-between p-3 rounded-lg border bg-card/50 hover:bg-accent/50 transition-all duration-200"
+                                        className="group relative overflow-hidden flex flex-wrap items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-white/50 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all duration-300"
                                     >
-                                        <div className="flex items-center gap-3 min-w-[120px]">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted border border-border shadow-sm">
-                                                <BrandLogo platformId={platform.platform} className="h-4 w-4" />
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                                        <div className="flex items-center gap-3 min-w-[130px] relative z-10">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-100 shadow-sm group-hover:scale-105 transition-transform">
+                                                <BrandLogo platformId={platform.id || platform.platform} className="h-6 w-6" />
                                             </div>
-                                            <span className="text-sm font-semibold">{platform.platform}</span>
+                                            <div>
+                                                <span className="text-sm font-bold text-slate-800 block">{platform.platform}</span>
+                                                <div className="h-1 w-12 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full transition-all duration-500"
+                                                        style={{
+                                                            width: `${clamp((platform.conversions / max) * 100 * 2, 10, 100)}%`,
+                                                            backgroundColor: platform.color || '#94a3b8'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="flex flex-1 items-center justify-end gap-x-6 gap-y-2 flex-wrap text-sm">
+                                        <div className="flex flex-1 items-center justify-end gap-x-8 gap-y-2 flex-wrap text-sm relative z-10">
                                             <div className="flex flex-col items-end">
-                                                <span className="text-[10px] text-muted-foreground uppercase">Impr.</span>
-                                                <span className="font-medium tabular-nums">
+                                                <div className="flex items-center gap-1 mb-0.5 text-slate-400">
+                                                    <Eye className="h-3 w-3" />
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider">Impr.</span>
+                                                </div>
+                                                <span className="font-semibold text-slate-600 tabular-nums">
                                                     <span className="md:hidden">{formatCompactNumber(platform.impressions)}</span>
                                                     <span className="hidden md:inline">{formatNumber(platform.impressions)}</span>
                                                 </span>
                                             </div>
                                             <div className="flex flex-col items-end">
-                                                <span className="text-[10px] text-muted-foreground uppercase">Clicks</span>
-                                                <span className="font-medium tabular-nums">
+                                                <div className="flex items-center gap-1 mb-0.5 text-slate-400">
+                                                    <MousePointer2 className="h-3 w-3" />
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider">Clicks</span>
+                                                </div>
+                                                <span className="font-semibold text-slate-600 tabular-nums">
                                                     <span className="md:hidden">{formatCompactNumber(platform.clicks)}</span>
                                                     <span className="hidden md:inline">{formatNumber(platform.clicks)}</span>
                                                 </span>
                                             </div>
-                                            <div className="flex flex-col items-end min-w-[60px]">
-                                                <span className="text-[10px] text-muted-foreground uppercase">Conv.</span>
-                                                <span className="font-bold tabular-nums text-foreground">
+                                            <div className="flex flex-col items-end min-w-[70px]">
+                                                <div className="flex items-center gap-1 mb-0.5 text-indigo-400">
+                                                    <CheckCircle2 className="h-3 w-3" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Conv.</span>
+                                                </div>
+                                                <span className="text-base font-bold tabular-nums text-slate-800">
                                                     <span className="md:hidden">{formatCompactNumber(platform.conversions)}</span>
                                                     <span className="hidden md:inline">{formatNumber(platform.conversions)}</span>
                                                 </span>

@@ -108,7 +108,7 @@ export function DataSourceCard({
     }
 
     return (
-        <Card className="relative overflow-hidden">
+        <Card id={`tutorial-datasource-card-${platform}`} className="relative overflow-hidden">
             {/* Status indicator stripe */}
             <div
                 className={`absolute top-0 left-0 right-0 h-1 ${isConnected ? 'bg-green-500' : 'bg-gray-300'
@@ -168,6 +168,7 @@ export function DataSourceCard({
                 {isConnected ? (
                     <>
                         <Button
+                            id={`tutorial-datasource-disconnect-btn-${platform}`}
                             variant="outline"
                             size="sm"
                             onClick={onDisconnect}
@@ -192,7 +193,11 @@ export function DataSourceCard({
                         </Button>
                     </>
                 ) : (
-                    <Button onClick={onConnect} disabled={isPending}>
+                    <Button
+                        id={`tutorial-datasource-connect-btn-${platform}`}
+                        onClick={onConnect}
+                        disabled={isPending}
+                    >
                         {isPending ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
