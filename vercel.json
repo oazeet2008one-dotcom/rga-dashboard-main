@@ -6,6 +6,7 @@
   "installCommand": "cd frontend && npm install",
   "framework": "vite",
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VITE_API_URL": "https://your-railway-backend-url.up.railway.app/api/v1"
   }
 }
