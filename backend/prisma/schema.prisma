@@ -369,6 +369,8 @@ model GoogleAdsAccount {
   tenantId       String    @map("tenant_id") @db.Uuid
   customerId     String    @map("customer_id") @db.VarChar(255)
   accountName    String?   @map("account_name") @db.VarChar(255)
+  loginCustomerId String?  @map("login_customer_id") @db.VarChar(255)
+  isMccAccount   Boolean   @default(false) @map("is_mcc_account")
   status         String    @default("ENABLED") @map("status") @db.VarChar(20)
   accessToken    String    @map("access_token") @db.Text
   refreshToken   String    @map("refresh_token") @db.Text
@@ -383,6 +385,7 @@ model GoogleAdsAccount {
 
   @@unique([tenantId, customerId], name: "google_ads_accounts_tenant_customer_unique")
   @@index([status], name: "idx_google_ads_status")
+  @@index([isMccAccount], name: "idx_google_ads_is_mcc")
   @@map("google_ads_accounts")
 }
 

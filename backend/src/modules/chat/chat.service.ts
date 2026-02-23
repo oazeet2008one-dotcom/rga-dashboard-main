@@ -16,7 +16,8 @@ export class ChatService {
         }
         return this.prisma.chatSession.create({
             data: {
-                userId,
+                tenant: { connect: { id: tenantId } },
+                user: { connect: { id: userId } },
                 title: createSessionDto.title || 'New Chat',
             },
             include: {
@@ -72,7 +73,8 @@ export class ChatService {
         // 2. Create message
         const message = await this.prisma.chatMessage.create({
             data: {
-                sessionId,
+                tenant: { connect: { id: tenantId } },
+                session: { connect: { id: sessionId } },
                 role: createMessageDto.role,
                 content: createMessageDto.content,
             },

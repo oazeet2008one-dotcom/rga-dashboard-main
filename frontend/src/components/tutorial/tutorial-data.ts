@@ -4,238 +4,238 @@ export const TUTORIAL_steps: Record<string, TutorialStep[]> = {
     overview: [
         {
             targetId: 'tutorial-overview-header',
-            title: 'Welcome to Your Command Center',
-            content: 'This dashboard aggregates real-time data from all your connected ad platforms (Google, Facebook, TikTok, etc.) to provide a single, unified view of your marketing performance.',
+            title: 'ยินดีต้อนรับสู่ศูนย์บัญชาการ',
+            content: 'แดชบอร์ดนี้รวบรวมข้อมูลแบบเรียลไทม์จากทุกแพลตฟอร์มโฆษณาที่เชื่อมต่อ (Google, Facebook, TikTok ฯลฯ) เพื่อแสดงผลลัพธ์การตลาดของคุณในที่เดียว',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-checklist',
-            title: 'System Health & Integration',
-            content: 'Ensure your data pipeline is healthy. This active checklist monitors your ad account connections and pixel status to guarantee 100% data accuracy.',
+            title: 'สถานะระบบและการเชื่อมต่อ',
+            content: 'ตรวจสอบให้แน่ใจว่าข้อมูลทำงานปกติ เช็คลิสต์นี้ตรวจสอบการเชื่อมต่อบัญชีโฆษณาและสถานะพิกเซลเพื่อความถูกต้องของข้อมูล 100%',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-overview-kpi',
-            title: 'North-Star Metrics',
-            content: 'Monitor your core campaign performance. We track Total Spend, Impressions, Clicks, and Conversions vs previous period to gauge immediate traction.',
+            title: 'ตัวชี้วัดหลัก',
+            content: 'ติดตามประสิทธิภาพแคมเปญหลักของคุณ เราติดตามค่าใช้จ่ายรวม, จำนวนการแสดงผล, คลิก และ Conversions เทียบกับช่วงก่อนหน้า',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-overview-ai-summary',
-            title: 'AI Strategic Intelligence',
-            content: 'Leverage machine learning to analyze your data. This section provides daily executive summaries, identifies anomalies, and offers actionable budget recommendations based on performance trends.',
+            title: 'AI วิเคราะห์เชิงกลยุทธ์',
+            content: 'ใช้ AI วิเคราะห์ข้อมูลของคุณ ส่วนนี้สรุปผลประจำวัน ชี้จุดผิดปกติ และแนะนำการจัดสรรงบประมาณตามแนวโน้มประสิทธิภาพ',
             position: 'top'
         },
         {
             targetId: 'tutorial-overview-trend-chart',
-            title: 'Growth Trajectory Analysis',
-            content: 'Visualize performance over time. Toggle between Spend, Revenue, and Conversions to spot seasonal trends, monitor budget efficiency, and correlate spikes with specific campaigns.',
+            title: 'วิเคราะห์แนวโน้มการเติบโต',
+            content: 'แสดงผลประสิทธิภาพตามช่วงเวลา สลับดูระหว่างค่าใช้จ่าย รายได้ และ Conversions เพื่อค้นหาแนวโน้มตามฤดูกาลและเชื่อมโยงกับแคมเปญ',
             position: 'inner-right'
         },
         {
             targetId: 'tutorial-overview-recent-campaigns',
-            title: 'Live Campaign Feed',
-            content: 'Keep a pulse on your active ads. This real-time feed ranks your top campaigns by performance, allowing you to quickly identify winners to scale or underperformers to fix.',
+            title: 'แคมเปญล่าสุด',
+            content: 'ติดตามโฆษณาที่ใช้งานอยู่ ฟีดเรียลไทม์นี้จัดอันดับแคมเปญตามประสิทธิภาพ ช่วยให้คุณระบุโฆษณาที่ดีที่สุดและโฆษณาที่ต้องปรับปรุง',
             position: 'inner-top-left'
         },
         {
             targetId: 'tutorial-overview-financial',
-            title: 'Profitability Analysis',
-            content: 'Go beyond just "Ad Spend". This breakdown calculates your Estimated Gross Profit by subtracting ad costs from revenue, giving you the true bottom-line impact of your marketing.',
+            title: 'วิเคราะห์ความสามารถในการทำกำไร',
+            content: 'ไม่ใช่แค่ "ค่าโฆษณา" ส่วนนี้คำนวณกำไรขั้นต้นโดยหักต้นทุนโฆษณาจากรายได้ ให้คุณเห็นผลกระทบจริงของการตลาด',
             position: 'inner-top-right'
         },
         {
             targetId: 'tutorial-overview-funnel',
-            title: 'Full-Funnel Conversion View',
-            content: 'Diagnose your customer journey. We visualize conversion rates at every stage—from Impression to Click to Purchase—helping you pinpoint exactly where you are losing potential customers.',
+            title: 'ภาพรวม Conversion Funnel',
+            content: 'วินิจฉัย Customer Journey ของคุณ แสดง Conversion Rate ทุกขั้นตอนตั้งแต่การแสดงผลจนถึงการซื้อ ช่วยให้คุณระบุจุดที่เสียลูกค้า',
             position: 'inner-top-left'
         }
     ],
     campaigns: [
         {
             targetId: 'tutorial-campaigns-header',
-            title: 'Campaign Command Center',
-            content: 'Centralized control for all your advertising efforts. Create new campaigns, export reports, and manage your cross-platform strategy from this single view.',
+            title: 'ศูนย์บัญชาการแคมเปญ',
+            content: 'ควบคุมโฆษณาทั้งหมดจากจุดเดียว สร้างแคมเปญใหม่ ส่งออกรายงาน และจัดการกลยุทธ์ข้ามแพลตฟอร์มได้ที่นี่',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-campaigns-search',
-            title: 'Precision Search',
-            content: 'Quickly locate specific campaigns by name. Supporting fuzzy search, this tool helps you find exactly what you need in seconds, even with hundreds of active ads.',
+            title: 'ค้นหาแม่นยำ',
+            content: 'ค้นหาแคมเปญตามชื่อได้อย่างรวดเร็ว รองรับการค้นหาแบบ Fuzzy Search ช่วยให้คุณค้นพบสิ่งที่ต้องการในไม่กี่วินาที',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-campaigns-status-filter',
-            title: 'Status Filters',
-            content: 'Isolate specific campaign lifecycles. Toggle between Active, Paused, or Completed campaigns to focus your optimization efforts where they matter most.',
+            title: 'กรองตามสถานะ',
+            content: 'แยกแคมเปญตามสถานะ สลับดูระหว่าง กำลังใช้งาน หยุดชั่วคราว หรือ เสร็จสิ้น เพื่อโฟกัสการปรับปรุงในจุดที่สำคัญที่สุด',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-campaigns-selected-only',
-            title: 'Focus Mode',
-            content: 'Eliminate noise. Select specific campaigns using the checkboxes in the table, then click this button to instantly filter the view to show ONLY your selection.',
+            title: 'โหมดโฟกัส',
+            content: 'ลดความซับซ้อน เลือกแคมเปญที่ต้องการจากตาราง แล้วกดปุ่มนี้เพื่อแสดงเฉพาะรายการที่เลือกไว้',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-campaigns-date-filter',
-            title: 'Time Travel',
-            content: 'Adjust your analytical window. Switch between Last 7 Days, Last Month, or Custom Ranges to spot historical trends or recent anomalies.',
+            title: 'ตัวกรองวันที่',
+            content: 'ปรับช่วงเวลาการวิเคราะห์ สลับระหว่าง 7 วันล่าสุด เดือนล่าสุด หรือกำหนดช่วงเวลาเอง เพื่อค้นหาแนวโน้มและจุดผิดปกติ',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-campaigns-columns-button',
-            title: 'Customizable Metrics Grid',
-            content: 'Select additional metrics to customize the view exactly as you need.',
+            title: 'ปรับแต่งคอลัมน์',
+            content: 'เลือกตัวชี้วัดเพิ่มเติมเพื่อปรับแต่งมุมมองตามที่คุณต้องการ',
             position: 'left'
         },
         {
             targetId: 'tutorial-campaigns-list',
-            title: 'Actionable Insights Row',
-            content: 'Each row is a campaign. Use the checkboxes for bulk actions, or click the campaign name to dive into a granular day-by-day performance report.',
+            title: 'รายการแคมเปญ',
+            content: 'แต่ละแถวคือหนึ่งแคมเปญ ใช้เช็คบ็อกซ์สำหรับดำเนินการหลายรายการ หรือคลิกชื่อแคมเปญเพื่อดูรายงานประสิทธิภาพรายวัน',
             position: 'inner-bottom-right'
         },
         {
             targetId: 'tutorial-campaigns-summary',
-            title: 'Performance Pulse',
-            content: 'Aggregated health metrics for your current selection. Instantly see the Total Cost, Impressions, and Clicks for filtered campaigns without manual calculation.',
+            title: 'สรุปประสิทธิภาพ',
+            content: 'ตัวชี้วัดรวมสำหรับรายการที่เลือก ดูต้นทุนรวม จำนวนการแสดงผล และคลิกทั้งหมดได้ทันทีโดยไม่ต้องคำนวณเอง',
             position: 'top'
         },
         {
             targetId: 'tutorial-campaigns-visualization-chart',
-            title: 'Trend Visualization',
-            content: 'Visualize budget efficiency. This chart compares Spend against Revenue and Budget across your top campaigns, instantly revealing which ads are profitable.',
+            title: 'กราฟแสดงแนวโน้ม',
+            content: 'แสดงประสิทธิภาพการใช้งบประมาณ กราฟนี้เปรียบเทียบค่าใช้จ่าย รายได้ และงบประมาณ ช่วยให้เห็นว่าโฆษณาตัวไหนได้กำไร',
             position: 'right'
         },
         {
             targetId: 'tutorial-campaigns-visualization-highlights',
-            title: 'Key Performance Drivers',
-            content: 'At-a-glance leadership board. Quickly see your Top ROI campaign, Best Performer, and total Active Count in this condensed executive summary.',
+            title: 'ไฮไลท์สำคัญ',
+            content: 'ดูผลลัพธ์เด่นได้ทันที แคมเปญ ROI สูงสุด ผู้ทำผลงานดีที่สุด และจำนวนแคมเปญที่ใช้งานอยู่ในสรุปผู้บริหาร',
             position: 'left'
         },
         {
             targetId: 'tutorial-campaigns-conversion-rate',
-            title: 'Conversion Intelligence',
-            content: 'The ultimate success metric. This card benchmarks your Conversion Rate against your account average, telling you instantly if a campaign is a "Winner" or "Underperformer".',
+            title: 'วิเคราะห์ Conversion',
+            content: 'ตัวชี้วัดความสำเร็จสุดท้าย การ์ดนี้เปรียบเทียบ Conversion Rate กับค่าเฉลี่ยของบัญชี บอกได้ทันทีว่าแคมเปญ "ชนะ" หรือ "ต้องปรับปรุง"',
             position: 'right'
         },
         {
             targetId: 'tutorial-campaigns-platform-breakdown',
-            title: 'Cross-Platform ROI',
-            content: 'See where your budget works hardest. This breakdown compares efficiency across Facebook, Google, Line, and TikTok, helping you reallocate funds to the highest-performing channels.',
+            title: 'ROI แยกตามแพลตฟอร์ม',
+            content: 'ดูว่างบประมาณทำงานดีที่สุดบนแพลตฟอร์มไหน เปรียบเทียบประสิทธิภาพ Facebook, Google, Line และ TikTok เพื่อจัดสรรงบใหม่',
             position: 'left'
         }
     ],
     ai_insights: [
         {
             targetId: 'tutorial-ai-detail-summary-card',
-            title: 'AI Detail Summary',
-            content: 'Deep dive analysis & strategic reports',
+            title: 'สรุปรายละเอียด AI',
+            content: 'วิเคราะห์เชิงลึกและรายงานเชิงกลยุทธ์',
             position: 'right'
         },
         {
             targetId: 'tutorial-ai-marketing-tools',
-            title: 'Marketing Calculators',
-            content: 'Quick actions for ads & content',
+            title: 'เครื่องมือการตลาด',
+            content: 'เครื่องมือลัดสำหรับโฆษณาและเนื้อหา',
             position: 'left'
         },
         {
             targetId: 'tutorial-ai-chat-input',
-            title: 'Ask AI Anything',
-            content: 'Type questions or use voice commands',
+            title: 'ถาม AI ได้ทุกเรื่อง',
+            content: 'พิมพ์คำถามหรือใช้คำสั่งเสียง',
             position: 'top'
         },
         {
             targetId: 'tutorial-ai-new-chat',
-            title: 'Start Fresh',
-            content: 'Click to begin a new conversation',
-            position: 'bottom'
+            title: 'แชทใหม่',
+            content: 'คลิกเพื่อเริ่มบทสนทนาใหม่',
+            position: 'top'
         },
         {
             targetId: 'tutorial-ai-summary-history',
-            title: 'Chat History',
-            content: 'Access past conversations',
+            title: 'ประวัติแชท',
+            content: 'เข้าถึงบทสนทนาที่ผ่านมา',
             position: 'left'
         }
     ],
     data_sources: [
         {
             targetId: 'tutorial-datasources-header',
-            title: 'Connect Your World',
-            content: 'This is where you plug in your ad accounts. Think of it as plugging a lamp into a socket—once connected, the light (data) flows automatically.',
+            title: 'เชื่อมต่อแหล่งข้อมูล',
+            content: 'ที่นี่คือจุดเชื่อมต่อบัญชีโฆษณาของคุณ เหมือนการเสียบปลั๊ก—เมื่อเชื่อมต่อแล้ว ข้อมูลจะไหลเข้ามาโดยอัตโนมัติ',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-datasource-card-google',
-            title: 'Ad Platforms',
-            content: 'These are the services you use for advertising, like Google or Facebook. You can see which ones are ready to connect here.',
+            title: 'แพลตฟอร์มโฆษณา',
+            content: 'เหล่านี้คือบริการที่คุณใช้ลงโฆษณา เช่น Google หรือ Facebook คุณสามารถดูว่าตัวไหนพร้อมเชื่อมต่อได้ที่นี่',
             position: 'right'
         },
         {
             targetId: 'tutorial-datasource-connect-btn-google',
-            title: 'One-Click Sync',
-            content: 'Just click "Connect" and log in with your account. We will handle the heavy lifting to pull your data in safely.',
+            title: 'เชื่อมต่อคลิกเดียว',
+            content: 'แค่กด "เชื่อมต่อ" แล้วเข้าสู่ระบบด้วยบัญชีของคุณ เราจะจัดการดึงข้อมูลให้อย่างปลอดภัย',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-datasources-help',
-            title: 'Safe & Secure',
-            content: 'Your privacy is our priority. We only read the data needed to show your reports details.',
+            title: 'ปลอดภัยและมั่นคง',
+            content: 'ความเป็นส่วนตัวของคุณเป็นสิ่งสำคัญ เราอ่านเฉพาะข้อมูลที่จำเป็นสำหรับการแสดงรายงานเท่านั้น',
             position: 'top'
         }
     ],
     seo: [
         {
             targetId: 'tutorial-seo-header',
-            title: 'Search Command Center',
-            content: 'Master your organic presence. This dashboard tracks your rankings, traffic quality, and backlink authority in one place.',
+            title: 'ศูนย์บัญชาการ SEO',
+            content: 'ควบคุม Organic ทั้งหมด แดชบอร์ดนี้ติดตามอันดับ คุณภาพทราฟฟิก และความแข็งแกร่งของ Backlink ในที่เดียว',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-seo-overview',
-            title: 'Quick Vitals',
-            content: 'Immediate health check. Monitor your total organic sessions, goal completions, and average time on page at a glance.',
+            title: 'สรุปภาพรวม',
+            content: 'ตรวจสุขภาพเว็บไซต์ทันที ติดตาม Organic Sessions, เป้าหมายที่สำเร็จ และเวลาเฉลี่ยบนหน้าเว็บ',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-seo-premium',
-            title: 'Authority Score',
-            content: 'Your reputation power. We track Domain Rating (DR) and URL Rating (UR) to show how authoritative search engines consider your site.',
+            title: 'คะแนนความน่าเชื่อถือ',
+            content: 'พลังชื่อเสียงของคุณ เราติดตาม Domain Rating (DR) และ URL Rating (UR) เพื่อแสดงว่า Search Engine เห็นเว็บไซต์คุณน่าเชื่อถือแค่ไหน',
             position: 'bottom'
         },
         {
             targetId: 'tutorial-seo-chart',
-            title: 'Traffic Trends',
-            content: 'Visualize your growth. Compare organic traffic against goal completions over time to prove the ROI of your SEO efforts.',
+            title: 'แนวโน้มทราฟฟิก',
+            content: 'แสดงการเติบโต เปรียบเทียบ Organic Traffic กับเป้าหมายที่สำเร็จตามช่วงเวลา เพื่อพิสูจน์ ROI ของ SEO',
             position: 'top'
         },
         {
             targetId: 'tutorial-seo-keywords',
-            title: 'Winning Keywords',
-            content: 'See what drives traffic. This table ranks your top performing keywords by volume and position, highlighting your biggest opportunities.',
+            title: 'คีย์เวิร์ดชนะ',
+            content: 'ดูว่าอะไรดึงทราฟฟิก ตารางนี้จัดอันดับคีย์เวิร์ดตามปริมาณการค้นหาและตำแหน่ง ชี้ให้เห็นโอกาสที่ดีที่สุด',
             position: 'left'
         },
         {
             targetId: 'tutorial-seo-location',
-            title: 'Global Reach',
-            content: 'Where are your visitors? Pinpoint your top performing countries and cities to tailor your content strategy.',
+            title: 'การเข้าถึงทั่วโลก',
+            content: 'ผู้เยี่ยมชมของคุณมาจากไหน? ระบุประเทศและเมืองที่มีประสิทธิภาพดีที่สุดเพื่อปรับกลยุทธ์เนื้อหา',
             position: 'left'
         },
         {
             targetId: 'tutorial-seo-intent',
-            title: 'User Mindset',
-            content: 'Decode user intent. Are visitors looking for information (Informational) or ready to buy (Transactional)? Use this to guide your content creation.',
+            title: 'ความตั้งใจของผู้ใช้',
+            content: 'ถอดรหัส User Intent ผู้เยี่ยมชมต้องการข้อมูล (Informational) หรือพร้อมซื้อ (Transactional)? ใช้ข้อมูลนี้วางแผนเนื้อหา',
             position: 'left'
         },
         {
             targetId: 'tutorial-seo-anchor',
-            title: 'Link Profile',
-            content: 'Analyze your backlinks. See the most common text used to link to your site, ensuring a natural and healthy profile.',
+            title: 'โปรไฟล์ลิงก์',
+            content: 'วิเคราะห์ Backlink ดูข้อความที่ใช้ลิงก์มาเว็บไซต์คุณมากที่สุด เพื่อให้แน่ใจว่าโปรไฟล์ลิงก์เป็นธรรมชาติและแข็งแรง',
             position: 'left'
         },
         {
             targetId: 'tutorial-seo-offpage',
-            title: 'Backlink Health',
-            content: 'The backbone of SEO. Track your total backlinks and referring domains to ensure your off-page strategy is building momentum.',
+            title: 'สุขภาพ Backlink',
+            content: 'หัวใจของ SEO ติดตามจำนวน Backlink และ Referring Domains เพื่อให้แน่ใจว่ากลยุทธ์ Off-page กำลังเติบโต',
             position: 'top'
         }
     ]
