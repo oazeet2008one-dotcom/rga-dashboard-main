@@ -2,6 +2,7 @@ import { Controller, Get, Delete, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
+import { LineAdsOAuthService } from './line-ads-oauth.service';
 
 @ApiTags('integrations/line-ads')
 @Controller('integrations/line-ads')
@@ -10,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class LineAdsIntegrationController {
     constructor(
         private readonly prisma: PrismaService,
+        private readonly oauthService: LineAdsOAuthService,
     ) { }
 
     @Get('status')
@@ -58,10 +60,7 @@ export class LineAdsIntegrationController {
     async disconnect(@Req() req: any) {
         const tenantId = req.user.tenantId;
 
-        // Delete all LINE Ads accounts for this tenant
-        await this.prisma.lineAdsAccount.deleteMany({
-            where: { tenantId },
-        });
+        await this.oauthService.disconnect(tenantId);
 
         return {
             success: true,

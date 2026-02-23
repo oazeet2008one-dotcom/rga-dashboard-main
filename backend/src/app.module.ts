@@ -31,6 +31,7 @@ import { CommonModule } from './common/common.module';
 import { EntitlementsModule } from './modules/entitlements/entitlements.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AiModule } from './modules/ai/ai.module';
+import { IntegrationsSummaryModule } from './modules/integrations/integrations-summary.module';
 
 
 @Module({
@@ -85,6 +86,7 @@ import { AiModule } from './modules/ai/ai.module';
     FacebookAdsModule,
     TikTokAdsModule,
     LineAdsModule,
+    IntegrationsSummaryModule,
     AlertModule, // Alert System
     SeoModule,
     HealthModule, // Health Check

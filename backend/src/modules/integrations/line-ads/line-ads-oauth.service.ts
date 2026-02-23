@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import axios from 'axios';
+import { AdPlatform } from '@prisma/client';
 import { EncryptionService } from '../../../common/services/encryption.service';
 
 @Injectable()
@@ -105,5 +106,18 @@ export class LineAdsOAuthService {
             this.logger.error(`LINE Ads Callback Error: ${error.message}`);
             throw new BadRequestException(`Failed to connect LINE Ads: ${error.message}`);
         }
+    }
+
+    async disconnect(tenantId: string): Promise<boolean> {
+        await this.prisma.lineAdsAccount.deleteMany({
+            where: { tenantId },
+        });
+
+        await this.prisma.integration.updateMany({
+            where: { tenantId, type: AdPlatform.LINE_ADS },
+            data: { status: 'DISCONNECTED', isActive: false },
+        });
+
+        return true;
     }
 }

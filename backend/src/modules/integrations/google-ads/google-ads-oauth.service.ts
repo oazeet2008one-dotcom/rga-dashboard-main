@@ -436,6 +436,36 @@ export class GoogleAdsOAuthService {
     await this.prisma.googleAdsAccount.deleteMany({
       where: { tenantId }
     });
+
+    await this.prisma.integration.upsert({
+      where: { id: '___never_match___' },
+      create: {
+        tenantId,
+        type: AdPlatform.GOOGLE_ADS,
+        name: 'Google Ads',
+        status: 'DISCONNECTED',
+        isActive: false,
+      },
+      update: {},
+    }).catch(async () => {
+      // Fallback if unique selector doesn't exist in generated Prisma types
+      const updated = await this.prisma.integration.updateMany({
+        where: { tenantId, type: AdPlatform.GOOGLE_ADS },
+        data: { status: 'DISCONNECTED', isActive: false },
+      });
+
+      if (updated.count === 0) {
+        await this.prisma.integration.create({
+          data: {
+            tenantId,
+            type: AdPlatform.GOOGLE_ADS,
+            name: 'Google Ads',
+            status: 'DISCONNECTED',
+            isActive: false,
+          },
+        });
+      }
+    });
     return true;
   }
 }
