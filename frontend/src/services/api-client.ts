@@ -36,9 +36,17 @@ import { dispatchSessionExpired } from '@/lib/auth-events';
 
 
 
-const API_BASE_URL =
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
-    import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+// Ensure API_BASE_URL ends with /api/v1
+const ensureApiPrefix = (url: string) => {
+    if (!url.endsWith('/api/v1')) {
+        return url.replace(/\/$/, '') + '/api/v1';
+    }
+    return url;
+};
+
+const FINAL_API_BASE_URL = ensureApiPrefix(API_BASE_URL);
 
 
 
@@ -50,7 +58,7 @@ const API_BASE_URL =
 
 export const apiClient: AxiosInstance = axios.create({
 
-    baseURL: API_BASE_URL,
+    baseURL: FINAL_API_BASE_URL,
 
     headers: {
 
