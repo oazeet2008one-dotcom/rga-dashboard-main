@@ -10,7 +10,7 @@
     "start": "nest start",
     "start:dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 nest start --watch",
     "start:dev:prod": "cross-env NODE_OPTIONS=--max-old-space-size=4096 nest build && cross-env NODE_OPTIONS=--max-old-space-size=4096 node dist/main",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/main.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
