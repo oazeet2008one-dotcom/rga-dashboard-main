@@ -115,9 +115,7 @@ async function bootstrap() {
 
 
   // CORS - Read from environment with fallback to development defaults
-
-  const corsOrigins = process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,http://localhost:3001';
-
+  const corsOrigins = process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,http://localhost:3001,https://rga-dashboard-main.vercel.app,https://rga-dashboard-main-git-main-oazeet2008one-dotcoms-projects.vercel.app';
   const originList = corsOrigins.split(',').map(o => o.trim());
 
   app.enableCors({
