@@ -1,7 +1,7 @@
 {
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd backend && npm install && npx prisma generate && npm run build && ls -la dist/ && find dist/ -name '*.js' -type f && node -e \"console.log('Build output:'); require('fs').readdirSync('./dist').forEach(f => console.log(f));\"",
+    "buildCommand": "cd backend && npm install && npx prisma generate && npm run build && ls -la dist/ && find dist/ -name '*' -type f && echo '=== NEST BUILD OUTPUT ===' && cat nest-cli.json && node -e \"console.log('Build output:'); require('fs').readdirSync('./dist').forEach(f => console.log(f));\"",
     "installCommand": "cd backend && npm install"
   },
   "deploy": {
