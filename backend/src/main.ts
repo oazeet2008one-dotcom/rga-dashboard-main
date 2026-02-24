@@ -120,17 +120,21 @@ async function bootstrap() {
 
   const originList = corsOrigins.split(',').map(o => o.trim());
 
-
-
   app.enableCors({
 
     origin: [
 
       ...originList,
 
+      'https://rga-dashboard-main.vercel.app',
+
+      'https://rga-dashboard-main-git-main-oazeet2008one-dotcoms-projects.vercel.app',
+
       /^https:\/\/.*\.manus-asia\.computer$/,
 
       /^https:\/\/.*\.manus\.space$/,
+
+      /^https:\/\/.*\.vercel\.app$/,
 
     ],
 
@@ -139,13 +143,21 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 
     allowedHeaders: [
+
       'Content-Type',
+
       'Authorization',
+
       'Cache-Control',
+
       'Pragma',
+
       'Expires',
+
       'If-None-Match',
+
       'If-Modified-Since',
+
     ],
 
   });
