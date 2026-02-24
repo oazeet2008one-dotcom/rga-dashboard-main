@@ -5,7 +5,7 @@
     "installCommand": "cd backend && npm install"
   },
   "deploy": {
-    "startCommand": "cd backend && node dist/main",
+    "startCommand": "cd backend && node dist/main.js",
     "port": 3000,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
