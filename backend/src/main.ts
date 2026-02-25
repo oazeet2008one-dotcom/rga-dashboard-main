@@ -1,4 +1,10 @@
 ﻿import { NestFactory } from '@nestjs/core';
+// Polyfill global crypto for Node.js 18 (needed by @nestjs/schedule)
+import { webcrypto } from 'node:crypto';
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
+
 
 import { ValidationPipe } from '@nestjs/common';
 
