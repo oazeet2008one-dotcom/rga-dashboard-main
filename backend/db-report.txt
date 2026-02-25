@@ -1,0 +1,46 @@
+=== DATABASE STATUS REPORT ===
+Date: 2026-02-25T04:29:31.955Z
+
+📦 TENANTS (2):
+  - RGA Demo Company | slug: rga-demo | plan: enterprise
+  - Admin | slug: null | plan: basic
+
+👤 USERS (3):
+  - 650112230008@bru.ac.th | role: admin | verified: true | active: true | tenant: 489f2fc5-25c2-42f5-bafb-d973be06d204
+  - admin@rga.com | role: super_admin | verified: true | active: true | tenant: 7a4097c1-4b96-4e50-88eb-f1a150f5a299
+  - demo@example.com | role: client | verified: true | active: true | tenant: 7a4097c1-4b96-4e50-88eb-f1a150f5a299
+
+📊 CAMPAIGNS (12):
+  - Website-Performance Max | google_ads | paused | THB
+  - Search-learning | google_ads | paused | THB
+  - Performance Max-5 test | google_ads | paused | THB
+  - RGA business consult campaign | google_ads | paused | THB
+  - RGA SEO campaign | google_ads | paused | THB
+  - RGA Website- ads | google_ads | active | THB
+  - social media marketing campaign | google_ads | paused | THB
+  - Website - singapore | google_ads | paused | THB
+  - Website singapore 02 | google_ads | paused | THB
+  - RGA SEO - New ads campaign | google_ads | paused | THB
+  - content & production - new campaign | google_ads | paused | THB
+  - singapore new ads | google_ads | paused | THB
+
+📈 Metrics rows: 22
+
+🔗 INTEGRATIONS (3):
+  - Google Ads Main | type: google_ads | status: DISCONNECTED | active: false
+  - Facebook Ads Main | type: facebook | status: DISCONNECTED | active: false
+  - Google Ads | type: google_ads | status: DISCONNECTED | active: false
+
+🌐 Web Analytics Daily rows: 40
+📎 SEO Offpage Snapshots: 1
+🔑 SEO Top Keywords: 5
+🔍 SEO Search Intent: 546
+⚓ SEO Anchor Text: 2
+📍 SEO Traffic by Location: 10
+
+🚨 Alerts: 0
+🔔 Notifications: 0
+📝 Audit Logs: 9
+🔐 Sessions: 8
+
+✅ Database connection verified and healthy!
