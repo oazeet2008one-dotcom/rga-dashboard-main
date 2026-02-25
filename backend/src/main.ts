@@ -115,50 +115,32 @@ async function bootstrap() {
 
 
   // CORS - Read from environment with fallback to development defaults
-  const corsOrigins = process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,http://localhost:3001,https://rga-dashboard-main.vercel.app,https://rga-dashboard-main-git-main-oazeet2008one-dotcoms-projects.vercel.app';
+  const corsOrigins = process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,http://localhost:3001,https://rga-dashboard-main.vercel.app,https://rga-dashboard-frontend.vercel.app';
   const originList = corsOrigins.split(',').map(o => o.trim());
 
   app.enableCors({
-
     origin: [
-
       ...originList,
-
       'https://rga-dashboard-main.vercel.app',
-
-      'https://rga-dashboard-main-git-main-oazeet2008one-dotcoms-projects.vercel.app',
-
-      /^https:\/\/.*\.manus-asia\.computer$/,
-
-      /^https:\/\/.*\.manus\.space$/,
-
+      'https://rga-dashboard-frontend.vercel.app',
+      'https://rga-dashboard-frontend-b0wyc9g7q-oazeet2008one-dotcoms-projects.vercel.app',
       /^https:\/\/.*\.vercel\.app$/,
-
+      /^https:\/\/.*\.up\.railway\.app$/, // Allow other railway services if needed
     ],
-
     credentials: true,
-
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-
     allowedHeaders: [
-
       'Content-Type',
-
       'Authorization',
-
       'Cache-Control',
-
       'Pragma',
-
       'Expires',
-
       'If-None-Match',
-
       'If-Modified-Since',
-
     ],
-
   });
+
+  console.log(`🔒 CORS origins enabled for: ${originList.join(', ')} and all *.vercel.app`);
 
 
 
