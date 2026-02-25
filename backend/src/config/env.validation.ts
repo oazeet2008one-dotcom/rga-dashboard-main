@@ -44,22 +44,10 @@ export const envValidationSchema = Joi.object({
     // ============================================
     // Google OAuth (Required for integrations)
     // ============================================
-    GOOGLE_CLIENT_ID: Joi.string().when('NODE_ENV', {
-        is: 'production',
-        then: Joi.required().messages({
-            'any.required': 'GOOGLE_CLIENT_ID is required for Google integrations',
-        }),
-        otherwise: Joi.optional(),
-    }),
-    GOOGLE_CLIENT_SECRET: Joi.string().when('NODE_ENV', {
-        is: 'production',
-        then: Joi.required().messages({
-            'any.required': 'GOOGLE_CLIENT_SECRET is required for Google integrations',
-        }),
-        otherwise: Joi.optional(),
-    }),
-    GOOGLE_REDIRECT_URI_ADS: Joi.string().uri().optional(),
-    GOOGLE_REDIRECT_URI_ANALYTICS: Joi.string().uri().optional(),
+    GOOGLE_CLIENT_ID: Joi.string().optional(),
+    GOOGLE_CLIENT_SECRET: Joi.string().optional(),
+    GOOGLE_REDIRECT_URI_ADS: Joi.string().optional(),
+    GOOGLE_REDIRECT_URI_ANALYTICS: Joi.string().optional(),
     GOOGLE_ADS_DEVELOPER_TOKEN: Joi.string().optional(),
 
     // ============================================
@@ -95,7 +83,6 @@ export const envValidationSchema = Joi.object({
 
     // Frontend URL - required in production, has default in development
     FRONTEND_URL: Joi.string()
-        .uri()
         .when('NODE_ENV', {
             is: 'production',
             then: Joi.required().messages({
@@ -108,7 +95,6 @@ export const envValidationSchema = Joi.object({
     // Email Verification (SMTP)
     // ============================================
     APP_URL: Joi.string()
-        .uri()
         .optional()
         .default('http://localhost:5173'),
     SMTP_HOST: Joi.string().optional(),
