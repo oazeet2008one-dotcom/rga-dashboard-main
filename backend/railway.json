@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npx prisma migrate deploy && node dist/src/main.js",
+    "startCommand": "node dist/src/main.js",
     "healthcheckPath": "/health",
     "port": 3000,
     "restartPolicyType": "ON_FAILURE",
@@ -12,6 +12,6 @@
   "nixpacks": {
     "buildCommand": "npm install && npx prisma generate && npm run build",
     "installCommand": "npm install",
-    "startCommand": "npx prisma migrate deploy && node dist/src/main.js"
+    "startCommand": "node dist/src/main.js"
   }
 }

@@ -4,7 +4,7 @@
     "buildCommand": "cd backend && npm install && npx prisma generate && npm run build"
   },
   "deploy": {
-    "startCommand": "cd backend && npx prisma migrate deploy && node dist/src/main.js",
+    "startCommand": "cd backend && node dist/src/main.js",
     "port": 3000,
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE",
